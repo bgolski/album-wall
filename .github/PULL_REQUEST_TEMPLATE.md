@@ -26,4 +26,4 @@
 - [ ] I have updated the documentation accordingly
 - [ ] My changes generate no new warnings or errors
 - [ ] The code builds successfully
-- [ ] All existing tests pass 
+- [ ] All existing tests pass
