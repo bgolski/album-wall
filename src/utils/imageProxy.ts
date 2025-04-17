@@ -10,6 +10,10 @@ const PROXY_SERVICES = [
   "https://api.allorigins.win/raw?url=",
 ];
 
+// Default embedded placeholder image as base64 - this ensures we never get 404s for images
+export const DEFAULT_PLACEHOLDER_IMAGE =
+  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzIyMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhYWEiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPkFsYnVtIEFydHdvcms8L3RleHQ+PC9zdmc+";
+
 /**
  * Converts an image URL to use a CORS-friendly proxy
  * @param url Original image URL
@@ -17,7 +21,8 @@ const PROXY_SERVICES = [
  * @returns Proxied URL
  */
 export function getProxiedImageUrl(url: string, proxyIndex = 0): string {
-  if (!url) return "";
+  // If no URL is provided, return the placeholder
+  if (!url) return DEFAULT_PLACEHOLDER_IMAGE;
 
   // If it's already a data URL, return as is
   if (url.startsWith("data:")) {
@@ -44,12 +49,20 @@ export function getProxiedImageUrl(url: string, proxyIndex = 0): string {
  * @param onSuccess Callback when an image successfully loads
  */
 export function tryMultipleProxies(originalUrl: string, onSuccess: (url: string) => void): void {
+  // If no URL provided, immediately use placeholder
+  if (!originalUrl) {
+    onSuccess(DEFAULT_PLACEHOLDER_IMAGE);
+    return;
+  }
+
   // Try each proxy service in sequence
   let currentIndex = 0;
 
   function tryNextProxy() {
     if (currentIndex >= PROXY_SERVICES.length) {
       console.error("All proxy services failed for image:", originalUrl);
+      // When all proxies fail, use the placeholder image
+      onSuccess(DEFAULT_PLACEHOLDER_IMAGE);
       return;
     }
 

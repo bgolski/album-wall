@@ -1,11 +1,22 @@
 export interface Album {
-  id: string;
-  artist: string;
+  id: number;
   title: string;
-  coverUrl?: string;
-  genre?: string;
+  cover_image?: string;
+  artist: string;
+  genre?: string[];
   year?: string;
-  error?: string;
+  coverUrl?: string;
+  error?: boolean;
+}
+
+// Define HTML2Canvas options interface for type casting
+export interface Html2CanvasOptions {
+  backgroundColor?: string;
+  scale?: number;
+  logging?: boolean;
+  allowTaint?: boolean;
+  useCORS?: boolean;
+  background?: string;
 }
 
 // Define global window interface extension for our exportAlbumWall function

@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableRecord } from "./SortableRecord";
 import { Album } from "../types/index";
+import { Html2CanvasOptions } from "../types";
 import html2canvas from "html2canvas";
 
 interface RecordGridProps {
@@ -42,6 +43,9 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
   const [isExporting, setIsExporting] = useState(false);
   const [pinnedAlbums, setPinnedAlbums] = useState<Set<string>>(new Set());
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // For display in UI or logging
+  const userDisplayName = username || "Anonymous";
 
   // Calculate grid size based on current dimensions
   const gridSize = rows * columns;
@@ -185,9 +189,12 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
           const artistB = b.artist || "";
           return artistA.localeCompare(artistB);
         } else if (option === "genre") {
-          const genreA = a.genre?.[0] || "";
-          const genreB = b.genre?.[0] || "";
-          return genreA.localeCompare(genreB);
+          // Handle genre as either string or array
+          const genreA =
+            typeof a.genre === "string" ? a.genre : Array.isArray(a.genre) ? a.genre[0] || "" : "";
+          const genreB =
+            typeof b.genre === "string" ? b.genre : Array.isArray(b.genre) ? b.genre[0] || "" : "";
+          return String(genreA).localeCompare(String(genreB));
         }
         return 0;
       });
@@ -221,9 +228,12 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
         const artistB = b.artist || "";
         return artistA.localeCompare(artistB);
       } else if (option === "genre") {
-        const genreA = a.genre?.[0] || "";
-        const genreB = b.genre?.[0] || "";
-        return genreA.localeCompare(genreB);
+        // Handle genre as either string or array
+        const genreA =
+          typeof a.genre === "string" ? a.genre : Array.isArray(a.genre) ? a.genre[0] || "" : "";
+        const genreB =
+          typeof b.genre === "string" ? b.genre : Array.isArray(b.genre) ? b.genre[0] || "" : "";
+        return String(genreA).localeCompare(String(genreB));
       }
       return 0;
     });
@@ -474,29 +484,31 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
 
   // Export wall display to CSV
   const exportToCSV = () => {
-    if (!displayedAlbums.length) return;
+    setDropdownOpen(false);
 
-    // Create CSV content with headers
-    const headers = ["Title", "Artist", "Genre"];
-    const csvContent = displayedAlbums.map((album) => {
-      const genreString = album.genre ? album.genre.join(", ") : "";
-      return [album.title || "", album.artist || "", genreString].join(",");
-    });
+    if (!albums || albums.length === 0) {
+      alert("No albums to export");
+      return;
+    }
 
-    // Add headers to the top
-    csvContent.unshift(headers.join(","));
+    const csvHeader = "Artist,Title,Genre,Year\n";
+    const csvContent = albums
+      .map((album) => {
+        const artist = album.artist.replace(/,/g, " ");
+        const title = album.title.replace(/,/g, " ");
+        const genre =
+          album.genre && album.genre.length > 0 ? album.genre[0].replace(/,/g, " ") : "";
+        const year = album.year || "";
+        return `${artist},${title},${genre},${year}`;
+      })
+      .join("\n");
 
-    // Create and download blob
-    const blob = new Blob([csvContent.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
+    const blob = new Blob([csvHeader + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
+
     link.setAttribute("href", url);
-    // Include username in the filename if available
-    const fileName = username ? `${username}-vinyl-wall.csv` : "vinyl-wall.csv";
-    link.setAttribute("download", fileName);
-    link.style.visibility = "hidden";
+    link.setAttribute("download", "vinyl_wall_export.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -504,54 +516,54 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
 
   // Export wall display as image
   const exportAsImage = async () => {
-    // Close dropdown
     setDropdownOpen(false);
 
-    if (!gridRef.current) {
-      console.error("Grid reference not found");
+    if (!gridRef.current || albums.length === 0) {
+      alert("No albums to export");
       return;
     }
 
     try {
+      // Set exporting state to true while generating the image
       setIsExporting(true);
 
-      // Temporarily hide labels for clean export
-      const grid = gridRef.current;
-      const labels = grid.querySelectorAll(".album-labels");
-      labels.forEach((label) => {
+      // Temporarily hide labels for export
+      const labels = gridRef.current.querySelectorAll(".album-labels");
+      labels.forEach((label: Element) => {
         (label as HTMLElement).style.display = "none";
       });
 
-      const canvas = await html2canvas(grid, {
-        backgroundColor: null,
-        useCORS: true,
+      const canvas = await html2canvas(gridRef.current, {
+        backgroundColor: "#121212",
+        scale: window.devicePixelRatio * 2, // Higher quality
         logging: false,
-        scale: 2, // Higher quality
-      });
+        allowTaint: true,
+        useCORS: true,
+      } as Html2CanvasOptions);
 
-      // Restore labels
-      labels.forEach((label) => {
+      // Show labels again
+      labels.forEach((label: Element) => {
         (label as HTMLElement).style.display = "block";
       });
 
-      const dataUrl = canvas.toDataURL("image/png");
+      const image = canvas.toDataURL("image/png");
       const link = document.createElement("a");
-      // Include username in the filename if available
-      const fileName = username ? `${username}-vinyl-wall.png` : "vinyl-wall.png";
-      link.download = fileName;
-      link.href = dataUrl;
+      link.download = `${userDisplayName}_vinyl_wall.png`;
+      link.href = image;
       link.click();
+
+      // Reset exporting state when done
+      setIsExporting(false);
     } catch (error) {
       console.error("Error exporting image:", error);
       alert("Failed to export image. Please try again.");
-    } finally {
       setIsExporting(false);
     }
   };
 
   // Toggle dropdown
   const toggleDropdown = () => {
-    setDropdownOpen((prev) => !prev);
+    setDropdownOpen(!dropdownOpen);
   };
 
   // Get the sorted albums if needed
