@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getBasePath } from "@/utils/basePath";
 import Script from "next/script";
+import Footer from "@/components/Footer";
 
 const basePath = getBasePath();
 
@@ -35,8 +36,12 @@ export default function RootLayout({
         <meta name="base-path" content={basePath} />
         <link rel="icon" href={`${basePath}/favicon.ico`} />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white min-h-screen flex flex-col`}
+      >
+        <main className="flex-grow">{children}</main>
+
+        <Footer />
 
         {/* Load helper scripts */}
         <Script
