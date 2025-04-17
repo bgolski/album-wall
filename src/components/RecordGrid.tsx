@@ -40,6 +40,7 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
   const [sortOption, setSortOption] = useState<SortOption>("none");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [pinnedAlbums, setPinnedAlbums] = useState<Set<string>>(new Set());
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Calculate grid size based on current dimensions
@@ -56,10 +57,101 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     setPoolItems(albums.slice(gridSize));
   }, [albums, gridSize]);
 
+  // Toggle pin status for an album
+  const togglePinAlbum = (albumId: string) => {
+    setPinnedAlbums((prevPinned) => {
+      const newPinned = new Set(prevPinned);
+      if (newPinned.has(albumId)) {
+        newPinned.delete(albumId);
+      } else {
+        newPinned.add(albumId);
+      }
+      return newPinned;
+    });
+  };
+
+  // Toggle pin status for all displayed albums
+  const togglePinAll = () => {
+    // Check if all displayed albums are currently pinned
+    const allPinned = displayedAlbums.every((album) => pinnedAlbums.has(String(album.id)));
+
+    if (allPinned) {
+      // If all are pinned, unpin all
+      setPinnedAlbums((prev) => {
+        const newPinned = new Set(prev);
+        displayedAlbums.forEach((album) => {
+          newPinned.delete(String(album.id));
+        });
+        return newPinned;
+      });
+    } else {
+      // Otherwise, pin all displayed albums
+      setPinnedAlbums((prev) => {
+        const newPinned = new Set(prev);
+        displayedAlbums.forEach((album) => {
+          newPinned.add(String(album.id));
+        });
+        return newPinned;
+      });
+    }
+  };
+
+  // Determine if all displayed albums are pinned for button state
+  const areAllPinned =
+    displayedAlbums.length > 0 &&
+    displayedAlbums.every((album) => pinnedAlbums.has(String(album.id)));
+
   // Sorting function
   const sortAlbums = (albumsToSort: Album[], option: SortOption) => {
     if (option === "none") return albumsToSort;
 
+    // Keep pinned albums in their positions during sort
+    if (pinnedAlbums.size > 0) {
+      const pinnedIndices = new Map<string, number>();
+      albumsToSort.forEach((album, index) => {
+        if (pinnedAlbums.has(String(album.id))) {
+          pinnedIndices.set(String(album.id), index);
+        }
+      });
+
+      // Sort non-pinned albums
+      const nonPinnedAlbums = albumsToSort.filter((album) => !pinnedAlbums.has(String(album.id)));
+      const sortedNonPinned = [...nonPinnedAlbums].sort((a, b) => {
+        if (option === "artist") {
+          const artistA = a.artist || "";
+          const artistB = b.artist || "";
+          return artistA.localeCompare(artistB);
+        } else if (option === "genre") {
+          const genreA = a.genre?.[0] || "";
+          const genreB = b.genre?.[0] || "";
+          return genreA.localeCompare(genreB);
+        }
+        return 0;
+      });
+
+      // Create result array with all albums
+      const result = new Array(albumsToSort.length);
+
+      // Place pinned albums at their original positions
+      pinnedIndices.forEach((index, albumId) => {
+        const album = albumsToSort.find((a) => String(a.id) === albumId);
+        if (album) {
+          result[index] = album;
+        }
+      });
+
+      // Fill empty slots with sorted non-pinned albums
+      let nonPinnedIndex = 0;
+      for (let i = 0; i < result.length; i++) {
+        if (!result[i] && nonPinnedIndex < sortedNonPinned.length) {
+          result[i] = sortedNonPinned[nonPinnedIndex++];
+        }
+      }
+
+      return result.filter(Boolean); // Remove any undefined entries
+    }
+
+    // Regular sort if no pins
     return [...albumsToSort].sort((a, b) => {
       if (option === "artist") {
         const artistA = a.artist || "";
@@ -89,6 +181,21 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     // Redistribute albums if needed
     if (newGridSize !== oldGridSize) {
       const allAlbums = [...displayedAlbums, ...poolItems];
+
+      // If grid size decreases, check for pinned albums that would be removed
+      if (newGridSize < oldGridSize) {
+        // Remove pins for albums that will no longer be in display
+        setPinnedAlbums((prevPinned) => {
+          const newPinned = new Set(prevPinned);
+          displayedAlbums.forEach((album, index) => {
+            if (index >= newGridSize && newPinned.has(String(album.id))) {
+              newPinned.delete(String(album.id));
+            }
+          });
+          return newPinned;
+        });
+      }
+
       setDisplayedAlbums(allAlbums.slice(0, newGridSize));
       setPoolItems(allAlbums.slice(newGridSize));
     }
@@ -135,6 +242,16 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     const activeId = active.id;
     const overId = over.id;
 
+    // Extract album ID from the element ID (remove "album-" prefix)
+    const activeAlbumId = String(activeId).replace("album-", "");
+    const overAlbumId = String(overId).replace("album-", "");
+
+    // Check if the target position is occupied by a pinned album
+    if (pinnedAlbums.has(overAlbumId)) {
+      // If trying to drop onto a pinned album, don't allow the swap
+      return;
+    }
+
     // Get the containers of the dragged and target items
     const activeContainer = getContainerType(activeId);
     const overContainer = getContainerType(overId);
@@ -142,11 +259,46 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     if (activeContainer === overContainer) {
       // If in the same container, just reorder
       if (activeContainer === "grid") {
-        const newDisplayedAlbums = arrayMove(
-          displayedAlbums,
-          displayedAlbums.findIndex((item) => `album-${item.id}` === activeId),
-          displayedAlbums.findIndex((item) => `album-${item.id}` === overId)
+        // Get the subset of albums that are not pinned
+        const unpinnedAlbums = displayedAlbums.filter(
+          (album) => !pinnedAlbums.has(String(album.id))
         );
+
+        // Find the indices of the dragged and target items within the unpinned subset
+        const unpinnedActiveIndex = unpinnedAlbums.findIndex(
+          (album) => String(album.id) === activeAlbumId
+        );
+        const unpinnedOverIndex = unpinnedAlbums.findIndex(
+          (album) => String(album.id) === overAlbumId
+        );
+
+        // Reorder just the unpinned albums
+        const reorderedUnpinned = arrayMove(unpinnedAlbums, unpinnedActiveIndex, unpinnedOverIndex);
+
+        // Create the new album order by inserting pinned albums at their fixed positions
+        const newDisplayedAlbums: Album[] = [];
+
+        // For each position in the grid, determine what album should be there
+        for (let i = 0; i < displayedAlbums.length; i++) {
+          const originalAlbumAtPosition = displayedAlbums[i];
+          const albumId = String(originalAlbumAtPosition.id);
+
+          // If this position had a pinned album, keep it there
+          if (pinnedAlbums.has(albumId)) {
+            newDisplayedAlbums.push(originalAlbumAtPosition);
+          } else {
+            // Otherwise, take the next unpinned album from our reordered list
+            if (reorderedUnpinned.length > 0) {
+              newDisplayedAlbums.push(reorderedUnpinned.shift()!);
+            }
+          }
+        }
+
+        // If we have any remaining unpinned albums (unlikely but for safety), add them at the end
+        if (reorderedUnpinned.length > 0) {
+          newDisplayedAlbums.push(...reorderedUnpinned);
+        }
+
         setDisplayedAlbums(newDisplayedAlbums);
 
         // Also update the parent component with combined albums
@@ -186,11 +338,63 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
       const newPoolItems = [...poolItems];
 
       if (activeContainer === "grid") {
-        newDisplayedAlbums[activeIndex] = overItem;
-        newPoolItems[overIndex] = activeItem;
+        // Moving from grid to pool means unpinning the album
+        if (pinnedAlbums.has(String(activeItem.id))) {
+          setPinnedAlbums((prev) => {
+            const newPinned = new Set(prev);
+            newPinned.delete(String(activeItem.id));
+            return newPinned;
+          });
+        }
+
+        // Remove from grid
+        newDisplayedAlbums.splice(activeIndex, 1);
+
+        // Find the right insertion spot in the pool
+        newPoolItems.splice(overIndex, 0, activeItem);
+
+        // Insert the pool item into the grid, respecting pinned positions
+        // Find the first unpinned position at or after the target index
+        let insertIndex = overIndex;
+        while (
+          insertIndex < newDisplayedAlbums.length &&
+          pinnedAlbums.has(String(newDisplayedAlbums[insertIndex].id))
+        ) {
+          insertIndex++;
+        }
+
+        // Insert at the found position or at the end if all remaining positions are pinned
+        if (insertIndex < newDisplayedAlbums.length) {
+          newDisplayedAlbums.splice(insertIndex, 0, overItem);
+        } else {
+          newDisplayedAlbums.push(overItem);
+        }
       } else {
-        newPoolItems[activeIndex] = overItem;
-        newDisplayedAlbums[overIndex] = activeItem;
+        // Moving from pool to grid
+        // Remove from pool
+        newPoolItems.splice(activeIndex, 1);
+
+        // Find the right insertion spot in the grid, respecting pinned positions
+        if (pinnedAlbums.has(String(overItem.id))) {
+          // Can't replace a pinned item, find the next available unpinned spot
+          let insertIndex = overIndex;
+          while (
+            insertIndex < newDisplayedAlbums.length &&
+            pinnedAlbums.has(String(newDisplayedAlbums[insertIndex].id))
+          ) {
+            insertIndex++;
+          }
+
+          // Insert at the found position or at the end if all remaining positions are pinned
+          if (insertIndex < newDisplayedAlbums.length) {
+            newDisplayedAlbums.splice(insertIndex, 0, activeItem);
+          } else {
+            newDisplayedAlbums.push(activeItem);
+          }
+        } else {
+          // Normal case, just insert at the target position
+          newDisplayedAlbums.splice(overIndex, 0, activeItem);
+        }
       }
 
       setDisplayedAlbums(newDisplayedAlbums);
@@ -341,6 +545,29 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
               {showDimensionsConfig ? "Hide Grid Config" : "Configure Grid"}
             </button>
 
+            <button
+              onClick={togglePinAll}
+              className={`px-3 py-1.5 rounded flex items-center ${
+                areAllPinned
+                  ? "bg-blue-600 text-white hover:bg-blue-500"
+                  : "bg-gray-600 text-white hover:bg-gray-500"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-4 h-4 mr-1"
+              >
+                {areAllPinned ? (
+                  <path d="M20.2349 14.61C19.8599 12.865 20.4649 11.03 21.8149 9.675L21.8199 9.67C22.1237 9.3653 22.1242 8.8698 21.8199 8.565C21.5125 8.2569 21.5125 7.7431 21.8199 7.435L22.5699 6.685C22.8699 6.385 22.8699 5.915 22.5699 5.615L18.3849 1.43C18.0849 1.13 17.6149 1.13 17.3149 1.43L16.5649 2.18C16.2599 2.485 15.7449 2.485 15.4399 2.18C15.1338 1.873 14.6348 1.873 14.3299 2.18L14.3249 2.185C12.9749 3.535 11.1349 4.14 9.39488 3.765C7.25988 3.3 4.95488 4.01 3.35488 5.605L3.24988 5.71C3.05988 5.9 3.05988 6.2 3.24988 6.39L17.6149 20.75C17.8049 20.94 18.1049 20.94 18.2949 20.75L18.3999 20.645C19.9949 19.045 20.7049 16.745 20.2349 14.61Z" />
+                ) : (
+                  <path d="M16 12V6c0-2.21-1.79-4-4-4S8 3.79 8 6v6h8zm-4 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" />
+                )}
+              </svg>
+              {areAllPinned ? "Unpin All" : "Pin All"}
+            </button>
+
             <div className="relative">
               <button
                 onClick={toggleDropdown}
@@ -450,6 +677,11 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
           <div className="bg-gray-800 p-4 rounded-lg shadow">
             <h2 className="text-xl font-bold mb-4 text-white">
               Wall Display ({columns}×{rows} = {gridSize} albums)
+              {pinnedAlbums.size > 0 && (
+                <span className="ml-2 text-blue-300 text-sm font-normal">
+                  ({pinnedAlbums.size} pinned)
+                </span>
+              )}
             </h2>
             <div
               ref={gridRef}
@@ -465,7 +697,13 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
                 strategy={rectSortingStrategy}
               >
                 {getSortedDisplayedAlbums().map((album) => (
-                  <SortableRecord key={`grid-${album.id}`} album={album} exportMode={isExporting} />
+                  <SortableRecord
+                    key={`grid-${album.id}`}
+                    album={album}
+                    exportMode={isExporting}
+                    isPinned={pinnedAlbums.has(String(album.id))}
+                    onPinToggle={togglePinAlbum}
+                  />
                 ))}
               </SortableContext>
             </div>
@@ -483,7 +721,13 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
                   strategy={rectSortingStrategy}
                 >
                   {poolItems.map((album) => (
-                    <SortableRecord key={`pool-${album.id}`} album={album} exportMode={false} />
+                    <SortableRecord
+                      key={`pool-${album.id}`}
+                      album={album}
+                      exportMode={false}
+                      isPinned={false} // Pool items can't be pinned
+                      disablePinning={true} // Disable pin toggle for pool items
+                    />
                   ))}
                 </SortableContext>
               </div>
