@@ -109,39 +109,23 @@ export function RecordGrid({ albums }: RecordGridProps) {
       if (activeContainer === "grid") {
         setGridItems((items) =>
           items.map((item) =>
-            item.id === activeId
-              ? overItem
-              : item.id === overId
-              ? activeItem
-              : item
+            item.id === activeId ? overItem : item.id === overId ? activeItem : item
           )
         );
         setPoolItems((items) =>
           items.map((item) =>
-            item.id === overId
-              ? activeItem
-              : item.id === activeId
-              ? overItem
-              : item
+            item.id === overId ? activeItem : item.id === activeId ? overItem : item
           )
         );
       } else {
         setPoolItems((items) =>
           items.map((item) =>
-            item.id === activeId
-              ? overItem
-              : item.id === overId
-              ? activeItem
-              : item
+            item.id === activeId ? overItem : item.id === overId ? activeItem : item
           )
         );
         setGridItems((items) =>
           items.map((item) =>
-            item.id === overId
-              ? activeItem
-              : item.id === activeId
-              ? overItem
-              : item
+            item.id === overId ? activeItem : item.id === activeId ? overItem : item
           )
         );
       }
@@ -155,38 +139,17 @@ export function RecordGrid({ albums }: RecordGridProps) {
   // Export wall display to CSV
   const exportToCSV = () => {
     // Create CSV headers
-    const headers = [
-      "Position",
-      "Artist",
-      "Album Title",
-      "ID",
-      "Section",
-      "Cover Image",
-    ];
+    const headers = ["Position", "Artist", "Album Title", "ID", "Section", "Cover Image"];
 
     // Create CSV rows for grid items
     const gridRows = gridItems.map((album, index) => {
       const position = `${Math.floor(index / 8) + 1},${(index % 8) + 1}`; // Row,Column format
-      return [
-        position,
-        album.artist,
-        album.title,
-        album.id,
-        "grid",
-        album.cover_image,
-      ].join(",");
+      return [position, album.artist, album.title, album.id, "grid", album.cover_image].join(",");
     });
 
     // Create CSV rows for pool items
     const poolRows = poolItems.map((album) => {
-      return [
-        "pool",
-        album.artist,
-        album.title,
-        album.id,
-        "pool",
-        album.cover_image,
-      ].join(",");
+      return ["pool", album.artist, album.title, album.id, "pool", album.cover_image].join(",");
     });
 
     // Combine headers and rows
@@ -261,9 +224,7 @@ export function RecordGrid({ albums }: RecordGridProps) {
             >
               Export
               <svg
-                className={`ml-2 h-4 w-4 transition-transform ${
-                  dropdownOpen ? "rotate-180" : ""
-                }`}
+                className={`ml-2 h-4 w-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -331,22 +292,13 @@ export function RecordGrid({ albums }: RecordGridProps) {
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex flex-col gap-8">
           {/* Grid Section */}
           <div className="bg-gray-800 p-4 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4 text-white">
-              Wall Display (8x4)
-            </h2>
+            <h2 className="text-xl font-bold mb-4 text-white">Wall Display (8x4)</h2>
             <div ref={gridRef} className="grid grid-cols-8 gap-4">
-              <SortableContext
-                items={gridItems.map((i) => i.id)}
-                strategy={rectSortingStrategy}
-              >
+              <SortableContext items={gridItems.map((i) => i.id)} strategy={rectSortingStrategy}>
                 {gridItems.map((album) => (
                   <SortableRecord key={album.id} album={album} />
                 ))}
@@ -356,14 +308,9 @@ export function RecordGrid({ albums }: RecordGridProps) {
 
           {/* Pool Section */}
           <div className="bg-gray-800 p-4 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4 text-white">
-              Remaining Record Pool
-            </h2>
+            <h2 className="text-xl font-bold mb-4 text-white">Remaining Record Pool</h2>
             <div className="grid grid-cols-8 gap-4">
-              <SortableContext
-                items={poolItems.map((i) => i.id)}
-                strategy={rectSortingStrategy}
-              >
+              <SortableContext items={poolItems.map((i) => i.id)} strategy={rectSortingStrategy}>
                 {poolItems.map((album) => (
                   <SortableRecord key={album.id} album={album} />
                 ))}

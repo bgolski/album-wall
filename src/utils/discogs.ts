@@ -24,24 +24,18 @@ interface DiscogsImage {
 
 export async function getUserCollection(username: string): Promise<Album[]> {
   try {
-    const response = await axios.get(
-      `${baseURL}/users/${username}/collection/folders/0/releases`,
-      {
-        headers: {
-          Authorization: `Discogs token=${discogsToken}`,
-        },
-        params: {
-          per_page: 100,
-          sort: "artist",
-        },
-      }
-    );
+    const response = await axios.get(`${baseURL}/users/${username}/collection/folders/0/releases`, {
+      headers: {
+        Authorization: `Discogs token=${discogsToken}`,
+      },
+      params: {
+        per_page: 100,
+        sort: "artist",
+      },
+    });
 
     // Debug full response for first item
-    console.log(
-      "Full first item:",
-      JSON.stringify(response.data.releases[0], null, 2)
-    );
+    console.log("Full first item:", JSON.stringify(response.data.releases[0], null, 2));
 
     return response.data.releases.map((release: DiscogsRelease) => {
       const basicInfo = release.basic_information;
@@ -49,11 +43,7 @@ export async function getUserCollection(username: string): Promise<Album[]> {
       // Extract artist name - Discogs usually provides this in the artists array
       let artistName = "Unknown Artist";
 
-      if (
-        basicInfo.artists &&
-        Array.isArray(basicInfo.artists) &&
-        basicInfo.artists.length > 0
-      ) {
+      if (basicInfo.artists && Array.isArray(basicInfo.artists) && basicInfo.artists.length > 0) {
         // Use the first artist's name
         artistName = basicInfo.artists[0].name;
 
@@ -86,9 +76,7 @@ export async function getUserCollection(username: string): Promise<Album[]> {
 }
 
 // New function to fetch album images by release IDs
-export async function fetchAlbumCovers(
-  releaseIds: number[]
-): Promise<Record<number, string>> {
+export async function fetchAlbumCovers(releaseIds: number[]): Promise<Record<number, string>> {
   const coverMap: Record<number, string> = {};
 
   try {
@@ -117,9 +105,7 @@ export async function fetchAlbumCovers(
               },
             });
           } catch {
-            console.log(
-              `Master endpoint failed for ID ${id}, trying release endpoint`
-            );
+            console.log(`Master endpoint failed for ID ${id}, trying release endpoint`);
 
             // If master fails, try release endpoint
             const releaseEndpoint = `${baseURL}/releases/${id}`;
@@ -139,24 +125,18 @@ export async function fetchAlbumCovers(
               : "No images found"
           );
 
-          if (
-            response.data &&
-            response.data.images &&
-            response.data.images.length > 0
-          ) {
+          if (response.data && response.data.images && response.data.images.length > 0) {
             // Find the primary image or use the first image
             const primaryImage =
-              response.data.images.find(
-                (img: DiscogsImage) => img.type === "primary"
-              ) || response.data.images[0];
+              response.data.images.find((img: DiscogsImage) => img.type === "primary") ||
+              response.data.images[0];
             coverMap[id] = primaryImage.uri;
             console.log(`Set cover for ID ${id} to:`, primaryImage.uri);
           } else {
             console.log(`No images found for release ID: ${id}`);
           }
         } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
           console.error(`Error fetching release ${id}:`, errorMessage);
           // Try getting from collection if available
           try {
@@ -164,16 +144,10 @@ export async function fetchAlbumCovers(
             const matchingAlbum = collection.find((album) => album.id === id);
             if (matchingAlbum && matchingAlbum.cover_image) {
               coverMap[id] = matchingAlbum.cover_image;
-              console.log(
-                `Found cover for ID ${id} in collection:`,
-                matchingAlbum.cover_image
-              );
+              console.log(`Found cover for ID ${id} in collection:`, matchingAlbum.cover_image);
             }
           } catch (collectionError) {
-            console.error(
-              "Failed to get from collection too:",
-              collectionError
-            );
+            console.error("Failed to get from collection too:", collectionError);
           }
         }
       });
@@ -188,10 +162,7 @@ export async function fetchAlbumCovers(
       }
     }
 
-    console.log(
-      "Finished fetching covers, found:",
-      Object.keys(coverMap).length
-    );
+    console.log("Finished fetching covers, found:", Object.keys(coverMap).length);
     return coverMap;
   } catch (error) {
     console.error("Error fetching album covers:", error);

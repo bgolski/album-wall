@@ -2,14 +2,16 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Album } from "@/types";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface SortableRecordProps {
   album: Album;
 }
 
 export function SortableRecord({ album }: SortableRecordProps) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: album.id });
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: album.id,
+  });
   const [imageError, setImageError] = useState(false);
   const [imageUrl, setImageUrl] = useState(album.cover_image || "");
 
@@ -58,21 +60,20 @@ export function SortableRecord({ album }: SortableRecordProps) {
       className="aspect-square cursor-move group relative"
     >
       <div className="relative w-full h-full">
-        <img
-          // Using key for forced re-rendering when source changes
-          key={`${album.id}-${imageUrl}-${imageError ? "error" : "ok"}`}
-          src={getImageSource()}
-          alt={`${album.title || "Album"}`}
-          className="w-full h-full object-cover rounded-lg shadow-lg"
-          onError={handleImageError}
-        />
+        <div className="w-full h-full relative">
+          <Image
+            key={`${album.id}-${imageUrl}-${imageError ? "error" : "ok"}`}
+            src={getImageSource()}
+            alt={`${album.title || "Album"}`}
+            fill
+            sizes="(max-width: 768px) 100vw, 200px"
+            className="object-cover rounded-lg shadow-lg"
+            onError={handleImageError}
+            unoptimized
+          />
+        </div>
         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white p-2 rounded-b-lg album-labels">
-          {/* <p className="text-sm font-bold truncate">
-            {album.artist || "Unknown Artist"}
-          </p> */}
-          <p className="text-xs font-bold truncate">
-            {album.artist || "Unknown Artist"}
-          </p>
+          <p className="text-xs font-bold truncate">{album.artist || "Unknown Artist"}</p>
           <p className="text-xs truncate">{album.title || "Untitled"}</p>
         </div>
       </div>

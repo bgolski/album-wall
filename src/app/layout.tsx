@@ -35,11 +35,7 @@ export default function RootLayout({
         <link rel="icon" href={`${basePath}/favicon.ico`} />
         <script src={`${basePath}/path-fixer.js`} async></script>
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
     </html>
   );
 }
