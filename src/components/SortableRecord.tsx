@@ -12,12 +12,11 @@ interface SortableRecordProps {
 
 export function SortableRecord({ album, exportMode = false }: SortableRecordProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: album.id,
+    id: `album-${album.id}`,
   });
   const [imageError, setImageError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("");
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const imgRef = useRef<HTMLDivElement>(null);
 
   // Update image URL when album changes, using proxied URL to avoid CORS issues
   useEffect(() => {
@@ -26,7 +25,6 @@ export function SortableRecord({ album, exportMode = false }: SortableRecordProp
       const proxiedUrl = getProxiedImageUrl(album.cover_image);
       setImageUrl(proxiedUrl);
       setImageError(false);
-      setImgLoaded(false);
     }
   }, [album.cover_image]);
 
@@ -47,17 +45,19 @@ export function SortableRecord({ album, exportMode = false }: SortableRecordProp
 
   // Handle image load success
   const handleImageLoad = () => {
-    setImgLoaded(true);
-
     // For export mode, convert to data URL once loaded to avoid CORS during export
     if (exportMode && imgRef.current) {
       try {
+        // Find the actual img element inside our div
+        const imgElement = imgRef.current.querySelector("img");
+        if (!imgElement) return;
+
         const canvas = document.createElement("canvas");
-        canvas.width = imgRef.current.naturalWidth || 300;
-        canvas.height = imgRef.current.naturalHeight || 300;
+        canvas.width = imgElement.naturalWidth || 300;
+        canvas.height = imgElement.naturalHeight || 300;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          ctx.drawImage(imgRef.current, 0, 0);
+          ctx.drawImage(imgElement, 0, 0);
           // Replace with data URL
           const dataUrl = canvas.toDataURL("image/png");
           if (dataUrl && dataUrl !== "data:,") {
@@ -79,20 +79,6 @@ export function SortableRecord({ album, exportMode = false }: SortableRecordProp
     return imageUrl;
   };
 
-  // Log album data for debugging
-  useEffect(() => {
-    if (exportMode) {
-      console.log("Album in export mode:", {
-        id: album.id,
-        title: album.title,
-        cover_image: album.cover_image,
-        hasImage: !!album.cover_image,
-        currentImageUrl: imageUrl,
-        hasError: imageError,
-      });
-    }
-  }, [exportMode, album, imageUrl, imageError]);
-
   return (
     <div
       ref={setNodeRef}
@@ -104,17 +90,21 @@ export function SortableRecord({ album, exportMode = false }: SortableRecordProp
     >
       <div className="relative w-full h-full">
         {exportMode ? (
-          // During export, use regular img tag for better html2canvas compatibility
-          <img
-            ref={imgRef}
-            src={getImageSource()}
-            alt={`${album.title || "Album"}`}
-            className="w-full h-full object-cover rounded-lg shadow-lg"
-            crossOrigin="anonymous"
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            style={{ backgroundColor: "#333" }}
-          />
+          // During export, use an Image component that's unoptimized for better compatibility
+          <div ref={imgRef} className="w-full h-full relative">
+            <Image
+              src={getImageSource()}
+              alt={`${album.title || "Album"}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 200px"
+              className="object-cover rounded-lg shadow-lg"
+              crossOrigin="anonymous"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              style={{ backgroundColor: "#333" }}
+              unoptimized
+            />
+          </div>
         ) : (
           // Normal mode: use Next.js Image component
           <div className="w-full h-full relative">

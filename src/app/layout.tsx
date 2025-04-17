@@ -34,12 +34,15 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="base-path" content={basePath} />
         <link rel="icon" href={`${basePath}/favicon.ico`} />
-        <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
 
         {/* Load helper scripts */}
+        <Script
+          src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"
+          strategy="beforeInteractive"
+        />
         <Script src={`${basePath}/path-fixer.js`} strategy="afterInteractive" />
         <Script src={`${basePath}/download-helper.js`} strategy="afterInteractive" />
       </body>

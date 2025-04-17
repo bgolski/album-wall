@@ -2,8 +2,6 @@ import React, { useState, useRef } from "react";
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -11,12 +9,7 @@ import {
   MouseSensor,
   TouchSensor,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
+import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "./SortableRecord";
 import { Album } from "../types/index";
 import html2canvas from "html2canvas";
@@ -25,21 +18,13 @@ interface RecordGridProps {
   username: string;
   albums: Album[];
   onAlbumsReorder: (newAlbums: Album[]) => void;
-  showPlaceholders?: boolean;
-  loading?: boolean;
 }
 
 type SortOption = "none" | "artist" | "genre";
 
 const GRID_SIZE = 32; // 8x4 grid
 
-export const RecordGrid: React.FC<RecordGridProps> = ({
-  username,
-  albums,
-  onAlbumsReorder,
-  showPlaceholders = false,
-  loading = false,
-}) => {
+export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbumsReorder }) => {
   // Ensure we only use the first 32 albums for the wall display
   const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, GRID_SIZE));
   const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(GRID_SIZE));
@@ -156,8 +141,8 @@ export const RecordGrid: React.FC<RecordGridProps> = ({
       const overItem = overContainer === "grid" ? displayedAlbums[overIndex] : poolItems[overIndex];
 
       // Create new arrays with the items swapped
-      let newDisplayedAlbums = [...displayedAlbums];
-      let newPoolItems = [...poolItems];
+      const newDisplayedAlbums = [...displayedAlbums];
+      const newPoolItems = [...poolItems];
 
       if (activeContainer === "grid") {
         newDisplayedAlbums[activeIndex] = overItem;
