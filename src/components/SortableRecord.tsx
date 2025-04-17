@@ -3,10 +3,15 @@ import { CSS } from "@dnd-kit/utilities";
 import { Album } from "../types/index";
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { getProxiedImageUrl } from "../utils/imageProxy";
+import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "../utils/imageProxy";
+
+// Extended album interface to include legacy coverUrl property
+interface AlbumWithLegacyProps extends Album {
+  coverUrl?: string;
+}
 
 interface SortableRecordProps {
-  album: Album;
+  album: AlbumWithLegacyProps;
   exportMode?: boolean;
   isPinned?: boolean;
   onPinToggle?: (albumId: string) => void;
@@ -30,13 +35,18 @@ export function SortableRecord({
 
   // Update image URL when album changes, using proxied URL to avoid CORS issues
   useEffect(() => {
-    if (album.cover_image) {
+    // Check for either cover_image or coverUrl (for backward compatibility)
+    const coverImage = album.cover_image || album.coverUrl;
+    if (coverImage) {
       // Use the proxy service to avoid CORS issues
-      const proxiedUrl = getProxiedImageUrl(album.cover_image);
+      const proxiedUrl = getProxiedImageUrl(coverImage);
       setImageUrl(proxiedUrl);
       setImageError(false);
+    } else {
+      // No image available, set the error state to use placeholder
+      setImageError(true);
     }
-  }, [album.cover_image]);
+  }, [album]);
 
   // For pinned albums, we don't apply any transform or transition
   // This ensures they visually stay completely fixed
@@ -47,9 +57,8 @@ export function SortableRecord({
         transition,
       };
 
-  // Default placeholder image - embedded SVG with darker background for better visibility
-  const placeholderImage =
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzIyMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhYWEiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPkFsYnVtIEFydHdvcms8L3RleHQ+PC9zdmc+";
+  // Default placeholder image from our utility
+  const placeholderImage = DEFAULT_PLACEHOLDER_IMAGE;
 
   // Handle image load error
   const handleImageError = () => {

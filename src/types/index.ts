@@ -4,4 +4,5 @@ export interface Album {
   cover_image?: string;
   artist: string;
   genre?: string[];
+  year?: string;
 }

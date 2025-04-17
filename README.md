@@ -34,43 +34,61 @@ echo "NEXT_PUBLIC_DISCOGS_TOKEN=your_discogs_token" > .env.local
 npm run dev
 ```
 
-## Deployment
+## Deployment Options
 
-This application is configured for deployment to GitHub Pages. The CI/CD pipeline is set up using GitHub Actions to automatically build and deploy the application when changes are pushed to the main branch.
+This application supports two deployment modes:
 
-### Manual Deployment
+### 1. Static Export (for GitHub Pages, Netlify, etc.)
+
+Static export generates HTML, CSS, and JavaScript files without requiring a Node.js server.
 
 ```bash
-# Build for production
-npm run build
+# Build for static deployment
+npm run build:static
 
 # The static files will be in the 'out' directory
+# You can serve them locally with:
+npm run start
+```
+
+### 2. Server-Side Rendering (for Vercel, etc.)
+
+SSR mode enables server-side rendering for enhanced performance and SEO.
+
+```bash
+# Build for server-side rendering
+npm run build:ssr
+
+# Run the server
+npm run start:next
 ```
 
 ## Environment Variables
 
 - `NEXT_PUBLIC_DISCOGS_TOKEN`: Your Discogs API token (required for accessing the Discogs API)
 - `NEXT_PUBLIC_BASE_PATH`: Base path for GitHub Pages deployment (set automatically in CI/CD)
+- `NEXT_STATIC_EXPORT`: Set to "true" for static export or "false" for server-side rendering
 
-## Getting Started
+## CI/CD Deployment
 
-First, run the development server:
+This application is configured for deployment to GitHub Pages. The CI/CD pipeline is set up using GitHub Actions to automatically build and deploy the application when changes are pushed to the main branch.
+
+## Running Locally
 
 ```bash
+# Development mode
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Production mode (static)
+npm run build:static
+npm run start
+
+# Production mode (SSR)
+npm run build:ssr
+npm run start:next
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) (dev) or [http://localhost:3001](http://localhost:3001) (production) with your browser to see the result.
 
 ## Learn More
 

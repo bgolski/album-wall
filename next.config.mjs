@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export", // Enable static HTML export
+  // Use environment variable to determine if we're doing static export
+  ...(process.env.NEXT_STATIC_EXPORT === "true" ? { output: "export" } : {}),
+
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
   assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || "",
   images: {
