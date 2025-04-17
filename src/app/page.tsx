@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { getUserCollection } from "@/utils/discogs";
 import { RecordGrid } from "@/components/RecordGrid";
-import { Album } from "@/types";
+import { Album } from "../types/index";
 
 export default function Home() {
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -27,85 +27,35 @@ export default function Home() {
     }
   };
 
+  const handleAlbumsReorder = (newAlbums: Album[]) => {
+    setAlbums(newAlbums);
+  };
+
   return (
-    <main className="min-h-screen p-8 bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold mb-8">Record Wall Visualizer</h1>
-          <div className="flex flex-wrap gap-3 items-center justify-center max-w-md mx-auto">
-            <div className="relative w-full">
-              <div className="relative flex items-center">
-                <div className="absolute left-3.5 flex items-center pointer-events-none z-10">
-                  <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                      clipRule="evenodd"
-                    ></path>
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Enter Discogs username"
-                  className="w-full pl-10 pr-8 py-2.5 bg-gray-800 border border-gray-700 rounded-full text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                />
-                {username && (
-                  <button
-                    onClick={() => setUsername("")}
-                    type="button"
-                    aria-label="Clear search"
-                    className="absolute right-3 flex items-center justify-center text-gray-400 hover:text-gray-300"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      ></path>
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 mt-2 text-left ml-4">
-                Enter your Discogs username to load your vinyl collection
-              </p>
-            </div>
+    <main className="flex min-h-screen flex-col items-center p-4 bg-gray-900 text-white">
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold mb-4">Vinyl Wall</h1>
+          <p className="mb-6">
+            Enter your Discogs username to load your vinyl collection and create a virtual record
+            wall.
+          </p>
+
+          <div className="flex justify-center items-center gap-2 max-w-sm mx-auto">
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Your Discogs username"
+              className="flex-1 px-4 py-2 rounded-l bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-blue-500"
+            />
             <button
               onClick={loadCollection}
-              disabled={loading}
-              className="w-full px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg"
+              disabled={loading || !username}
+              className="px-4 py-2 rounded-r bg-blue-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Loading...
-                </span>
-              ) : (
-                "Load Collection"
-              )}
+              {loading ? "Loading..." : "Load Collection"}
             </button>
           </div>
         </div>
@@ -131,7 +81,12 @@ export default function Home() {
                 <span className="text-gray-300">{albums.length} vinyl records</span>
               </div>
             </div>
-            <RecordGrid albums={albums} />
+            <RecordGrid
+              albums={albums}
+              username={loadedUsername}
+              onAlbumsReorder={handleAlbumsReorder}
+              loading={loading}
+            />
           </>
         )}
       </div>

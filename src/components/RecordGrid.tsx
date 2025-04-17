@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -8,6 +8,8 @@ import {
   useSensors,
   DragEndEvent,
   UniqueIdentifier,
+  MouseSensor,
+  TouchSensor,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -16,29 +18,47 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableRecord } from "./SortableRecord";
-import { Album } from "@/types";
+import { Album } from "../types/index";
 import html2canvas from "html2canvas";
 
 interface RecordGridProps {
+  username: string;
   albums: Album[];
+  onAlbumsReorder: (newAlbums: Album[]) => void;
+  showPlaceholders?: boolean;
+  loading?: boolean;
 }
 
 type SortOption = "none" | "artist" | "genre";
 
 const GRID_SIZE = 32; // 8x4 grid
 
-export function RecordGrid({ albums }: RecordGridProps) {
-  const [gridItems, setGridItems] = useState(albums.slice(0, GRID_SIZE));
-  const [poolItems, setPoolItems] = useState(albums.slice(GRID_SIZE));
+export const RecordGrid: React.FC<RecordGridProps> = ({
+  username,
+  albums,
+  onAlbumsReorder,
+  showPlaceholders = false,
+  loading = false,
+}) => {
+  // Ensure we only use the first 32 albums for the wall display
+  const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, GRID_SIZE));
+  const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(GRID_SIZE));
   const [sortOption, setSortOption] = useState<SortOption>("none");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Sorting function
-  const sortAlbums = (albums: Album[], option: SortOption) => {
-    if (option === "none") return albums;
+  // Update albums when they change from props
+  React.useEffect(() => {
+    setDisplayedAlbums(albums.slice(0, GRID_SIZE));
+    setPoolItems(albums.slice(GRID_SIZE));
+  }, [albums]);
 
-    return [...albums].sort((a, b) => {
+  // Sorting function
+  const sortAlbums = (albumsToSort: Album[], option: SortOption) => {
+    if (option === "none") return albumsToSort;
+
+    return [...albumsToSort].sort((a, b) => {
       if (option === "artist") {
         const artistA = a.artist || "";
         const artistB = b.artist || "";
@@ -55,16 +75,32 @@ export function RecordGrid({ albums }: RecordGridProps) {
   // Handle sort change
   const handleSortChange = (option: SortOption) => {
     setSortOption(option);
-    setGridItems(sortAlbums(gridItems, option));
-    setPoolItems(sortAlbums(poolItems, option));
+    if (option === "none") {
+      // Just keep current manual arrangement
+      return;
+    }
+    // Sort both displayed albums and pool items
+    const sortedDisplayed = sortAlbums(displayedAlbums, option);
+    const sortedPool = sortAlbums(poolItems, option);
+
+    setDisplayedAlbums(sortedDisplayed);
+    setPoolItems(sortedPool);
   };
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 8,
+    },
+  });
+
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 200,
+      tolerance: 8,
+    },
+  });
+
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -80,135 +116,172 @@ export function RecordGrid({ albums }: RecordGridProps) {
     if (activeContainer === overContainer) {
       // If in the same container, just reorder
       if (activeContainer === "grid") {
-        setGridItems((items) => {
-          const oldIndex = items.findIndex((item) => item.id === activeId);
-          const newIndex = items.findIndex((item) => item.id === overId);
-          return arrayMove(items, oldIndex, newIndex);
-        });
+        const newDisplayedAlbums = arrayMove(
+          displayedAlbums,
+          displayedAlbums.findIndex((item) => `album-${item.id}` === activeId),
+          displayedAlbums.findIndex((item) => `album-${item.id}` === overId)
+        );
+        setDisplayedAlbums(newDisplayedAlbums);
+
+        // Also update the parent component with combined albums
+        onAlbumsReorder([...newDisplayedAlbums, ...poolItems]);
       } else {
-        setPoolItems((items) => {
-          const oldIndex = items.findIndex((item) => item.id === activeId);
-          const newIndex = items.findIndex((item) => item.id === overId);
-          return arrayMove(items, oldIndex, newIndex);
-        });
+        const newPoolItems = arrayMove(
+          poolItems,
+          poolItems.findIndex((item) => `album-${item.id}` === activeId),
+          poolItems.findIndex((item) => `album-${item.id}` === overId)
+        );
+        setPoolItems(newPoolItems);
+
+        // Also update the parent component with combined albums
+        onAlbumsReorder([...displayedAlbums, ...newPoolItems]);
       }
     } else {
       // Swap items between containers
-      const activeItem =
+      const activeIndex =
         activeContainer === "grid"
-          ? gridItems.find((item) => item.id === activeId)
-          : poolItems.find((item) => item.id === activeId);
+          ? displayedAlbums.findIndex((item) => `album-${item.id}` === activeId)
+          : poolItems.findIndex((item) => `album-${item.id}` === activeId);
 
-      const overItem =
+      const overIndex =
         overContainer === "grid"
-          ? gridItems.find((item) => item.id === overId)
-          : poolItems.find((item) => item.id === overId);
+          ? displayedAlbums.findIndex((item) => `album-${item.id}` === overId)
+          : poolItems.findIndex((item) => `album-${item.id}` === overId);
 
-      if (!activeItem || !overItem) return;
+      if (activeIndex === -1 || overIndex === -1) return;
+
+      const activeItem =
+        activeContainer === "grid" ? displayedAlbums[activeIndex] : poolItems[activeIndex];
+
+      const overItem = overContainer === "grid" ? displayedAlbums[overIndex] : poolItems[overIndex];
+
+      // Create new arrays with the items swapped
+      let newDisplayedAlbums = [...displayedAlbums];
+      let newPoolItems = [...poolItems];
 
       if (activeContainer === "grid") {
-        setGridItems((items) =>
-          items.map((item) =>
-            item.id === activeId ? overItem : item.id === overId ? activeItem : item
-          )
-        );
-        setPoolItems((items) =>
-          items.map((item) =>
-            item.id === overId ? activeItem : item.id === activeId ? overItem : item
-          )
-        );
+        newDisplayedAlbums[activeIndex] = overItem;
+        newPoolItems[overIndex] = activeItem;
       } else {
-        setPoolItems((items) =>
-          items.map((item) =>
-            item.id === activeId ? overItem : item.id === overId ? activeItem : item
-          )
-        );
-        setGridItems((items) =>
-          items.map((item) =>
-            item.id === overId ? activeItem : item.id === activeId ? overItem : item
-          )
-        );
+        newPoolItems[activeIndex] = overItem;
+        newDisplayedAlbums[overIndex] = activeItem;
       }
+
+      setDisplayedAlbums(newDisplayedAlbums);
+      setPoolItems(newPoolItems);
+
+      // Also update the parent component with combined albums
+      onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
     }
   }
 
   function getContainerType(id: UniqueIdentifier): "grid" | "pool" {
-    return gridItems.find((item) => item.id === id) ? "grid" : "pool";
+    return displayedAlbums.some((item) => `album-${item.id}` === id) ? "grid" : "pool";
   }
 
   // Export wall display to CSV
   const exportToCSV = () => {
-    // Create CSV headers
-    const headers = ["Position", "Artist", "Album Title", "ID", "Section", "Cover Image"];
+    if (!displayedAlbums.length) return;
 
-    // Create CSV rows for grid items
-    const gridRows = gridItems.map((album, index) => {
-      const position = `${Math.floor(index / 8) + 1},${(index % 8) + 1}`; // Row,Column format
-      return [position, album.artist, album.title, album.id, "grid", album.cover_image].join(",");
+    // Create CSV content with headers
+    const headers = ["Title", "Artist", "Genre"];
+    const csvContent = displayedAlbums.map((album) => {
+      const genreString = album.genre ? album.genre.join(", ") : "";
+      return [album.title || "", album.artist || "", genreString].join(",");
     });
 
-    // Create CSV rows for pool items
-    const poolRows = poolItems.map((album) => {
-      return ["pool", album.artist, album.title, album.id, "pool", album.cover_image].join(",");
+    // Add headers to the top
+    csvContent.unshift(headers.join(","));
+
+    // Create and download blob
+    const blob = new Blob([csvContent.join("\n")], {
+      type: "text/csv;charset=utf-8;",
     });
-
-    // Combine headers and rows
-    const csvContent = [headers.join(","), ...gridRows, ...poolRows].join("\n");
-
-    // Create blob and download link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "vinyl_wall_arrangement.csv");
+    link.setAttribute("download", "vinyl-wall-export.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    // Close dropdown
-    setDropdownOpen(false);
   };
 
   // Export wall display as image
   const exportAsImage = async () => {
-    if (!gridRef.current) return;
+    // Close dropdown
+    setDropdownOpen(false);
+    setIsExporting(true);
+
+    // Make sure we have the wall display grid section
+    const wallDisplayGrid = gridRef.current;
+    if (!wallDisplayGrid || displayedAlbums.length === 0) {
+      alert("No albums to export or grid not rendered.");
+      setIsExporting(false);
+      return;
+    }
 
     try {
-      // Temporarily hide labels for the screenshot
-      const labels = gridRef.current.querySelectorAll(".album-labels");
+      // First enable export mode to convert images to data URLs
+      setIsExporting(true);
+
+      // Give time for components to enter export mode and convert images
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Hide album information labels
+      const labels = wallDisplayGrid.querySelectorAll(".album-labels");
       labels.forEach((label) => {
         (label as HTMLElement).style.display = "none";
       });
 
-      // Take screenshot
-      const canvas = await html2canvas(gridRef.current, {
-        backgroundColor: "#1f2937", // Match the background color
-        scale: 2, // Higher quality
+      // Wait a bit more to ensure all styling updates are applied
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Capture ONLY the wall display grid section
+      const canvas = await html2canvas(wallDisplayGrid, {
+        backgroundColor: "#1a1a1a",
+        scale: 2, // Higher resolution
+        useCORS: true,
+        allowTaint: true,
+        logging: true,
       });
 
       // Restore labels
       labels.forEach((label) => {
-        (label as HTMLElement).style.display = "block";
+        (label as HTMLElement).style.display = "";
       });
 
-      // Convert to data URL and download
-      const dataUrl = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = "vinyl_wall.png";
-      link.href = dataUrl;
-      link.click();
+      // Convert to PNG and download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error("Failed to create blob from canvas");
+          alert("Failed to generate image. Please try again.");
+          return;
+        }
 
-      // Close dropdown
-      setDropdownOpen(false);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${username}-vinyl-wall.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
     } catch (error) {
       console.error("Error exporting as image:", error);
+      alert("Failed to export as image. Please try again.");
+    } finally {
+      setIsExporting(false);
     }
   };
 
   // Toggle dropdown
   const toggleDropdown = () => {
     setDropdownOpen((prev) => !prev);
+  };
+
+  // Get the sorted albums if needed
+  const getSortedDisplayedAlbums = () => {
+    return sortOption === "none" ? displayedAlbums : sortAlbums(displayedAlbums, sortOption);
   };
 
   return (
@@ -249,9 +322,10 @@ export function RecordGrid({ albums }: RecordGridProps) {
                   </button>
                   <button
                     onClick={exportAsImage}
-                    className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                    disabled={isExporting}
+                    className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 disabled:opacity-50"
                   >
-                    Save as Image
+                    {isExporting ? "Generating image..." : "Save as Image"}
                   </button>
                 </div>
               </div>
@@ -294,31 +368,41 @@ export function RecordGrid({ albums }: RecordGridProps) {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex flex-col gap-8">
-          {/* Grid Section */}
+          {/* Grid Section - Exactly 8x4 = 32 albums */}
           <div className="bg-gray-800 p-4 rounded-lg shadow">
             <h2 className="text-xl font-bold mb-4 text-white">Wall Display (8x4)</h2>
-            <div ref={gridRef} className="grid grid-cols-8 gap-4">
-              <SortableContext items={gridItems.map((i) => i.id)} strategy={rectSortingStrategy}>
-                {gridItems.map((album) => (
-                  <SortableRecord key={album.id} album={album} />
+            <div ref={gridRef} id="grid-container" className="grid grid-cols-8 gap-4">
+              <SortableContext
+                items={getSortedDisplayedAlbums().map((album) => `album-${album.id}`)}
+                strategy={rectSortingStrategy}
+              >
+                {getSortedDisplayedAlbums().map((album) => (
+                  <SortableRecord key={`grid-${album.id}`} album={album} exportMode={isExporting} />
                 ))}
               </SortableContext>
             </div>
           </div>
 
-          {/* Pool Section */}
-          <div className="bg-gray-800 p-4 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4 text-white">Remaining Record Pool</h2>
-            <div className="grid grid-cols-8 gap-4">
-              <SortableContext items={poolItems.map((i) => i.id)} strategy={rectSortingStrategy}>
-                {poolItems.map((album) => (
-                  <SortableRecord key={album.id} album={album} />
-                ))}
-              </SortableContext>
+          {/* Pool Section - All remaining albums */}
+          {poolItems.length > 0 && (
+            <div className="bg-gray-800 p-4 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-white">
+                Remaining Record Pool ({poolItems.length} albums)
+              </h2>
+              <div className="grid grid-cols-8 gap-4">
+                <SortableContext
+                  items={poolItems.map((album) => `album-${album.id}`)}
+                  strategy={rectSortingStrategy}
+                >
+                  {poolItems.map((album) => (
+                    <SortableRecord key={`pool-${album.id}`} album={album} exportMode={false} />
+                  ))}
+                </SortableContext>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DndContext>
     </div>
   );
-}
+};

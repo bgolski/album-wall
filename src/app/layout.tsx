@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getBasePath } from "@/utils/basePath";
+import Script from "next/script";
 
 const basePath = getBasePath();
 
@@ -33,9 +34,15 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="base-path" content={basePath} />
         <link rel="icon" href={`${basePath}/favicon.ico`} />
-        <script src={`${basePath}/path-fixer.js`} async></script>
+        <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {children}
+
+        {/* Load helper scripts */}
+        <Script src={`${basePath}/path-fixer.js`} strategy="afterInteractive" />
+        <Script src={`${basePath}/download-helper.js`} strategy="afterInteractive" />
+      </body>
     </html>
   );
 }
