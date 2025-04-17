@@ -8,8 +8,14 @@ import {
   UniqueIdentifier,
   MouseSensor,
   TouchSensor,
+  KeyboardSensor,
 } from "@dnd-kit/core";
-import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import {
+  arrayMove,
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { SortableRecord } from "./SortableRecord";
 import { Album } from "../types/index";
 import html2canvas from "html2canvas";
@@ -22,22 +28,33 @@ interface RecordGridProps {
 
 type SortOption = "none" | "artist" | "genre";
 
-const GRID_SIZE = 32; // 8x4 grid
+// Default wall dimensions
+const DEFAULT_ROWS = 4;
+const DEFAULT_COLUMNS = 8;
 
 export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbumsReorder }) => {
-  // Ensure we only use the first 32 albums for the wall display
-  const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, GRID_SIZE));
-  const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(GRID_SIZE));
+  // Grid dimensions state
+  const [columns, setColumns] = useState(DEFAULT_COLUMNS);
+  const [rows, setRows] = useState(DEFAULT_ROWS);
+  const [showDimensionsConfig, setShowDimensionsConfig] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>("none");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Update albums when they change from props
+  // Calculate grid size based on current dimensions
+  const gridSize = rows * columns;
+
+  // Ensure we only use the correct number of albums for the wall display
+  const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
+  const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
+
+  // Update albums and pool when dimensions or albums change
   React.useEffect(() => {
-    setDisplayedAlbums(albums.slice(0, GRID_SIZE));
-    setPoolItems(albums.slice(GRID_SIZE));
-  }, [albums]);
+    // Recalculate based on current dimensions
+    setDisplayedAlbums(albums.slice(0, gridSize));
+    setPoolItems(albums.slice(gridSize));
+  }, [albums, gridSize]);
 
   // Sorting function
   const sortAlbums = (albumsToSort: Album[], option: SortOption) => {
@@ -55,6 +72,26 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
       }
       return 0;
     });
+  };
+
+  // Handle dimension changes
+  const handleDimensionsChange = (newRows: number, newColumns: number) => {
+    // Validate dimensions
+    if (newRows < 1 || newColumns < 1) return;
+
+    const newGridSize = newRows * newColumns;
+    const oldGridSize = rows * columns;
+
+    // Update dimensions
+    setRows(newRows);
+    setColumns(newColumns);
+
+    // Redistribute albums if needed
+    if (newGridSize !== oldGridSize) {
+      const allAlbums = [...displayedAlbums, ...poolItems];
+      setDisplayedAlbums(allAlbums.slice(0, newGridSize));
+      setPoolItems(allAlbums.slice(newGridSize));
+    }
   };
 
   // Handle sort change
@@ -85,7 +122,11 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     },
   });
 
-  const sensors = useSensors(mouseSensor, touchSensor);
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  });
+
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -185,7 +226,9 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "vinyl-wall-export.csv");
+    // Include username in the filename if available
+    const fileName = username ? `${username}-vinyl-wall.csv` : "vinyl-wall.csv";
+    link.setAttribute("download", fileName);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -196,64 +239,44 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
   const exportAsImage = async () => {
     // Close dropdown
     setDropdownOpen(false);
-    setIsExporting(true);
 
-    // Make sure we have the wall display grid section
-    const wallDisplayGrid = gridRef.current;
-    if (!wallDisplayGrid || displayedAlbums.length === 0) {
-      alert("No albums to export or grid not rendered.");
-      setIsExporting(false);
+    if (!gridRef.current) {
+      console.error("Grid reference not found");
       return;
     }
 
     try {
-      // First enable export mode to convert images to data URLs
       setIsExporting(true);
 
-      // Give time for components to enter export mode and convert images
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Hide album information labels
-      const labels = wallDisplayGrid.querySelectorAll(".album-labels");
+      // Temporarily hide labels for clean export
+      const grid = gridRef.current;
+      const labels = grid.querySelectorAll(".album-labels");
       labels.forEach((label) => {
         (label as HTMLElement).style.display = "none";
       });
 
-      // Wait a bit more to ensure all styling updates are applied
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Capture ONLY the wall display grid section
-      const canvas = await html2canvas(wallDisplayGrid, {
-        backgroundColor: "#1a1a1a",
-        scale: 2, // Higher resolution
+      const canvas = await html2canvas(grid, {
+        backgroundColor: null,
         useCORS: true,
-        allowTaint: true,
-        logging: true,
+        logging: false,
+        scale: 2, // Higher quality
       });
 
       // Restore labels
       labels.forEach((label) => {
-        (label as HTMLElement).style.display = "";
+        (label as HTMLElement).style.display = "block";
       });
 
-      // Convert to PNG and download
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          console.error("Failed to create blob from canvas");
-          alert("Failed to generate image. Please try again.");
-          return;
-        }
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${username}-vinyl-wall.png`;
-        link.click();
-        URL.revokeObjectURL(url);
-      }, "image/png");
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      // Include username in the filename if available
+      const fileName = username ? `${username}-vinyl-wall.png` : "vinyl-wall.png";
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
-      console.error("Error exporting as image:", error);
-      alert("Failed to export as image. Please try again.");
+      console.error("Error exporting image:", error);
+      alert("Failed to export image. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -271,92 +294,172 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Sorting Controls */}
+      {/* Control Bar */}
       <div className="bg-gray-800 p-4 rounded-lg shadow">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold text-white">Sort Records</h2>
-          <div className="relative">
-            <button
-              onClick={toggleDropdown}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-            >
-              Export
-              <svg
-                className={`ml-2 h-4 w-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center">
+            <h2 className="text-lg font-semibold text-white mr-4">Sort Records</h2>
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleSortChange("none")}
+                className={`px-3 py-1.5 rounded ${
+                  sortOption === "none"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-600 text-white hover:bg-gray-500"
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 9l-7 7-7-7"
-                ></path>
-              </svg>
+                Custom Order
+              </button>
+              <button
+                onClick={() => handleSortChange("artist")}
+                className={`px-3 py-1.5 rounded ${
+                  sortOption === "artist"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-600 text-white hover:bg-gray-500"
+                }`}
+              >
+                Sort by Artist
+              </button>
+              <button
+                onClick={() => handleSortChange("genre")}
+                className={`px-3 py-1.5 rounded ${
+                  sortOption === "genre"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-600 text-white hover:bg-gray-500"
+                }`}
+              >
+                Sort by Genre
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowDimensionsConfig((prev) => !prev)}
+              className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-500"
+            >
+              {showDimensionsConfig ? "Hide Grid Config" : "Configure Grid"}
             </button>
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
-                <div className="py-1">
-                  <button
-                    onClick={exportToCSV}
-                    className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-                  >
-                    Export to CSV
-                  </button>
-                  <button
-                    onClick={exportAsImage}
-                    disabled={isExporting}
-                    className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 disabled:opacity-50"
-                  >
-                    {isExporting ? "Generating image..." : "Save as Image"}
-                  </button>
+
+            <div className="relative">
+              <button
+                onClick={toggleDropdown}
+                className="px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-500 flex items-center"
+              >
+                <span className="mr-1">Export</span>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                  <div className="py-1">
+                    <button
+                      onClick={exportToCSV}
+                      className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                    >
+                      Export to CSV
+                    </button>
+                    <button
+                      onClick={exportAsImage}
+                      disabled={isExporting}
+                      className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      {isExporting ? "Generating image..." : "Save as Image"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => handleSortChange("none")}
-            className={`px-4 py-2 rounded ${
-              sortOption === "none"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-600 text-white hover:bg-gray-500"
-            }`}
-          >
-            Custom Order
-          </button>
-          <button
-            onClick={() => handleSortChange("artist")}
-            className={`px-4 py-2 rounded ${
-              sortOption === "artist"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-600 text-white hover:bg-gray-500"
-            }`}
-          >
-            Sort by Artist
-          </button>
-          <button
-            onClick={() => handleSortChange("genre")}
-            className={`px-4 py-2 rounded ${
-              sortOption === "genre"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-600 text-white hover:bg-gray-500"
-            }`}
-          >
-            Sort by Genre
-          </button>
-        </div>
+
+        {/* Grid dimensions configuration UI */}
+        {showDimensionsConfig && (
+          <div className="bg-gray-700 p-3 rounded mt-3">
+            <h3 className="text-white font-medium mb-3">Wall Display Dimensions</h3>
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <label htmlFor="rows" className="text-white">
+                  Rows:
+                </label>
+                <input
+                  id="rows"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={rows}
+                  onChange={(e) => handleDimensionsChange(Number(e.target.value), columns)}
+                  className="w-16 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-white"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="columns" className="text-white">
+                  Columns:
+                </label>
+                <input
+                  id="columns"
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={columns}
+                  onChange={(e) => handleDimensionsChange(rows, Number(e.target.value))}
+                  className="w-16 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-white"
+                />
+              </div>
+
+              <p className="text-gray-300 text-sm">
+                Total albums in display: <span className="font-semibold">{gridSize}</span>
+              </p>
+
+              <div className="ml-auto">
+                <button
+                  onClick={() => handleDimensionsChange(DEFAULT_ROWS, DEFAULT_COLUMNS)}
+                  className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-500"
+                >
+                  Reset to Default (4×8)
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 text-blue-300 text-xs">
+              <p>
+                Note: Changing dimensions will redistribute albums between the wall display and
+                pool.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex flex-col gap-8">
-          {/* Grid Section - Exactly 8x4 = 32 albums */}
+          {/* Grid Section - Dynamically sized based on user configuration */}
           <div className="bg-gray-800 p-4 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4 text-white">Wall Display (8x4)</h2>
-            <div ref={gridRef} id="grid-container" className="grid grid-cols-8 gap-4">
+            <h2 className="text-xl font-bold mb-4 text-white">
+              Wall Display ({columns}×{rows} = {gridSize} albums)
+            </h2>
+            <div
+              ref={gridRef}
+              id="grid-container"
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${rows}, auto)`,
+              }}
+            >
               <SortableContext
                 items={getSortedDisplayedAlbums().map((album) => `album-${album.id}`)}
                 strategy={rectSortingStrategy}
