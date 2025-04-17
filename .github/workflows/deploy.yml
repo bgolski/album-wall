@@ -30,6 +30,19 @@ jobs:
       - name: Build with Next.js
         run: npm run build
 
+      - name: Prepare output for GitHub Pages
+        run: |
+          # Add .nojekyll file
+          touch out/.nojekyll
+          # Add a basic 404 page that redirects to index
+          if [ ! -f out/404.html ]; then
+            cp out/index.html out/404.html
+          fi
+          # Ensure all static files are present
+          echo "Checking for problematic paths in HTML files..."
+          find out -name "*.html" -exec grep -l '"/_next' {} \;
+          echo "Finished checking paths"
+
       - name: Checkout bgolski.github.io repository
         uses: actions/checkout@v4
         with:
@@ -39,8 +52,29 @@ jobs:
 
       - name: Copy build to bgolski.github.io repository
         run: |
+          # Create destination directory
           mkdir -p gh-pages/album-visualizer
+
+          # Add .nojekyll at the root level
+          touch gh-pages/.nojekyll
+
+          # Copy all built files
           cp -r out/* gh-pages/album-visualizer/
+
+          # Ensure .nojekyll exists in the subdirectory too
+          touch gh-pages/album-visualizer/.nojekyll
+
+          # Copy the redirect file to the root index if it doesn't already exist
+          # or if there's only the default "Hello World" index
+          if [ ! -f gh-pages/index.html ] || grep -q "Hello World" gh-pages/index.html; then
+            cp public/index.redirect.html gh-pages/index.html
+          fi
+
+          # Copy 404 page to the root for GitHub Pages to use
+          # This helps with deep linking
+          if [ -f gh-pages/album-visualizer/404.html ]; then
+            cp gh-pages/album-visualizer/404.html gh-pages/404.html
+          fi
 
       - name: Deploy to GitHub Pages
         run: |

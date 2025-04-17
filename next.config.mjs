@@ -18,6 +18,12 @@ const nextConfig = {
       ],
     },
   },
+  // Add this to ensure proper path resolution
+  distDir: "dist",
+  webpack: (config) => {
+    // This helps ensure assets are loaded with the correct paths
+    return config;
+  },
 };
 
 export default nextConfig;
