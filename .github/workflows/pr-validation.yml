@@ -1,0 +1,57 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Build and Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        id: formatting
+        run: |
+          echo "Installing Prettier..."
+          npx prettier --check "src/**/*.{js,jsx,ts,tsx}" || (echo "::error::Prettier check failed. Run 'npm run format' to fix formatting issues." && exit 1)
+
+      - name: Lint
+        id: linting
+        run: npm run lint
+
+      - name: Type check
+        id: typecheck
+        run: npm run type-check
+
+      - name: Build
+        id: build
+        run: |
+          echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_TOKEN=${{ secrets.DISCOGS_TOKEN }}" >> .env.local
+          npm run build
+
+      - name: PR Status Check
+        if: always()
+        run: |
+          if [ "${{ steps.formatting.outcome }}" == "failure" ] || \
+             [ "${{ steps.linting.outcome }}" == "failure" ] || \
+             [ "${{ steps.typecheck.outcome }}" == "failure" ] || \
+             [ "${{ steps.build.outcome }}" == "failure" ]; then
+            echo "::error::One or more validation steps failed. Please fix the issues before merging."
+            exit 1
+          else
+            echo "::notice::All validation checks passed!"
+          fi
