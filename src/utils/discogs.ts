@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Album } from "@/types";
+import { Album } from "../types/index";
 
 const discogsToken = process.env.NEXT_PUBLIC_DISCOGS_TOKEN;
 const baseURL = "https://api.discogs.com";
