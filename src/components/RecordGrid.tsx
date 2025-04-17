@@ -96,6 +96,69 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
     }
   };
 
+  // Shuffle only the unpinned albums in the display
+  const shuffleUnpinnedAlbums = () => {
+    // Separate pinned and unpinned albums from the display
+    const pinnedAlbumsArray: Album[] = [];
+    const unpinnedAlbumsArray: Album[] = [];
+
+    // Map to store original indices of pinned albums
+    const pinnedIndicesMap = new Map<string, number>();
+
+    // Sort displayed albums into pinned and unpinned arrays
+    displayedAlbums.forEach((album, index) => {
+      if (pinnedAlbums.has(String(album.id))) {
+        pinnedAlbumsArray.push(album);
+        pinnedIndicesMap.set(String(album.id), index);
+      } else {
+        unpinnedAlbumsArray.push(album);
+      }
+    });
+
+    // Determine how many slots in the grid are available for unpinned albums
+    const availableSlots = displayedAlbums.length - pinnedAlbumsArray.length;
+
+    // Combine unpinned albums from display with pool items for shuffling
+    const allUnpinnedAlbums = [...unpinnedAlbumsArray, ...poolItems];
+
+    // Shuffle all unpinned albums
+    const shuffledUnpinned = [...allUnpinnedAlbums].sort(() => Math.random() - 0.5);
+
+    // Take only what we need for the display
+    const unpinnedForDisplay = shuffledUnpinned.slice(0, availableSlots);
+
+    // The rest goes to the pool
+    const newPoolItems = shuffledUnpinned.slice(availableSlots);
+
+    // Create a new array with the same length as displayedAlbums
+    const newDisplayedAlbums: Album[] = new Array(displayedAlbums.length);
+
+    // Place pinned albums back at their original positions
+    pinnedAlbumsArray.forEach((pinnedAlbum) => {
+      const albumId = String(pinnedAlbum.id);
+      const originalIndex = pinnedIndicesMap.get(albumId);
+
+      if (originalIndex !== undefined) {
+        newDisplayedAlbums[originalIndex] = pinnedAlbum;
+      }
+    });
+
+    // Fill empty spots with shuffled unpinned albums
+    let unpinnedIndex = 0;
+    for (let i = 0; i < newDisplayedAlbums.length; i++) {
+      if (!newDisplayedAlbums[i] && unpinnedIndex < unpinnedForDisplay.length) {
+        newDisplayedAlbums[i] = unpinnedForDisplay[unpinnedIndex++];
+      }
+    }
+
+    // Update state with new arrangement
+    setDisplayedAlbums(newDisplayedAlbums);
+    setPoolItems(newPoolItems);
+
+    // Also update the parent component with combined albums
+    onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
+  };
+
   // Determine if all displayed albums are pinned for button state
   const areAllPinned =
     displayedAlbums.length > 0 &&
@@ -560,12 +623,31 @@ export const RecordGrid: React.FC<RecordGridProps> = ({ username, albums, onAlbu
                 className="w-4 h-4 mr-1"
               >
                 {areAllPinned ? (
-                  <path d="M20.2349 14.61C19.8599 12.865 20.4649 11.03 21.8149 9.675L21.8199 9.67C22.1237 9.3653 22.1242 8.8698 21.8199 8.565C21.5125 8.2569 21.5125 7.7431 21.8199 7.435L22.5699 6.685C22.8699 6.385 22.8699 5.915 22.5699 5.615L18.3849 1.43C18.0849 1.13 17.6149 1.13 17.3149 1.43L16.5649 2.18C16.2599 2.485 15.7449 2.485 15.4399 2.18C15.1338 1.873 14.6348 1.873 14.3299 2.18L14.3249 2.185C12.9749 3.535 11.1349 4.14 9.39488 3.765C7.25988 3.3 4.95488 4.01 3.35488 5.605L3.24988 5.71C3.05988 5.9 3.05988 6.2 3.24988 6.39L17.6149 20.75C17.8049 20.94 18.1049 20.94 18.2949 20.75L18.3999 20.645C19.9949 19.045 20.7049 16.745 20.2349 14.61Z" />
+                  <path d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z" />
                 ) : (
-                  <path d="M16 12V6c0-2.21-1.79-4-4-4S8 3.79 8 6v6h8zm-4 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" />
+                  <path d="M17 3H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v6h2.03v-6H19v-2c-1.66 0-3-1.34-3-3V5h1c.55 0 1-.45 1-1s-.45-1-1-1zm-6 8.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
                 )}
               </svg>
               {areAllPinned ? "Unpin All" : "Pin All"}
+            </button>
+
+            <button
+              onClick={shuffleUnpinnedAlbums}
+              className="px-3 py-1.5 rounded flex items-center bg-purple-600 text-white hover:bg-purple-500"
+              disabled={areAllPinned}
+              title={
+                areAllPinned ? "Unpin some albums to shuffle" : "Randomly rearrange unpinned albums"
+              }
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-4 h-4 mr-1"
+              >
+                <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm0.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
+              </svg>
+              Shuffle
             </button>
 
             <div className="relative">
