@@ -85,7 +85,6 @@ export default function Home() {
               albums={albums}
               username={loadedUsername}
               onAlbumsReorder={handleAlbumsReorder}
-              loading={loading}
             />
           </>
         )}
