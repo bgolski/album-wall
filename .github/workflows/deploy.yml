@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vinyl-wall repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set base path for GitHub Pages
+        run: |
+          echo "Add base path for GitHub Pages"
+          echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_TOKEN=${{ secrets.DISCOGS_TOKEN }}" >> .env.local
+
+      - name: Build with Next.js
+        run: npm run build
+
+      - name: Checkout bgolski.github.io repository
+        uses: actions/checkout@v4
+        with:
+          repository: bgolski/bgolski.github.io
+          path: gh-pages
+          token: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: Copy build to bgolski.github.io repository
+        run: |
+          mkdir -p gh-pages/album-visualizer
+          cp -r out/* gh-pages/album-visualizer/
+
+      - name: Deploy to GitHub Pages
+        run: |
+          cd gh-pages
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "Deploy album-visualizer update"
+          git push

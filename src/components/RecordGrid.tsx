@@ -21,17 +21,13 @@ import html2canvas from "html2canvas";
 
 interface RecordGridProps {
   albums: Album[];
-  onAlbumsChange?: (albums: Album[]) => void;
 }
 
 type SortOption = "none" | "artist" | "genre";
 
 const GRID_SIZE = 32; // 8x4 grid
 
-const placeholderImage =
-  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
-
-export function RecordGrid({ albums, onAlbumsChange }: RecordGridProps) {
+export function RecordGrid({ albums }: RecordGridProps) {
   const [gridItems, setGridItems] = useState(albums.slice(0, GRID_SIZE));
   const [poolItems, setPoolItems] = useState(albums.slice(GRID_SIZE));
   const [sortOption, setSortOption] = useState<SortOption>("none");
@@ -182,7 +178,7 @@ export function RecordGrid({ albums, onAlbumsChange }: RecordGridProps) {
     });
 
     // Create CSV rows for pool items
-    const poolRows = poolItems.map((album, index) => {
+    const poolRows = poolItems.map((album) => {
       return [
         "pool",
         album.artist,

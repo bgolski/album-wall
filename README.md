@@ -1,4 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Record Wall Visualizer
+
+A web application that lets you visualize your Discogs record collection as a wall display. Arrange your vinyl collection in a virtual wall, sort by artist or genre, and export your arrangement to CSV or as an image.
+
+## Features
+
+- Load your Discogs vinyl collection
+- Arrange records in an 8x4 grid wall display
+- Drag and drop records between the wall and the pool
+- Sort records by artist or genre
+- Export your arrangement to CSV
+- Save your wall display as an image (without album labels)
+
+## Tech Stack
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- DND Kit for drag and drop
+- Discogs API integration
+- html2canvas for image export
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Set environment variables
+echo "NEXT_PUBLIC_DISCOGS_TOKEN=your_discogs_token" > .env.local
+
+# Run development server
+npm run dev
+```
+
+## Deployment
+
+This application is configured for deployment to GitHub Pages. The CI/CD pipeline is set up using GitHub Actions to automatically build and deploy the application when changes are pushed to the main branch.
+
+### Manual Deployment
+
+```bash
+# Build for production
+npm run build
+
+# The static files will be in the 'out' directory
+```
+
+## Environment Variables
+
+- `NEXT_PUBLIC_DISCOGS_TOKEN`: Your Discogs API token (required for accessing the Discogs API)
+- `NEXT_PUBLIC_BASE_PATH`: Base path for GitHub Pages deployment (set automatically in CI/CD)
 
 ## Getting Started
 

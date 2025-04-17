@@ -4,6 +4,24 @@ import { Album } from "@/types";
 const discogsToken = process.env.NEXT_PUBLIC_DISCOGS_TOKEN;
 const baseURL = "https://api.discogs.com";
 
+interface DiscogsRelease {
+  id: number;
+  basic_information: {
+    title?: string;
+    cover_image?: string;
+    artists?: {
+      name: string;
+      join?: string;
+    }[];
+    genres?: string[];
+  };
+}
+
+interface DiscogsImage {
+  type: string;
+  uri: string;
+}
+
 export async function getUserCollection(username: string): Promise<Album[]> {
   try {
     const response = await axios.get(
@@ -25,7 +43,7 @@ export async function getUserCollection(username: string): Promise<Album[]> {
       JSON.stringify(response.data.releases[0], null, 2)
     );
 
-    return response.data.releases.map((release: any) => {
+    return response.data.releases.map((release: DiscogsRelease) => {
       const basicInfo = release.basic_information;
 
       // Extract artist name - Discogs usually provides this in the artists array
@@ -98,7 +116,7 @@ export async function fetchAlbumCovers(
                 Authorization: `Discogs token=${discogsToken}`,
               },
             });
-          } catch (masterErr) {
+          } catch {
             console.log(
               `Master endpoint failed for ID ${id}, trying release endpoint`
             );
@@ -128,15 +146,18 @@ export async function fetchAlbumCovers(
           ) {
             // Find the primary image or use the first image
             const primaryImage =
-              response.data.images.find((img: any) => img.type === "primary") ||
-              response.data.images[0];
+              response.data.images.find(
+                (img: DiscogsImage) => img.type === "primary"
+              ) || response.data.images[0];
             coverMap[id] = primaryImage.uri;
             console.log(`Set cover for ID ${id} to:`, primaryImage.uri);
           } else {
             console.log(`No images found for release ID: ${id}`);
           }
-        } catch (err: any) {
-          console.error(`Error fetching release ${id}:`, err.message);
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          console.error(`Error fetching release ${id}:`, errorMessage);
           // Try getting from collection if available
           try {
             const collection = await getUserCollection("bgolski"); // Use your username

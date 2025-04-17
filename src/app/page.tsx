@@ -42,9 +42,7 @@ export default function Home() {
           </div>
         </div>
 
-        {albums.length > 0 && (
-          <RecordGrid albums={albums} onAlbumsChange={setAlbums} />
-        )}
+        {albums.length > 0 && <RecordGrid albums={albums} />}
       </div>
     </main>
   );

@@ -19,7 +19,7 @@ export function SortableRecord({ album }: SortableRecordProps) {
       setImageUrl(album.cover_image);
       setImageError(false);
     }
-  }, [album.cover_image]);
+  }, [album.cover_image, imageUrl]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
