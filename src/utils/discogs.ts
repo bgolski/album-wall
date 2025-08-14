@@ -25,7 +25,7 @@ async function makeRequestWithRetry<T>(
       throw error;
     }
 
-    console.log(`Request failed, retrying in ${delay}ms... (${retries} attempts left)`);
+    // Wait before retrying
     await new Promise((resolve) => setTimeout(resolve, delay));
     return makeRequestWithRetry(requestFunction, retries - 1, delay * 2);
   }
@@ -73,9 +73,6 @@ export async function getUserCollection(username: string): Promise<Album[]> {
       );
     }
 
-    // Display token status (masked for security)
-    console.log("Using Discogs token:", discogsToken ? "✓ Token available" : "✗ No token found");
-
     if (!discogsToken) {
       console.warn(
         "No Discogs API token found in environment variables. API requests may be rate limited."
@@ -84,7 +81,6 @@ export async function getUserCollection(username: string): Promise<Album[]> {
 
     // Build the request URL
     const requestUrl = `${baseURL}/users/${username}/collection/folders/0/releases`;
-    console.log("Requesting collection from:", requestUrl);
 
     // Use retry logic for the API call
     const response = await makeRequestWithRetry(() =>
@@ -107,9 +103,6 @@ export async function getUserCollection(username: string): Promise<Album[]> {
     ) {
       throw new Error(`User "${username}" has no vinyl records in their collection`);
     }
-
-    // Debug full response for first item
-    console.log("Full first item:", JSON.stringify(response.data.releases[0], null, 2));
 
     return response.data.releases.map((release: DiscogsRelease) => {
       const basicInfo = release.basic_information;

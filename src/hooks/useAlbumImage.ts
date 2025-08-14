@@ -20,7 +20,7 @@ export function useAlbumImage(album: Album, exportMode: boolean = false) {
   }, [album]);
 
   const handleImageError = () => {
-    console.log(`Image load error for album ${album.id}: ${imageUrl}`);
+    // Image load error - will use placeholder
     setImageError(true);
   };
 

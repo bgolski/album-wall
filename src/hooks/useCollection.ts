@@ -36,8 +36,7 @@ export function useCollection() {
         setAlbums(collection);
         setLoadedUsername(username);
       } catch (err) {
-        console.error("Error loading collection:", err);
-
+        // Error already logged by discogs utility
         const errorMessage = err instanceof Error ? err.message : GENERIC_ERROR_MESSAGE;
         setError(errorMessage);
       }

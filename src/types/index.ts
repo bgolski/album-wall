@@ -22,11 +22,6 @@ export interface DiscogsRelease {
   };
 }
 
-export interface DiscogsImage {
-  type: string;
-  uri: string;
-}
-
 // HTML2Canvas options interface for type casting
 export interface Html2CanvasOptions {
   backgroundColor?: string;
