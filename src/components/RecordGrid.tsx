@@ -17,8 +17,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { SortableRecord } from "./SortableRecord";
-import { Album } from "../types/index";
-import { Html2CanvasOptions } from "../types";
+import { Album, Html2CanvasOptions } from "@/types";
 import html2canvas from "html2canvas";
 
 interface RecordGridProps {

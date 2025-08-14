@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getBasePath } from "@/utils/basePath";
-import Script from "next/script";
 import Footer from "@/components/Footer";
 
 const basePath = getBasePath();

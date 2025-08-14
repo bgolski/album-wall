@@ -1,11 +1,12 @@
 export interface Album {
   id: number;
   title: string;
-  cover_image: string;
-  coverUrl: string; // For backward compatibility
+  cover_image?: string;
+  coverUrl?: string; // For backward compatibility
   artist: string;
-  genre: string[];
-  year: string;
+  genre?: string[];
+  year?: string;
+  error?: boolean;
 }
 
 export interface DiscogsRelease {
@@ -26,18 +27,18 @@ export interface DiscogsImage {
   uri: string;
 }
 
-export interface CollectionDisplayProps {
-  albums: Album[];
-  username: string;
-  onAlbumsReorder: (newAlbums: Album[]) => void;
-}
-
 export interface ErrorMessageProps {
   error: string;
   username: string;
   onRetry: () => void;
 }
 
-export interface CollectionLoaderProps {
-  username: string;
+// HTML2Canvas options interface for type casting
+export interface Html2CanvasOptions {
+  backgroundColor?: string;
+  scale?: number;
+  logging?: boolean;
+  allowTaint?: boolean;
+  useCORS?: boolean;
+  background?: string;
 }
