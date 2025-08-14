@@ -19,9 +19,4 @@ export interface Html2CanvasOptions {
   background?: string;
 }
 
-// Define global window interface extension for our exportAlbumWall function
-declare global {
-  interface Window {
-    exportAlbumWall?: (selector: string, filename: string) => Promise<void>;
-  }
-}
+// Extend window here if you add global helpers in the future

@@ -46,7 +46,8 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  manifest: `${basePath}/manifest.json`,
+  // Note: Add a manifest.json at public/ if you need a PWA manifest
+  // manifest: `${basePath}/manifest.json`,
 };
 
 export default function RootLayout({
@@ -70,12 +71,7 @@ export default function RootLayout({
         <Footer />
 
         {/* Load helper scripts */}
-        <Script
-          src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"
-          strategy="beforeInteractive"
-        />
         <Script src={`${basePath}/path-fixer.js`} strategy="afterInteractive" />
-        <Script src={`${basePath}/download-helper.js`} strategy="afterInteractive" />
       </body>
     </html>
   );
