@@ -1,6 +1,6 @@
 import { Album } from "@/types";
 import { CollectionLoader } from "./CollectionLoader";
-import { ErrorMessage } from "./ErrorMessage";
+import { ErrorMessage } from "../ui/ErrorMessage";
 import { CollectionDisplay } from "./CollectionDisplay";
 
 interface CollectionManagerProps {

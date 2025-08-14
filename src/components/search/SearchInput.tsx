@@ -1,5 +1,5 @@
-import { AppHeader } from "./AppHeader";
-import { SubmitButton } from "./SubmitButton";
+import { AppHeader } from "../layout/AppHeader";
+import { SubmitButton } from "../ui/SubmitButton";
 
 interface SearchInputProps {
   username: string;

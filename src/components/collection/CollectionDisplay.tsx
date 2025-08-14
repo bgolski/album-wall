@@ -1,5 +1,5 @@
 import { Album } from "@/types";
-import { RecordGrid } from "@/components/RecordGrid";
+import { RecordGrid } from "../grid/RecordGrid";
 
 interface CollectionDisplayProps {
   albums: Album[];

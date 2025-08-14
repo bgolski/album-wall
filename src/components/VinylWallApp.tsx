@@ -1,8 +1,8 @@
 "use client";
 
-import { AppContainer } from "./AppContainer";
-import { SearchInput } from "./SearchInput";
-import { CollectionManager } from "./CollectionManager";
+import { AppContainer } from "./layout/AppContainer";
+import { SearchInput } from "./search/SearchInput";
+import { CollectionManager } from "./collection/CollectionManager";
 import { useCollection } from "@/hooks/useCollection";
 
 export default function VinylWallApp() {

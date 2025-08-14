@@ -1,5 +1,5 @@
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { SortableRecord } from "./SortableRecord";
+import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 
 interface PoolDisplayProps {

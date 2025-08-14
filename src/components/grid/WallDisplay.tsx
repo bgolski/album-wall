@@ -1,5 +1,5 @@
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { SortableRecord } from "./SortableRecord";
+import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 
 interface WallDisplayProps {
@@ -11,7 +11,7 @@ interface WallDisplayProps {
   isExporting: boolean;
   pinnedAlbums: Set<string>;
   onPinToggle: (albumId: string) => void;
-  gridRef: React.RefObject<HTMLDivElement>;
+  gridRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function WallDisplay({
