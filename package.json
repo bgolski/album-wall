@@ -15,7 +15,10 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
     "type-check": "tsc --noEmit",
-    "fix-all": "npm run lint:fix && npm run type-check"
+    "fix-all": "npm run lint:fix && npm run type-check",
+    "precommit-check": "npm run lint && npm run type-check",
+    "prepare": "husky",
+    "pre-commit": "lint-staged"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -37,9 +40,17 @@
     "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.1.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
     "postcss": "^8",
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
