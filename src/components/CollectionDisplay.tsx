@@ -29,13 +29,11 @@ const UserHeader = ({ username, albumCount }: { username: string; albumCount: nu
   </div>
 );
 
-export const CollectionDisplay = ({
-  albums,
-  username,
-  onAlbumsReorder,
-}: CollectionDisplayProps) => (
-  <>
-    <UserHeader username={username} albumCount={albums.length} />
-    <RecordGrid albums={albums} username={username} onAlbumsReorder={onAlbumsReorder} />
-  </>
-);
+export function CollectionDisplay({ albums, username, onAlbumsReorder }: CollectionDisplayProps) {
+  return (
+    <>
+      <UserHeader username={username} albumCount={albums.length} />
+      <RecordGrid albums={albums} username={username} onAlbumsReorder={onAlbumsReorder} />
+    </>
+  );
+}

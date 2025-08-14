@@ -9,13 +9,13 @@ interface SearchInputProps {
   onLoadCollection: () => void;
 }
 
-export const SearchInput = ({
+export function SearchInput({
   username,
   isPending,
   usernameError,
   onUsernameChange,
   onLoadCollection,
-}: SearchInputProps) => {
+}: SearchInputProps) {
   const inputClassName = `flex-1 px-4 py-2 rounded-l bg-gray-800 border text-white focus:outline-none focus:border-blue-500 ${
     usernameError ? "border-red-500" : "border-gray-700"
   }`;
@@ -52,4 +52,4 @@ export const SearchInput = ({
       </div>
     </div>
   );
-};
+}

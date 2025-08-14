@@ -1,4 +1,3 @@
-import React from "react";
 import { Album } from "@/types";
 import { CollectionLoader } from "./CollectionLoader";
 import { ErrorMessage } from "./ErrorMessage";
@@ -14,7 +13,7 @@ interface CollectionManagerProps {
   onRetry: () => void;
 }
 
-export const CollectionManager = ({
+export function CollectionManager({
   albums,
   username,
   loadedUsername,
@@ -22,21 +21,23 @@ export const CollectionManager = ({
   error,
   onAlbumsReorder,
   onRetry,
-}: CollectionManagerProps) => (
-  <>
-    {/* Error state */}
-    {error && !isPending && <ErrorMessage error={error} username={username} onRetry={onRetry} />}
+}: CollectionManagerProps) {
+  return (
+    <>
+      {/* Error state */}
+      {error && !isPending && <ErrorMessage error={error} username={username} onRetry={onRetry} />}
 
-    {/* Loading and content states */}
-    {!error &&
-      (isPending ? (
-        <CollectionLoader username={username} />
-      ) : albums.length > 0 ? (
-        <CollectionDisplay
-          albums={albums}
-          username={loadedUsername}
-          onAlbumsReorder={onAlbumsReorder}
-        />
-      ) : null)}
-  </>
-);
+      {/* Loading and content states */}
+      {!error &&
+        (isPending ? (
+          <CollectionLoader username={username} />
+        ) : albums.length > 0 ? (
+          <CollectionDisplay
+            albums={albums}
+            username={loadedUsername}
+            onAlbumsReorder={onAlbumsReorder}
+          />
+        ) : null)}
+    </>
+  );
+}

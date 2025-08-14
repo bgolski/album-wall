@@ -27,12 +27,6 @@ export interface DiscogsImage {
   uri: string;
 }
 
-export interface ErrorMessageProps {
-  error: string;
-  username: string;
-  onRetry: () => void;
-}
-
 // HTML2Canvas options interface for type casting
 export interface Html2CanvasOptions {
   backgroundColor?: string;
