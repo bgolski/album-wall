@@ -16,6 +16,7 @@
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
     "type-check": "tsc --noEmit",
     "fix-all": "npm run lint:fix && npm run type-check",
+    "precommit-check": "npm run lint && npm run type-check",
     "prepare": "husky",
     "pre-commit": "lint-staged"
   },
