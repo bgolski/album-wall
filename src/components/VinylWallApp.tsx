@@ -25,7 +25,6 @@ export default function VinylWallApp() {
         username={username}
         isPending={isPending}
         usernameError={usernameError}
-        error={error}
         onUsernameChange={handleUsernameChange}
         onLoadCollection={loadCollection}
       />
