@@ -6,7 +6,6 @@ interface SearchInputProps {
   usernameError: string | null;
   error: string | null;
   onUsernameChange: (value: string) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onLoadCollection: () => void;
 }
 
@@ -15,7 +14,6 @@ export const SearchInput = ({
   isPending,
   usernameError,
   onUsernameChange,
-  onKeyDown,
   onLoadCollection,
 }: SearchInputProps) => (
   <div className="mb-8 text-center">
@@ -30,7 +28,9 @@ export const SearchInput = ({
           type="text"
           value={username}
           onChange={(e) => onUsernameChange(e.target.value)}
-          onKeyDown={onKeyDown}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onLoadCollection();
+          }}
           placeholder="Your Discogs username"
           className={`flex-1 px-4 py-2 rounded-l bg-gray-800 border text-white focus:outline-none focus:border-blue-500 ${
             usernameError ? "border-red-500" : "border-gray-700"

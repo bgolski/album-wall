@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, Suspense } from "react";
+import { useState, useTransition } from "react";
 import { getUserCollection, validateDiscogsUsername } from "@/utils/discogs";
 import { Album } from "@/types";
 import { CollectionLoader } from "@/components/CollectionLoader";
@@ -49,12 +49,6 @@ export default function Home() {
     });
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      loadCollection();
-    }
-  };
-
   const handleUsernameChange = (value: string) => {
     setUsername(value);
     // Clear errors when user starts typing a new username
@@ -79,7 +73,6 @@ export default function Home() {
           usernameError={usernameError}
           error={error}
           onUsernameChange={handleUsernameChange}
-          onKeyDown={handleKeyDown}
           onLoadCollection={loadCollection}
         />
 
@@ -89,18 +82,15 @@ export default function Home() {
         )}
 
         {/* Loading and content states */}
-        {!error &&
-          (isPending ? (
-            <Suspense fallback={<CollectionLoader username={username} />}>
-              <CollectionLoader username={username} />
-            </Suspense>
-          ) : albums.length > 0 ? (
-            <CollectionDisplay
-              albums={albums}
-              username={loadedUsername}
-              onAlbumsReorder={handleAlbumsReorder}
-            />
-          ) : null)}
+        {!error && (isPending ? (
+          <CollectionLoader username={username} />
+        ) : albums.length > 0 ? (
+          <CollectionDisplay
+            albums={albums}
+            username={loadedUsername}
+            onAlbumsReorder={handleAlbumsReorder}
+          />
+        ) : null)}
       </div>
     </main>
   );
