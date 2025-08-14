@@ -30,6 +30,9 @@ export const metadata: Metadata = {
   description:
     "A dynamic, interactive wall display for your Discogs vinyl collection. Create customizable grid layouts, sort by artist or genre, pin favorite albums, and export your collection as an image or CSV.",
   metadataBase: new URL(process.env.VERCEL_URL || "https://bgolski.github.io"),
+  icons: {
+    icon: `${basePath}/favicon.ico`,
+  },
   openGraph: {
     title: "Vinyl Wall - Your Virtual Record Collection Display",
     description:
@@ -57,21 +60,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta charSet="utf-8" />
-        <meta name="base-path" content={basePath} />
-        <link rel="icon" href={`${basePath}/favicon.ico`} />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white min-h-screen flex flex-col`}
       >
         <main className="flex-grow">{children}</main>
 
         <Footer />
-
-        {/* Load helper scripts */}
-        <Script src={`${basePath}/path-fixer.js`} strategy="afterInteractive" />
       </body>
     </html>
   );
