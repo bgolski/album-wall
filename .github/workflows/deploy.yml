@@ -28,7 +28,7 @@ jobs:
           echo "NEXT_PUBLIC_DISCOGS_TOKEN=${{ secrets.DISCOGS_TOKEN }}" >> .env.local
 
       - name: Build with Next.js
-        run: npm run build
+        run: npm run build:static
 
       - name: Prepare output for GitHub Pages
         run: |
