@@ -9,6 +9,9 @@ interface SearchInputProps {
   onLoadCollection: () => void;
 }
 
+/**
+ * Renders the Discogs username input and triggers collection loading.
+ */
 export function SearchInput({
   username,
   isPending,
@@ -20,6 +23,11 @@ export function SearchInput({
     usernameError ? "border-red-500" : "border-gray-700"
   }`;
 
+  /**
+   * Submits the collection load when the user presses Enter in the username input.
+   *
+   * @param e Keyboard event from the username input.
+   */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") onLoadCollection();
   };

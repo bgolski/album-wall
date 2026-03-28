@@ -1,3 +1,6 @@
+/**
+ * Displays the application title and short onboarding copy above the search input.
+ */
 export function AppHeader() {
   return (
     <div className="mb-6 text-center">

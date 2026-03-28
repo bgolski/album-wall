@@ -4,6 +4,9 @@ interface ErrorMessageProps {
   onRetry: () => void;
 }
 
+/**
+ * Displays collection-loading errors with retry and Discogs fallback actions.
+ */
 export function ErrorMessage({ error, username, onRetry }: ErrorMessageProps) {
   return (
     <div className="mb-10 flex flex-col items-center justify-center py-12 px-6 bg-gray-800 rounded-lg">

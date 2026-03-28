@@ -1,6 +1,19 @@
 import { Album } from "@/types";
 
+/**
+ * Provides shuffle behavior that preserves pinned album positions in the displayed grid.
+ *
+ * @returns A shuffle action for redistributing unpinned albums between the grid and pool.
+ */
 export function useAlbumShuffle() {
+  /**
+   * Shuffles all unpinned albums while keeping pinned albums fixed in their current grid slots.
+   *
+   * @param displayedAlbums Albums currently shown in the wall grid.
+   * @param poolItems Albums currently outside the grid.
+   * @param pinnedAlbums Set of pinned album ids.
+   * @returns New grid and pool arrays after shuffling unpinned albums.
+   */
   const shuffleUnpinnedAlbums = (
     displayedAlbums: Album[],
     poolItems: Album[],

@@ -15,6 +15,9 @@ interface SortableRecordProps {
   disablePinning?: boolean;
 }
 
+/**
+ * Renders a draggable album tile with optional pinning controls and export-safe image behavior.
+ */
 export function SortableRecord({
   album,
   exportMode = false,
@@ -39,6 +42,11 @@ export function SortableRecord({
         transition,
       };
 
+  /**
+   * Toggles pinning for the clicked album when pinning is enabled on this record tile.
+   *
+   * @param e Click event from the album tile.
+   */
   const handleAlbumClick = (e: React.MouseEvent) => {
     if (disablePinning || !onPinToggle) return;
     e.stopPropagation();

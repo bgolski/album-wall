@@ -3,9 +3,21 @@ import { Album } from "@/types";
 
 export type SortOption = "none" | "artist" | "genre";
 
+/**
+ * Tracks the active sort mode and exposes sorting behavior that respects pinned album positions.
+ *
+ * @returns Current sort option plus actions for updating and applying the sort.
+ */
 export function useAlbumSorting() {
   const [sortOption, setSortOption] = useState<SortOption>("none");
 
+  /**
+   * Sorts albums by the active sort option while preserving pinned albums at their current indices.
+   *
+   * @param albumsToSort Albums to sort.
+   * @param pinnedAlbums Set of pinned album ids that must remain fixed in place.
+   * @returns Albums sorted according to the active sort option.
+   */
   const sortAlbums = (albumsToSort: Album[], pinnedAlbums: Set<string>) => {
     if (sortOption === "none") return albumsToSort;
 
@@ -74,6 +86,11 @@ export function useAlbumSorting() {
     });
   };
 
+  /**
+   * Updates the active sort option used by {@link sortAlbums}.
+   *
+   * @param option Sort mode to apply.
+   */
   const handleSortChange = (option: SortOption) => {
     setSortOption(option);
   };

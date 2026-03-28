@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { Album } from "@/types";
 import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 
+/**
+ * Resolves album artwork for display and prepares it for export-safe rendering when needed.
+ *
+ * @param album Album whose artwork should be displayed.
+ * @param exportMode When true, converts the loaded image to a data URL for canvas export.
+ * @returns Image source state, a wrapper ref, and load/error handlers for the image element.
+ */
 export function useAlbumImage(album: Album, exportMode: boolean = false) {
   const [imageError, setImageError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("");
@@ -19,11 +26,17 @@ export function useAlbumImage(album: Album, exportMode: boolean = false) {
     }
   }, [album]);
 
+  /**
+   * Falls back to the placeholder artwork when the album image cannot be loaded.
+   */
   const handleImageError = () => {
     // Image load error - will use placeholder
     setImageError(true);
   };
 
+  /**
+   * Converts the loaded image into a data URL during export mode to reduce canvas CORS issues.
+   */
   const handleImageLoad = () => {
     // Convert to data URL for export mode to avoid CORS issues
     if (exportMode && imgRef.current) {

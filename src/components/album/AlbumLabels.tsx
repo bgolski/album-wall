@@ -5,6 +5,9 @@ interface AlbumLabelsProps {
   isPinned: boolean;
 }
 
+/**
+ * Displays the album artist and title overlay for non-pinned records.
+ */
 export function AlbumLabels({ album, isPinned }: AlbumLabelsProps) {
   return (
     <div

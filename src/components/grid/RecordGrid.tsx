@@ -33,6 +33,10 @@ interface RecordGridProps {
   onAlbumsReorder: (newAlbums: Album[]) => void;
 }
 
+/**
+ * Coordinates wall-grid interactions including sorting, pinning, shuffling, exporting,
+ * dimension changes, and drag-and-drop between the wall and pool.
+ */
 export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProps) {
   // Use custom hooks for state management
   const dimensions = useGridDimensions();
@@ -71,7 +75,11 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     setPoolItems(albums.slice(dimensions.gridSize));
   }, [albums, dimensions.gridSize]);
 
-  // Handle sorting
+  /**
+   * Applies the selected sort mode to the grid and pool while preserving pinned positions.
+   *
+   * @param option Sort mode selected from the control bar.
+   */
   const handleSortChange = (option: typeof sorting.sortOption) => {
     sorting.handleSortChange(option);
     if (option === "none") return;
@@ -83,7 +91,9 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     setPoolItems(sortedPool);
   };
 
-  // Handle shuffle
+  /**
+   * Randomizes only unpinned albums across the grid and pool, then syncs the new order upward.
+   */
   const handleShuffle = () => {
     const { newDisplayedAlbums, newPoolItems } = shuffleUnpinnedAlbums(
       displayedAlbums,
@@ -96,7 +106,12 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
   };
 
-  // Handle dimensions change
+  /**
+   * Updates the wall dimensions through the grid-dimension hook.
+   *
+   * @param newRows Desired number of grid rows.
+   * @param newColumns Desired number of grid columns.
+   */
   const handleDimensionsChange = (newRows: number, newColumns: number) => {
     dimensions.handleDimensionsChange(newRows, newColumns);
   };
@@ -116,7 +131,11 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
 
   const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
-  // Handle drag end
+  /**
+   * Reorders albums after a drag operation while respecting pinned slots and container boundaries.
+   *
+   * @param event DnD Kit drag end event.
+   */
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -195,7 +214,11 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     }
   }
 
-  // Get sorted albums for display
+  /**
+   * Returns the wall albums in their current display order, applying the active sort when needed.
+   *
+   * @returns Albums to render in the wall grid.
+   */
   const getSortedDisplayedAlbums = () => {
     return sorting.sortOption === "none"
       ? displayedAlbums

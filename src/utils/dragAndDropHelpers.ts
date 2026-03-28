@@ -2,10 +2,26 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { Album } from "@/types";
 import { UniqueIdentifier } from "@dnd-kit/core";
 
+/**
+ * Determines whether a dragged item currently belongs to the wall grid or the overflow pool.
+ *
+ * @param id Dragged item identifier from DnD Kit.
+ * @param displayedAlbums Albums currently shown in the wall grid.
+ * @returns The container type that owns the item.
+ */
 export function getContainerType(id: UniqueIdentifier, displayedAlbums: Album[]): "grid" | "pool" {
   return displayedAlbums.some((item) => `album-${item.id}` === id) ? "grid" : "pool";
 }
 
+/**
+ * Reorders only unpinned albums within the grid while preserving pinned albums at fixed indices.
+ *
+ * @param displayedAlbums Albums currently shown in the wall grid.
+ * @param activeAlbumId Dragged album id.
+ * @param overAlbumId Target album id.
+ * @param pinnedAlbums Set of pinned album ids.
+ * @returns New displayed album order with pinned positions preserved.
+ */
 export function reorderWithinGrid(
   displayedAlbums: Album[],
   activeAlbumId: string,
@@ -51,6 +67,18 @@ export function reorderWithinGrid(
   return newDisplayedAlbums;
 }
 
+/**
+ * Moves albums between the wall grid and pool while respecting pinned grid positions.
+ *
+ * @param displayedAlbums Albums currently shown in the wall grid.
+ * @param poolItems Albums currently outside the grid.
+ * @param activeIndex Index of the dragged album in its source container.
+ * @param overIndex Index of the drop target in its destination container.
+ * @param activeContainer Source container for the dragged album.
+ * @param overContainer Destination container for the drop target.
+ * @param pinnedAlbums Set of pinned album ids that cannot be displaced.
+ * @returns Updated grid and pool arrays after the move.
+ */
 export function swapBetweenContainers(
   displayedAlbums: Album[],
   poolItems: Album[],

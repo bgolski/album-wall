@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { Album } from "@/types";
 
+/**
+ * Tracks pinned albums and exposes helpers for toggling pins within the displayed grid.
+ *
+ * @returns Pin state plus helpers for toggling, bulk pinning, and cleanup.
+ */
 export function useAlbumPinning() {
   const [pinnedAlbums, setPinnedAlbums] = useState<Set<string>>(new Set());
 
+  /**
+   * Toggles the pinned state for a single album id.
+   *
+   * @param albumId Album id to pin or unpin.
+   */
   const togglePinAlbum = (albumId: string) => {
     setPinnedAlbums((prevPinned) => {
       const newPinned = new Set(prevPinned);
@@ -16,6 +26,11 @@ export function useAlbumPinning() {
     });
   };
 
+  /**
+   * Pins every displayed album, or unpins them all if they are already all pinned.
+   *
+   * @param displayedAlbums Albums currently shown in the wall grid.
+   */
   const togglePinAll = (displayedAlbums: Album[]) => {
     const allPinned = displayedAlbums.every((album) => pinnedAlbums.has(String(album.id)));
 
@@ -40,6 +55,11 @@ export function useAlbumPinning() {
     }
   };
 
+  /**
+   * Removes pins for albums that are no longer eligible to stay pinned in the grid.
+   *
+   * @param albumIds Album ids whose pinned state should be cleared.
+   */
   const removePinsForAlbums = (albumIds: string[]) => {
     setPinnedAlbums((prevPinned) => {
       const newPinned = new Set(prevPinned);
@@ -48,6 +68,12 @@ export function useAlbumPinning() {
     });
   };
 
+  /**
+   * Checks whether every displayed album is currently pinned.
+   *
+   * @param displayedAlbums Albums currently shown in the wall grid.
+   * @returns True when the displayed grid is non-empty and every album is pinned.
+   */
   const areAllPinned = (displayedAlbums: Album[]) => {
     return (
       displayedAlbums.length > 0 &&
