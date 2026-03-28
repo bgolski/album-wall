@@ -3,6 +3,9 @@ interface PinButtonProps {
   disabled?: boolean;
 }
 
+/**
+ * Shows the hover pin affordance for an album when pinning is enabled.
+ */
 export function PinButton({ isPinned, disabled = false }: PinButtonProps) {
   if (disabled) return null;
 

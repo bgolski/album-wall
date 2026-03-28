@@ -11,6 +11,9 @@ interface GridControlsProps {
   showDimensionsConfig: boolean;
 }
 
+/**
+ * Renders the grid control bar for sorting, pinning, shuffling, exporting, and grid settings.
+ */
 export function GridControls({
   sortOption,
   areAllPinned,

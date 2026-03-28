@@ -1,3 +1,6 @@
+/**
+ * Displays the inline loading spinner used inside buttons and other compact UI states.
+ */
 export function LoadingSpinner() {
   return (
     <svg

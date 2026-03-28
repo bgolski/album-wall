@@ -2,6 +2,13 @@ import { useState, useRef } from "react";
 import { Album, Html2CanvasOptions } from "@/types";
 import html2canvas from "html2canvas";
 
+/**
+ * Manages export UI state and provides CSV and image export actions for the current wall.
+ *
+ * @param username Discogs username used in exported filenames.
+ * @param albums Albums to include in export output.
+ * @returns Export dropdown state, grid ref, and export handlers.
+ */
 export function useGridExport(username: string, albums: Album[]) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -9,6 +16,9 @@ export function useGridExport(username: string, albums: Album[]) {
 
   const userDisplayName = username || "Anonymous";
 
+  /**
+   * Downloads the current album list as a CSV file using the album order passed to the hook.
+   */
   const exportToCSV = () => {
     setDropdownOpen(false);
 
@@ -40,6 +50,9 @@ export function useGridExport(username: string, albums: Album[]) {
     document.body.removeChild(link);
   };
 
+  /**
+   * Captures the current wall grid as a PNG image after temporarily hiding album labels.
+   */
   const exportAsImage = async () => {
     setDropdownOpen(false);
 
@@ -84,6 +97,9 @@ export function useGridExport(username: string, albums: Album[]) {
     }
   };
 
+  /**
+   * Toggles visibility of the export dropdown menu.
+   */
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
   };

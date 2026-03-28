@@ -5,6 +5,9 @@ interface ExportDropdownProps {
   onExportImage: () => void;
 }
 
+/**
+ * Displays the export actions for downloading the wall as CSV or an image.
+ */
 export function ExportDropdown({
   isOpen,
   isExporting,

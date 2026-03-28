@@ -14,6 +14,9 @@ interface WallDisplayProps {
   gridRef: React.RefObject<HTMLDivElement | null>;
 }
 
+/**
+ * Renders the active wall grid, including pin controls and the export target container.
+ */
 export function WallDisplay({
   albums,
   columns,

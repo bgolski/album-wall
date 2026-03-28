@@ -7,6 +7,9 @@ interface CollectionDisplayProps {
   onAlbumsReorder: (newAlbums: Album[]) => void;
 }
 
+/**
+ * Displays the loaded collection summary and the interactive record grid.
+ */
 const UserHeader = ({ username, albumCount }: { username: string; albumCount: number }) => (
   <div className="mb-6 text-center">
     <div className="inline-flex items-center px-4 py-2 bg-gray-800 rounded-lg">
@@ -29,6 +32,9 @@ const UserHeader = ({ username, albumCount }: { username: string; albumCount: nu
   </div>
 );
 
+/**
+ * Renders the loaded collection header and the wall/pool grid interface.
+ */
 export function CollectionDisplay({ albums, username, onAlbumsReorder }: CollectionDisplayProps) {
   return (
     <>

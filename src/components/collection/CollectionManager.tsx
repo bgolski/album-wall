@@ -13,6 +13,9 @@ interface CollectionManagerProps {
   onRetry: () => void;
 }
 
+/**
+ * Switches between the error, loading, and loaded collection states.
+ */
 export function CollectionManager({
   albums,
   username,

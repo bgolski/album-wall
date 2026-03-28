@@ -2,6 +2,9 @@ interface CollectionLoaderProps {
   username?: string;
 }
 
+/**
+ * Displays the collection-loading state while a Discogs fetch is in progress.
+ */
 export function CollectionLoader({ username = "user" }: CollectionLoaderProps) {
   return (
     <div className="mb-10 flex flex-col items-center justify-center py-12 px-4">

@@ -8,7 +8,12 @@ const baseURL = "https://api.discogs.com";
 const MAX_RETRIES = 2;
 
 /**
- * Makes an API request with retry logic
+ * Executes an async request with exponential backoff and skips retries for 404 responses.
+ *
+ * @param requestFunction Async request function to execute.
+ * @param retries Remaining retry attempts.
+ * @param delay Delay in milliseconds before the next retry.
+ * @returns The resolved request result.
  */
 async function makeRequestWithRetry<T>(
   requestFunction: () => Promise<T>,
@@ -32,7 +37,10 @@ async function makeRequestWithRetry<T>(
 }
 
 /**
- * Validates a Discogs username format
+ * Validates the basic character rules for a Discogs username before making API calls.
+ *
+ * @param username Discogs username to validate.
+ * @returns True when the username matches the expected format.
  */
 export function validateDiscogsUsername(username: string): boolean {
   // Discogs usernames should be alphanumeric + some special chars
@@ -41,7 +49,10 @@ export function validateDiscogsUsername(username: string): boolean {
 }
 
 /**
- * Extracts artist name from Discogs release data
+ * Builds a display-friendly artist string from Discogs artist metadata.
+ *
+ * @param artists Discogs artist entries, including optional join strings.
+ * @returns A normalized artist label or `"Unknown Artist"` when none is available.
  */
 function extractArtistName(artists?: { name: string; join?: string }[]): string {
   if (!artists || !Array.isArray(artists) || artists.length === 0) {
@@ -60,6 +71,13 @@ function extractArtistName(artists?: { name: string; join?: string }[]): string 
   }, "");
 }
 
+/**
+ * Fetches a user's Discogs collection and normalizes release data into the app's album shape.
+ *
+ * @param username Discogs username whose collection should be loaded.
+ * @returns Albums sorted by Discogs artist order for the user's collection.
+ * @throws Error when the username is invalid, the collection is empty, or the Discogs API fails.
+ */
 export async function getUserCollection(username: string): Promise<Album[]> {
   try {
     if (!username.trim()) {

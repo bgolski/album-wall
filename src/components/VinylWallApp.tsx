@@ -5,6 +5,9 @@ import { SearchInput } from "./search/SearchInput";
 import { CollectionManager } from "./collection/CollectionManager";
 import { useCollection } from "@/hooks/useCollection";
 
+/**
+ * Top-level client component that wires collection state to the search and display flows.
+ */
 export default function VinylWallApp() {
   const {
     albums,

@@ -6,6 +6,9 @@ interface SubmitButtonProps {
   isLoading: boolean;
 }
 
+/**
+ * Renders the collection-load submit button and swaps in a spinner while loading.
+ */
 export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps) {
   return (
     <button

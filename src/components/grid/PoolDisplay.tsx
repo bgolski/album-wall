@@ -6,6 +6,9 @@ interface PoolDisplayProps {
   albums: Album[];
 }
 
+/**
+ * Renders albums that do not currently fit in the wall grid and can be dragged back into it.
+ */
 export function PoolDisplay({ albums }: PoolDisplayProps) {
   if (albums.length === 0) return null;
 

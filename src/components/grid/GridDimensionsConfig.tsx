@@ -9,6 +9,9 @@ interface GridDimensionsConfigProps {
   onReset: () => void;
 }
 
+/**
+ * Shows editable row and column inputs for the wall grid when the configuration panel is open.
+ */
 export function GridDimensionsConfig({
   isVisible,
   rows,
