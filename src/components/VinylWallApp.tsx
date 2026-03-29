@@ -13,6 +13,7 @@ export default function VinylWallApp() {
     albums,
     username,
     loadedUsername,
+    sharedWallState,
     isPending,
     error,
     usernameError,
@@ -36,6 +37,7 @@ export default function VinylWallApp() {
         albums={albums}
         username={username}
         loadedUsername={loadedUsername}
+        sharedWallState={sharedWallState}
         isPending={isPending}
         error={error}
         onAlbumsReorder={handleAlbumsReorder}

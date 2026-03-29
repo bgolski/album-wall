@@ -1,9 +1,10 @@
-import { Album } from "@/types";
+import { Album, SharedWallState } from "@/types";
 import { RecordGrid } from "../grid/RecordGrid";
 
 interface CollectionDisplayProps {
   albums: Album[];
   username: string;
+  sharedWallState: SharedWallState | null;
   onAlbumsReorder: (newAlbums: Album[]) => void;
 }
 
@@ -35,11 +36,21 @@ const UserHeader = ({ username, albumCount }: { username: string; albumCount: nu
 /**
  * Renders the loaded collection header and the wall/pool grid interface.
  */
-export function CollectionDisplay({ albums, username, onAlbumsReorder }: CollectionDisplayProps) {
+export function CollectionDisplay({
+  albums,
+  username,
+  sharedWallState,
+  onAlbumsReorder,
+}: CollectionDisplayProps) {
   return (
     <>
       <UserHeader username={username} albumCount={albums.length} />
-      <RecordGrid albums={albums} username={username} onAlbumsReorder={onAlbumsReorder} />
+      <RecordGrid
+        albums={albums}
+        username={username}
+        sharedWallState={sharedWallState}
+        onAlbumsReorder={onAlbumsReorder}
+      />
     </>
   );
 }

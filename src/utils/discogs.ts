@@ -1,8 +1,9 @@
 import axios from "axios";
-import { Album, DiscogsRelease } from "../types/index";
+import { Album, DiscogsCollectionResponse, DiscogsRelease } from "../types/index";
 
 const discogsToken = process.env.NEXT_PUBLIC_DISCOGS_TOKEN;
 const baseURL = "https://api.discogs.com";
+const COLLECTION_PAGE_SIZE = 100;
 
 // Maximum retry attempts for API calls
 const MAX_RETRIES = 2;
@@ -88,6 +89,35 @@ function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
 }
 
 /**
+ * Fetches a single page of a Discogs collection response.
+ *
+ * @param username Discogs username whose collection should be loaded.
+ * @param page Collection page to fetch.
+ * @returns One paginated Discogs collection response.
+ */
+async function fetchCollectionPage(
+  username: string,
+  page: number
+): Promise<DiscogsCollectionResponse> {
+  const requestUrl = `${baseURL}/users/${username}/collection/folders/0/releases`;
+
+  return makeRequestWithRetry(() =>
+    axios
+      .get<DiscogsCollectionResponse>(requestUrl, {
+        headers: {
+          Authorization: discogsToken ? `Discogs token=${discogsToken}` : "",
+        },
+        params: {
+          per_page: COLLECTION_PAGE_SIZE,
+          sort: "artist",
+          page,
+        },
+      })
+      .then((response) => response.data)
+  );
+}
+
+/**
  * Fetches a user's Discogs collection and normalizes release data into the app's album shape.
  *
  * @param username Discogs username whose collection should be loaded.
@@ -113,32 +143,21 @@ export async function getUserCollection(username: string): Promise<Album[]> {
       );
     }
 
-    // Build the request URL
-    const requestUrl = `${baseURL}/users/${username}/collection/folders/0/releases`;
+    const firstPage = await fetchCollectionPage(username, 1);
+    const allReleases = [...(firstPage.releases || [])];
+    const totalPages = Math.max(firstPage.pagination?.pages || 1, 1);
 
-    // Use retry logic for the API call
-    const response = await makeRequestWithRetry(() =>
-      axios.get(requestUrl, {
-        headers: {
-          Authorization: discogsToken ? `Discogs token=${discogsToken}` : "",
-        },
-        params: {
-          per_page: 100,
-          sort: "artist",
-        },
-      })
-    );
+    for (let page = 2; page <= totalPages; page++) {
+      const pageResponse = await fetchCollectionPage(username, page);
+      allReleases.push(...(pageResponse.releases || []));
+    }
 
     // If the API returned no releases, throw a custom error
-    if (
-      !response.data.releases ||
-      !Array.isArray(response.data.releases) ||
-      response.data.releases.length === 0
-    ) {
+    if (!Array.isArray(allReleases) || allReleases.length === 0) {
       throw new Error(`User "${username}" has no vinyl records in their collection`);
     }
 
-    return response.data.releases.map((release: DiscogsRelease) => {
+    return allReleases.map((release: DiscogsRelease) => {
       const basicInfo = release.basic_information;
       const coverImage = basicInfo.cover_image || "";
 

@@ -25,6 +25,25 @@ export interface DiscogsRelease {
   };
 }
 
+export interface DiscogsCollectionResponse {
+  pagination?: {
+    page?: number;
+    pages?: number;
+    per_page?: number;
+    items?: number;
+  };
+  releases?: DiscogsRelease[];
+}
+
+export interface SharedWallState {
+  v: 1;
+  username: string;
+  rows: number;
+  columns: number;
+  wallAlbumIds: string[];
+  pinnedAlbumIds: string[];
+}
+
 // HTML2Canvas options interface for type casting
 export interface Html2CanvasOptions {
   backgroundColor?: string;

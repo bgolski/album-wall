@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Album } from "@/types";
@@ -27,6 +27,7 @@ export function SortableRecord({
   disablePinning = false,
 }: SortableRecordProps) {
   const [showMobileDiscogsAction, setShowMobileDiscogsAction] = useState(false);
+  const recordRef = useRef<HTMLDivElement | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: `album-${album.id}`,
     disabled: isPinned,
@@ -45,6 +46,24 @@ export function SortableRecord({
       };
 
   const canOpenDiscogs = Boolean(album.discogsUrl);
+
+  useEffect(() => {
+    if (!showMobileDiscogsAction) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!recordRef.current?.contains(event.target as Node)) {
+        setShowMobileDiscogsAction(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [showMobileDiscogsAction]);
 
   /**
    * Toggles pinning for the clicked album when pinning is enabled on this record tile.
@@ -74,9 +93,17 @@ export function SortableRecord({
     setShowMobileDiscogsAction(false);
   };
 
+  const handleRecordRef = (node: HTMLDivElement | null) => {
+    recordRef.current = node;
+
+    if (!isPinned) {
+      setNodeRef(node);
+    }
+  };
+
   return (
     <div
-      ref={isPinned ? null : setNodeRef}
+      ref={handleRecordRef}
       style={style}
       {...(isPinned ? {} : attributes)}
       {...(isPinned ? {} : listeners)}
