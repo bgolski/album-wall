@@ -23,7 +23,7 @@ export function ExportDropdown({
   if (!isOpen) return null;
 
   return (
-    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+    <div className="absolute right-0 z-40 mt-2 w-48 rounded-md bg-white shadow-lg">
       <div className="py-1">
         <button
           onClick={onExportCSV}
