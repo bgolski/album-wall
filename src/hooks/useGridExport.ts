@@ -2,9 +2,31 @@ import { useState, useRef } from "react";
 import { Album, Html2CanvasOptions } from "@/types";
 import html2canvas from "html2canvas";
 
-function escapeCsvField(value: string): string {
-  const normalizedValue = value.replace(/"/g, '""');
-  return `"${normalizedValue}"`;
+const EXPORT_TIMEOUT_MS = 20000;
+
+function isTouchDevice() {
+  return (
+    typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+  );
+}
+
+function getExportScale() {
+  if (typeof window === "undefined") {
+    return 2;
+  }
+
+  return isTouchDevice() ? Math.min(window.devicePixelRatio, 2) : window.devicePixelRatio * 2;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => {
+        reject(new Error("Export timed out."));
+      }, timeoutMs);
+    }),
+  ]);
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -33,6 +55,21 @@ export function useGridExport(username: string, albums: Album[]) {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const userDisplayName = username || "Anonymous";
+  const imageFilename = `${userDisplayName}_vinyl_wall.png`;
+
+  /**
+   * Returns true when the current browser can share image files natively.
+   *
+   * @param imageFile Image file to check against the Web Share API.
+   * @returns Whether file sharing is supported for this image.
+   */
+  const canShareImageFile = (imageFile: File) => {
+    return (
+      typeof navigator !== "undefined" &&
+      Boolean(navigator.share) &&
+      (!navigator.canShare || navigator.canShare({ files: [imageFile] }))
+    );
+  };
 
   /**
    * Captures the current wall grid into a PNG blob while preserving existing label visibility.
@@ -52,13 +89,18 @@ export function useGridExport(username: string, albums: Album[]) {
         label.style.display = "none";
       });
 
-      const canvas = await html2canvas(gridRef.current, {
-        backgroundColor: "#121212",
-        scale: window.devicePixelRatio * 2,
-        logging: false,
-        allowTaint: true,
-        useCORS: true,
-      } as Html2CanvasOptions);
+      const canvas = await withTimeout(
+        Promise.resolve(
+          html2canvas(gridRef.current, {
+            backgroundColor: "#121212",
+            scale: getExportScale(),
+            logging: false,
+            allowTaint: true,
+            useCORS: true,
+          } as Html2CanvasOptions)
+        ),
+        EXPORT_TIMEOUT_MS
+      );
 
       return await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
@@ -78,63 +120,30 @@ export function useGridExport(username: string, albums: Album[]) {
   };
 
   /**
-   * Downloads the current album list as a CSV file using the album order passed to the hook.
+   * Attempts to share an image file using the browser's native share sheet.
+   *
+   * @param imageFile Image file to share.
+   * @returns True when the share sheet was used successfully, otherwise false.
    */
-  const exportToCSV = () => {
-    setDropdownOpen(false);
-    setStatusMessage(null);
-
-    if (!albums || albums.length === 0) {
-      alert("No albums to export");
-      return;
+  const tryNativeImageShare = async (imageFile: File) => {
+    if (!canShareImageFile(imageFile)) {
+      return false;
     }
 
-    const csvHeader = "Artist,Title,Genre,Year,Discogs URL\n";
-    const csvContent = albums
-      .map((album) => {
-        const artist = album.artist || "";
-        const title = album.title || "";
-        const genre = Array.isArray(album.genre) ? album.genre.join(" / ") : album.genre || "";
-        const year = album.year || "";
-        const discogsUrl = album.discogsUrl || "";
+    await navigator.share({
+      title: `${userDisplayName}'s Vinyl Wall`,
+      text: `Check out ${userDisplayName}'s vinyl wall.`,
+      files: [imageFile],
+    });
 
-        return [artist, title, genre, year, discogsUrl].map(escapeCsvField).join(",");
-      })
-      .join("\n");
-
-    const blob = new Blob([csvHeader + csvContent], { type: "text/csv;charset=utf-8;" });
-    downloadBlob(blob, "vinyl_wall_export.csv");
+    return true;
   };
 
   /**
-   * Captures the current wall grid as a PNG image after temporarily hiding album labels.
+   * Captures the current wall grid as a PNG image and routes it through the best available
+   * share/save path for the current device.
    */
-  const exportAsImage = async () => {
-    setDropdownOpen(false);
-    setStatusMessage(null);
-
-    if (!gridRef.current || albums.length === 0) {
-      alert("No albums to export");
-      return;
-    }
-
-    try {
-      setIsExporting(true);
-      const imageBlob = await captureGridImageBlob();
-      downloadBlob(imageBlob, `${userDisplayName}_vinyl_wall.png`);
-    } catch (error) {
-      console.error("Error exporting image:", error);
-      alert("Failed to export image. Please try again.");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  /**
-   * Shares the current wall image using the Web Share API when file sharing is supported.
-   * Falls back to downloading the image when browser sharing is unavailable.
-   */
-  const shareImage = async () => {
+  const shareOrSaveImage = async () => {
     setDropdownOpen(false);
     setStatusMessage(null);
 
@@ -143,37 +152,26 @@ export function useGridExport(username: string, albums: Album[]) {
       return;
     }
 
-    const filename = `${userDisplayName}_vinyl_wall.png`;
-
     try {
       setIsExporting(true);
       const imageBlob = await captureGridImageBlob();
-      const imageFile = new File([imageBlob], filename, { type: "image/png" });
+      const imageFile = new File([imageBlob], imageFilename, { type: "image/png" });
 
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.share &&
-        (!navigator.canShare || navigator.canShare({ files: [imageFile] }))
-      ) {
-        await navigator.share({
-          title: `${userDisplayName}'s Vinyl Wall`,
-          text: `Check out ${userDisplayName}'s vinyl wall.`,
-          files: [imageFile],
-        });
-        setStatusMessage("Image shared.");
+      if (await tryNativeImageShare(imageFile)) {
+        setStatusMessage("Use the share sheet to save or send the image.");
         return;
       }
 
-      downloadBlob(imageBlob, filename);
-      setStatusMessage("Sharing not supported here. Downloaded the image instead.");
+      downloadBlob(imageBlob, imageFilename);
+      setStatusMessage("Image saved.");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        setStatusMessage("Share canceled.");
+        setStatusMessage("Save canceled.");
         return;
       }
 
-      console.error("Error sharing image:", error);
-      setStatusMessage("Unable to share image.");
+      console.error("Error exporting image:", error);
+      alert("Failed to export image. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -191,9 +189,7 @@ export function useGridExport(username: string, albums: Album[]) {
     isExporting,
     statusMessage,
     gridRef,
-    exportToCSV,
-    exportAsImage,
-    shareImage,
+    shareOrSaveImage,
     toggleDropdown,
   };
 }
