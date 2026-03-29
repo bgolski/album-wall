@@ -19,7 +19,7 @@ export function SearchInput({
   onUsernameChange,
   onLoadCollection,
 }: SearchInputProps) {
-  const inputClassName = `flex-1 px-4 py-2 rounded-l bg-gray-800 border text-white focus:outline-none focus:border-blue-500 ${
+  const inputClassName = `w-full rounded bg-gray-800 border px-4 py-2 text-white focus:outline-none focus:border-blue-500 md:flex-1 md:rounded-r-none ${
     usernameError ? "border-red-500" : "border-gray-700"
   }`;
 
@@ -39,7 +39,7 @@ export function SearchInput({
       <AppHeader />
 
       <div className="flex flex-col items-center">
-        <div className="flex justify-center items-center gap-2 max-w-sm w-full mx-auto">
+        <div className="flex w-full max-w-sm flex-col items-stretch gap-2 sm:max-w-md md:flex-row md:items-center md:gap-0">
           <input
             type="text"
             value={username}
@@ -56,7 +56,11 @@ export function SearchInput({
           />
         </div>
 
-        {usernameError && <p className="text-red-400 text-sm mt-2 max-w-sm">{usernameError}</p>}
+        {usernameError && (
+          <p className="mt-2 w-full max-w-sm text-left text-sm text-red-400 sm:max-w-md">
+            {usernameError}
+          </p>
+        )}
       </div>
     </div>
   );

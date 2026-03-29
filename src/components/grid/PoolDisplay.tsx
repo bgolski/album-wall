@@ -13,11 +13,11 @@ export function PoolDisplay({ albums }: PoolDisplayProps) {
   if (albums.length === 0) return null;
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4 text-white">
+    <div className="rounded-lg bg-gray-800 p-4 shadow">
+      <h2 className="mb-4 text-xl font-bold text-white">
         Remaining Record Pool ({albums.length} albums)
       </h2>
-      <div className="grid grid-cols-8 gap-4">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 md:gap-4 lg:grid-cols-8">
         <SortableContext
           items={albums.map((album) => `album-${album.id}`)}
           strategy={rectSortingStrategy}

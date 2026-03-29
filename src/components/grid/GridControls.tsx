@@ -24,15 +24,18 @@ export function GridControls({
   onToggleExportDropdown,
   showDimensionsConfig,
 }: GridControlsProps) {
+  const actionButtonClass =
+    "flex-1 rounded px-3 py-2 text-sm font-medium text-white transition-colors min-[360px]:basis-[calc(50%-0.25rem)] md:flex-none md:basis-auto md:px-3 md:py-1.5";
+
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center">
-          <h2 className="text-lg font-semibold text-white mr-4">Sort Records</h2>
-          <div className="flex gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-3 md:flex-1">
+          <h2 className="text-base font-semibold text-white md:text-lg">Sort Records</h2>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:flex md:flex-wrap md:gap-4">
             <button
               onClick={() => onSortChange("none")}
-              className={`px-3 py-1.5 rounded ${
+              className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
                 sortOption === "none"
                   ? "bg-blue-500 text-white"
                   : "bg-gray-600 text-white hover:bg-gray-500"
@@ -42,7 +45,7 @@ export function GridControls({
             </button>
             <button
               onClick={() => onSortChange("artist")}
-              className={`px-3 py-1.5 rounded ${
+              className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
                 sortOption === "artist"
                   ? "bg-blue-500 text-white"
                   : "bg-gray-600 text-white hover:bg-gray-500"
@@ -52,7 +55,7 @@ export function GridControls({
             </button>
             <button
               onClick={() => onSortChange("genre")}
-              className={`px-3 py-1.5 rounded ${
+              className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
                 sortOption === "genre"
                   ? "bg-blue-500 text-white"
                   : "bg-gray-600 text-white hover:bg-gray-500"
@@ -63,17 +66,17 @@ export function GridControls({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap gap-2 md:items-center md:justify-end md:gap-3">
           <button
             onClick={onToggleDimensionsConfig}
-            className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-500"
+            className={`${actionButtonClass} bg-gray-600 hover:bg-gray-500`}
           >
             {showDimensionsConfig ? "Hide Grid Config" : "Configure Grid"}
           </button>
 
           <button
             onClick={onTogglePinAll}
-            className={`px-3 py-1.5 rounded flex items-center ${
+            className={`${actionButtonClass} flex items-center justify-center ${
               areAllPinned
                 ? "bg-blue-600 text-white hover:bg-blue-500"
                 : "bg-gray-600 text-white hover:bg-gray-500"
@@ -96,7 +99,7 @@ export function GridControls({
 
           <button
             onClick={onShuffle}
-            className="px-3 py-1.5 rounded flex items-center bg-purple-600 text-white hover:bg-purple-500"
+            className={`${actionButtonClass} flex items-center justify-center bg-purple-600 hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50`}
             disabled={areAllPinned}
             title={
               areAllPinned ? "Unpin some albums to shuffle" : "Randomly rearrange unpinned albums"
@@ -113,10 +116,10 @@ export function GridControls({
             Shuffle
           </button>
 
-          <div className="relative">
+          <div className="relative basis-full md:basis-auto">
             <button
               onClick={onToggleExportDropdown}
-              className="px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-500 flex items-center"
+              className={`${actionButtonClass} w-full flex items-center justify-center bg-green-600 hover:bg-green-500 md:w-auto`}
             >
               <span className="mr-1">Export</span>
               <svg

@@ -11,8 +11,8 @@ interface AlbumLabelsProps {
 export function AlbumLabels({ album, isPinned }: AlbumLabelsProps) {
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white p-2 rounded-b-lg album-labels ${
-        isPinned ? "hidden" : ""
+      className={`album-labels absolute bottom-0 left-0 right-0 rounded-b-lg bg-black bg-opacity-70 p-2 text-white ${
+        isPinned ? "hidden" : "hidden md:block"
       }`}
     >
       <p className="text-xs font-bold truncate">{album.artist || "Unknown Artist"}</p>

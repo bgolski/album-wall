@@ -14,7 +14,7 @@ export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps
     <button
       onClick={onClick}
       disabled={disabled}
-      className="px-4 py-2 rounded-r bg-blue-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+      className="flex min-h-[42px] w-full items-center justify-center rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 md:min-w-[120px] md:w-auto md:rounded-l-none"
     >
       {isLoading ? (
         <>

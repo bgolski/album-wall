@@ -29,17 +29,20 @@ export function WallDisplay({
   gridRef,
 }: WallDisplayProps) {
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4 text-white">
-        Wall Display ({columns}×{rows} = {gridSize} albums)
+    <div className="rounded-lg bg-gray-800 p-3 shadow sm:p-4">
+      <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-bold text-white sm:mb-4 sm:text-xl">
+        <span>Wall Display</span>
+        <span className="text-gray-200">
+          ({columns}×{rows} = {gridSize} albums)
+        </span>
         {pinnedCount > 0 && (
-          <span className="ml-2 text-blue-300 text-sm font-normal">({pinnedCount} pinned)</span>
+          <span className="text-sm font-normal text-blue-300">({pinnedCount} pinned)</span>
         )}
       </h2>
       <div
         ref={gridRef}
         id="grid-container"
-        className="grid gap-4"
+        className="grid gap-3 sm:gap-4"
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, auto)`,
