@@ -379,9 +379,7 @@ export function RecordGrid({
           isOpen={exportHooks.dropdownOpen}
           isExporting={exportHooks.isExporting}
           statusMessage={shareStatusMessage ?? exportHooks.statusMessage}
-          onExportCSV={exportHooks.exportToCSV}
-          onExportImage={exportHooks.exportAsImage}
-          onShareImage={exportHooks.shareImage}
+          onShareOrSaveImage={exportHooks.shareOrSaveImage}
           onCopyShareLink={handleCopyShareLink}
         />
 

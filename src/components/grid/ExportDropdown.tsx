@@ -2,9 +2,7 @@ interface ExportDropdownProps {
   isOpen: boolean;
   isExporting: boolean;
   statusMessage: string | null;
-  onExportCSV: () => void;
-  onExportImage: () => void;
-  onShareImage: () => void;
+  onShareOrSaveImage: () => void;
   onCopyShareLink: () => void;
 }
 
@@ -15,9 +13,7 @@ export function ExportDropdown({
   isOpen,
   isExporting,
   statusMessage,
-  onExportCSV,
-  onExportImage,
-  onShareImage,
+  onShareOrSaveImage,
   onCopyShareLink,
 }: ExportDropdownProps) {
   if (!isOpen) return null;
@@ -26,24 +22,11 @@ export function ExportDropdown({
     <div className="absolute right-0 z-40 mt-2 w-48 rounded-md bg-white shadow-lg">
       <div className="py-1">
         <button
-          onClick={onExportCSV}
-          className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-        >
-          Export to CSV
-        </button>
-        <button
-          onClick={onExportImage}
+          onClick={onShareOrSaveImage}
           disabled={isExporting}
           className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 disabled:opacity-50"
         >
-          {isExporting ? "Generating image..." : "Save as Image"}
-        </button>
-        <button
-          onClick={onShareImage}
-          disabled={isExporting}
-          className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 disabled:opacity-50"
-        >
-          {isExporting ? "Preparing image..." : "Share Image"}
+          {isExporting ? "Preparing image..." : "Share or Save Image"}
         </button>
         <button
           onClick={onCopyShareLink}
