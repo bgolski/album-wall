@@ -72,6 +72,22 @@ function extractArtistName(artists?: { name: string; join?: string }[]): string 
 }
 
 /**
+ * Converts Discogs API release metadata into a public Discogs release page URL.
+ *
+ * @param release Collection release payload from Discogs.
+ * @returns A public Discogs URL when a release id can be resolved.
+ */
+function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
+  const releaseId = release.basic_information.id ?? release.id;
+
+  if (!releaseId) {
+    return undefined;
+  }
+
+  return `https://www.discogs.com/release/${releaseId}`;
+}
+
+/**
  * Fetches a user's Discogs collection and normalizes release data into the app's album shape.
  *
  * @param username Discogs username whose collection should be loaded.
@@ -131,6 +147,7 @@ export async function getUserCollection(username: string): Promise<Album[]> {
         title: basicInfo.title || "",
         cover_image: coverImage,
         coverUrl: coverImage, // For backward compatibility
+        discogsUrl: getDiscogsReleaseUrl(release),
         artist: extractArtistName(basicInfo.artists),
         genre: basicInfo.genres || [],
         year: "",
