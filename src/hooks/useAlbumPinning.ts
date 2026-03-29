@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Album } from "@/types";
 
 /**
  * Tracks pinned albums and exposes helpers for toggling pins within the displayed grid.
  *
+ * @param initialPinnedAlbumIds Album ids that should start pinned.
  * @returns Pin state plus helpers for toggling, bulk pinning, and cleanup.
  */
-export function useAlbumPinning() {
-  const [pinnedAlbums, setPinnedAlbums] = useState<Set<string>>(new Set());
+export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
+  const [pinnedAlbums, setPinnedAlbums] = useState<Set<string>>(new Set(initialPinnedAlbumIds));
 
   /**
    * Toggles the pinned state for a single album id.
@@ -69,6 +70,15 @@ export function useAlbumPinning() {
   };
 
   /**
+   * Replaces the full pinned album set, typically when hydrating shared wall state.
+   *
+   * @param albumIds Album ids that should be pinned after replacement.
+   */
+  const replacePinnedAlbums = useCallback((albumIds: string[]) => {
+    setPinnedAlbums(new Set(albumIds));
+  }, []);
+
+  /**
    * Checks whether every displayed album is currently pinned.
    *
    * @param displayedAlbums Albums currently shown in the wall grid.
@@ -86,6 +96,7 @@ export function useAlbumPinning() {
     togglePinAlbum,
     togglePinAll,
     removePinsForAlbums,
+    replacePinnedAlbums,
     areAllPinned,
   };
 }

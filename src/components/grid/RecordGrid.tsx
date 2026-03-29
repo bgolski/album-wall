@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -10,7 +10,7 @@ import {
   KeyboardSensor,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Album } from "@/types";
+import { Album, SharedWallState } from "@/types";
 import { useGridDimensions } from "@/hooks/useGridDimensions";
 import { useAlbumPinning } from "@/hooks/useAlbumPinning";
 import { useAlbumSorting } from "@/hooks/useAlbumSorting";
@@ -21,6 +21,7 @@ import {
   reorderWithinGrid,
   swapBetweenContainers,
 } from "@/utils/dragAndDropHelpers";
+import { buildSharedWallState, buildSharedWallUrl } from "@/utils/shareState";
 import { GridControls } from "./GridControls";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
 import { ExportDropdown } from "./ExportDropdown";
@@ -31,29 +32,80 @@ interface RecordGridProps {
   username: string;
   albums: Album[];
   onAlbumsReorder: (newAlbums: Album[]) => void;
+  sharedWallState?: SharedWallState | null;
+}
+
+function buildAlbumsFromSharedWallState(albums: Album[], sharedWallState: SharedWallState) {
+  const albumMap = new Map(albums.map((album) => [String(album.id), album]));
+  const sharedWallAlbums = sharedWallState.wallAlbumIds
+    .map((albumId) => albumMap.get(albumId))
+    .filter((album): album is Album => Boolean(album));
+  const sharedWallAlbumIds = new Set(sharedWallAlbums.map((album) => String(album.id)));
+  const remainingAlbums = albums.filter((album) => !sharedWallAlbumIds.has(String(album.id)));
+
+  return [...sharedWallAlbums, ...remainingAlbums];
 }
 
 /**
  * Coordinates wall-grid interactions including sorting, pinning, shuffling, exporting,
  * dimension changes, and drag-and-drop between the wall and pool.
  */
-export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProps) {
+export function RecordGrid({
+  username,
+  albums,
+  onAlbumsReorder,
+  sharedWallState,
+}: RecordGridProps) {
+  const sharedStateSignature = useMemo(
+    () => (sharedWallState ? JSON.stringify(sharedWallState) : null),
+    [sharedWallState]
+  );
+  const appliedSharedStateSignatureRef = useRef<string | null>(null);
+  const initialDimensions =
+    sharedWallState && sharedWallState.username === username
+      ? { rows: sharedWallState.rows, columns: sharedWallState.columns }
+      : undefined;
+  const shareRows = sharedWallState?.rows;
+  const shareColumns = sharedWallState?.columns;
+  const shareUsername = sharedWallState?.username;
+
   // Use custom hooks for state management
-  const dimensions = useGridDimensions();
-  const pinning = useAlbumPinning();
+  const dimensions = useGridDimensions(initialDimensions);
+  const pinning = useAlbumPinning(
+    sharedWallState?.username === username ? sharedWallState.pinnedAlbumIds : undefined
+  );
   const sorting = useAlbumSorting();
   const exportHooks = useGridExport(username, albums);
   const { shuffleUnpinnedAlbums } = useAlbumShuffle();
+  const {
+    rows,
+    columns,
+    gridSize,
+    showDimensionsConfig,
+    handleDimensionsChange: updateGridDimensions,
+    replaceDimensions,
+    resetToDefault,
+    toggleConfig,
+    DEFAULT_ROWS,
+    DEFAULT_COLUMNS,
+  } = dimensions;
+  const {
+    pinnedAlbums,
+    togglePinAlbum,
+    togglePinAll,
+    removePinsForAlbums,
+    replacePinnedAlbums,
+    areAllPinned,
+  } = pinning;
 
   // Album distribution state
-  const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(
-    albums.slice(0, dimensions.gridSize)
-  );
-  const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(dimensions.gridSize));
+  const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
+  const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
+  const [shareStatusMessage, setShareStatusMessage] = useState<string | null>(null);
 
   // Update albums and pool when dimensions or albums change
   useEffect(() => {
-    const newGridSize = dimensions.gridSize;
+    const newGridSize = gridSize;
     const oldGridSize = displayedAlbums.length;
 
     if (newGridSize !== oldGridSize) {
@@ -62,18 +114,57 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
       // If grid size decreases, remove pins for albums that will no longer be in display
       if (newGridSize < oldGridSize) {
         const albumsToUnpin = displayedAlbums.slice(newGridSize).map((album) => String(album.id));
-        pinning.removePinsForAlbums(albumsToUnpin);
+        removePinsForAlbums(albumsToUnpin);
       }
 
       setDisplayedAlbums(allAlbums.slice(0, newGridSize));
       setPoolItems(allAlbums.slice(newGridSize));
     }
-  }, [dimensions.gridSize, displayedAlbums, poolItems, pinning]);
+  }, [displayedAlbums, gridSize, poolItems, removePinsForAlbums]);
 
   useEffect(() => {
-    setDisplayedAlbums(albums.slice(0, dimensions.gridSize));
-    setPoolItems(albums.slice(dimensions.gridSize));
-  }, [albums, dimensions.gridSize]);
+    if (sharedWallState && shareUsername === username && sharedStateSignature) {
+      if (appliedSharedStateSignatureRef.current === sharedStateSignature) {
+        setDisplayedAlbums(albums.slice(0, gridSize));
+        setPoolItems(albums.slice(gridSize));
+        return;
+      }
+
+      if (rows !== shareRows || columns !== shareColumns) {
+        replaceDimensions(shareRows!, shareColumns!);
+        return;
+      }
+
+      const orderedAlbums = buildAlbumsFromSharedWallState(albums, sharedWallState);
+      const validPinnedAlbumIds = sharedWallState.pinnedAlbumIds.filter((albumId) =>
+        sharedWallState.wallAlbumIds.includes(albumId)
+      );
+
+      replacePinnedAlbums(validPinnedAlbumIds);
+      setDisplayedAlbums(orderedAlbums.slice(0, gridSize));
+      setPoolItems(orderedAlbums.slice(gridSize));
+      onAlbumsReorder(orderedAlbums);
+      appliedSharedStateSignatureRef.current = sharedStateSignature;
+      return;
+    }
+
+    setDisplayedAlbums(albums.slice(0, gridSize));
+    setPoolItems(albums.slice(gridSize));
+  }, [
+    albums,
+    columns,
+    gridSize,
+    onAlbumsReorder,
+    replaceDimensions,
+    replacePinnedAlbums,
+    rows,
+    shareColumns,
+    sharedStateSignature,
+    sharedWallState,
+    shareRows,
+    shareUsername,
+    username,
+  ]);
 
   /**
    * Applies the selected sort mode to the grid and pool while preserving pinned positions.
@@ -84,8 +175,8 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     sorting.handleSortChange(option);
     if (option === "none") return;
 
-    const sortedDisplayed = sorting.sortAlbums(displayedAlbums, pinning.pinnedAlbums);
-    const sortedPool = sorting.sortAlbums(poolItems, pinning.pinnedAlbums);
+    const sortedDisplayed = sorting.sortAlbums(displayedAlbums, pinnedAlbums);
+    const sortedPool = sorting.sortAlbums(poolItems, pinnedAlbums);
 
     setDisplayedAlbums(sortedDisplayed);
     setPoolItems(sortedPool);
@@ -98,7 +189,7 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     const { newDisplayedAlbums, newPoolItems } = shuffleUnpinnedAlbums(
       displayedAlbums,
       poolItems,
-      pinning.pinnedAlbums
+      pinnedAlbums
     );
 
     setDisplayedAlbums(newDisplayedAlbums);
@@ -113,7 +204,7 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
    * @param newColumns Desired number of grid columns.
    */
   const handleDimensionsChange = (newRows: number, newColumns: number) => {
-    dimensions.handleDimensionsChange(newRows, newColumns);
+    updateGridDimensions(newRows, newColumns);
   };
 
   // Drag and drop sensors
@@ -148,7 +239,7 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
     const overAlbumId = String(overId).replace("album-", "");
 
     // Check if the target position is occupied by a pinned album
-    if (pinning.pinnedAlbums.has(overAlbumId)) {
+    if (pinnedAlbums.has(overAlbumId)) {
       return;
     }
 
@@ -163,7 +254,7 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
           displayedAlbums,
           activeAlbumId,
           overAlbumId,
-          pinning.pinnedAlbums
+          pinnedAlbums
         );
         setDisplayedAlbums(newDisplayedAlbums);
         onAlbumsReorder([...newDisplayedAlbums, ...poolItems]);
@@ -197,14 +288,14 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
         overIndex,
         activeContainer,
         overContainer,
-        pinning.pinnedAlbums
+        pinnedAlbums
       );
 
       // Moving from grid to pool means unpinning the album
       if (activeContainer === "grid") {
         const activeItem = displayedAlbums[activeIndex];
-        if (pinning.pinnedAlbums.has(String(activeItem.id))) {
-          pinning.togglePinAlbum(String(activeItem.id));
+        if (pinnedAlbums.has(String(activeItem.id))) {
+          togglePinAlbum(String(activeItem.id));
         }
       }
 
@@ -222,7 +313,50 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
   const getSortedDisplayedAlbums = () => {
     return sorting.sortOption === "none"
       ? displayedAlbums
-      : sorting.sortAlbums(displayedAlbums, pinning.pinnedAlbums);
+      : sorting.sortAlbums(displayedAlbums, pinnedAlbums);
+  };
+
+  /**
+   * Copies a shareable hash URL for the current wall configuration to the clipboard.
+   */
+  const handleCopyShareLink = async () => {
+    if (typeof window === "undefined" || !username) {
+      setShareStatusMessage("Unable to build a share link yet.");
+      return;
+    }
+
+    const currentWallAlbums = getSortedDisplayedAlbums();
+    const sharedWallStatePayload = buildSharedWallState({
+      username,
+      rows,
+      columns,
+      wallAlbumIds: currentWallAlbums.map((album) => String(album.id)),
+      pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
+        currentWallAlbums.some((album) => String(album.id) === albumId)
+      ),
+    });
+    const shareUrl = buildSharedWallUrl(sharedWallStatePayload, window.location.href);
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setShareStatusMessage("Share link copied.");
+    } catch (error) {
+      console.error("Error copying share link:", error);
+      setShareStatusMessage("Unable to copy link.");
+    }
   };
 
   return (
@@ -231,33 +365,36 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
       <div className="relative">
         <GridControls
           sortOption={sorting.sortOption}
-          areAllPinned={pinning.areAllPinned(displayedAlbums)}
+          areAllPinned={areAllPinned(displayedAlbums)}
           onSortChange={handleSortChange}
-          onToggleDimensionsConfig={dimensions.toggleConfig}
-          onTogglePinAll={() => pinning.togglePinAll(displayedAlbums)}
+          onToggleDimensionsConfig={toggleConfig}
+          onTogglePinAll={() => togglePinAll(displayedAlbums)}
           onShuffle={handleShuffle}
           onToggleExportDropdown={exportHooks.toggleDropdown}
-          showDimensionsConfig={dimensions.showDimensionsConfig}
+          showDimensionsConfig={showDimensionsConfig}
         />
 
         {/* Export Dropdown positioned absolutely */}
         <ExportDropdown
           isOpen={exportHooks.dropdownOpen}
           isExporting={exportHooks.isExporting}
+          statusMessage={shareStatusMessage ?? exportHooks.statusMessage}
           onExportCSV={exportHooks.exportToCSV}
           onExportImage={exportHooks.exportAsImage}
+          onShareImage={exportHooks.shareImage}
+          onCopyShareLink={handleCopyShareLink}
         />
 
         {/* Grid Dimensions Configuration */}
         <GridDimensionsConfig
-          isVisible={dimensions.showDimensionsConfig}
-          rows={dimensions.rows}
-          columns={dimensions.columns}
-          gridSize={dimensions.gridSize}
-          defaultRows={dimensions.DEFAULT_ROWS}
-          defaultColumns={dimensions.DEFAULT_COLUMNS}
+          isVisible={showDimensionsConfig}
+          rows={rows}
+          columns={columns}
+          gridSize={gridSize}
+          defaultRows={DEFAULT_ROWS}
+          defaultColumns={DEFAULT_COLUMNS}
           onDimensionsChange={handleDimensionsChange}
-          onReset={dimensions.resetToDefault}
+          onReset={resetToDefault}
         />
       </div>
 
@@ -266,13 +403,13 @@ export function RecordGrid({ username, albums, onAlbumsReorder }: RecordGridProp
           {/* Wall Display */}
           <WallDisplay
             albums={getSortedDisplayedAlbums()}
-            columns={dimensions.columns}
-            rows={dimensions.rows}
-            gridSize={dimensions.gridSize}
-            pinnedCount={pinning.pinnedAlbums.size}
+            columns={columns}
+            rows={rows}
+            gridSize={gridSize}
+            pinnedCount={pinnedAlbums.size}
             isExporting={exportHooks.isExporting}
-            pinnedAlbums={pinning.pinnedAlbums}
-            onPinToggle={pinning.togglePinAlbum}
+            pinnedAlbums={pinnedAlbums}
+            onPinToggle={togglePinAlbum}
             gridRef={exportHooks.gridRef}
           />
 

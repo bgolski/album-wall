@@ -1,4 +1,4 @@
-import { Album } from "@/types";
+import { Album, SharedWallState } from "@/types";
 import { CollectionLoader } from "./CollectionLoader";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { CollectionDisplay } from "./CollectionDisplay";
@@ -7,6 +7,7 @@ interface CollectionManagerProps {
   albums: Album[];
   username: string;
   loadedUsername: string;
+  sharedWallState: SharedWallState | null;
   isPending: boolean;
   error: string | null;
   onAlbumsReorder: (newAlbums: Album[]) => void;
@@ -20,6 +21,7 @@ export function CollectionManager({
   albums,
   username,
   loadedUsername,
+  sharedWallState,
   isPending,
   error,
   onAlbumsReorder,
@@ -38,6 +40,7 @@ export function CollectionManager({
           <CollectionDisplay
             albums={albums}
             username={loadedUsername}
+            sharedWallState={sharedWallState}
             onAlbumsReorder={onAlbumsReorder}
           />
         ) : null)}
