@@ -40,6 +40,11 @@
 - Keep JSDoc concise and behavior-focused: explain intent, important side effects, key params, return values, and invariants when they are not obvious from TypeScript alone.
 - Do not add boilerplate JSDoc to trivial presentational code unless the behavior needs extra context.
 
+## UI responsiveness expectations
+- Any new or edited UI component must be responsive and remain usable on mobile widths, not just desktop layouts.
+- When changing layout-heavy components, verify there is no unintended horizontal overflow and that controls remain reachable around common phone widths such as `375px` and `390px`.
+- Prefer mobile-first layout decisions for toolbars, forms, grids, and panels so dense desktop UIs do not simply compress into unusable phone layouts.
+
 ## Deployment notes
 - Static export writes to `out/`; `npm run start` serves it on port 3001.
 - SSR uses Next.js server on port 3001.
