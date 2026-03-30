@@ -4,12 +4,13 @@ import { Album } from "@/types";
 
 interface PoolDisplayProps {
   albums: Album[];
+  showAlbumLabels: boolean | null;
 }
 
 /**
  * Renders albums that do not currently fit in the wall grid and can be dragged back into it.
  */
-export function PoolDisplay({ albums }: PoolDisplayProps) {
+export function PoolDisplay({ albums, showAlbumLabels }: PoolDisplayProps) {
   if (albums.length === 0) return null;
 
   return (
@@ -29,6 +30,7 @@ export function PoolDisplay({ albums }: PoolDisplayProps) {
               exportMode={false}
               isPinned={false}
               disablePinning={true}
+              showAlbumLabels={showAlbumLabels}
             />
           ))}
         </SortableContext>

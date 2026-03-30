@@ -3,9 +3,11 @@ import { SortOption } from "@/hooks/useAlbumSorting";
 interface GridControlsProps {
   sortOption: SortOption;
   areAllPinned: boolean;
+  showAlbumLabels: boolean;
   onSortChange: (option: SortOption) => void;
   onToggleDimensionsConfig: () => void;
   onTogglePinAll: () => void;
+  onToggleAlbumLabels: () => void;
   onShuffle: () => void;
   onToggleExportDropdown: () => void;
   showDimensionsConfig: boolean;
@@ -17,9 +19,11 @@ interface GridControlsProps {
 export function GridControls({
   sortOption,
   areAllPinned,
+  showAlbumLabels,
   onSortChange,
   onToggleDimensionsConfig,
   onTogglePinAll,
+  onToggleAlbumLabels,
   onShuffle,
   onToggleExportDropdown,
   showDimensionsConfig,
@@ -95,6 +99,17 @@ export function GridControls({
               )}
             </svg>
             {areAllPinned ? "Unpin All" : "Pin All"}
+          </button>
+
+          <button
+            onClick={onToggleAlbumLabels}
+            className={`${actionButtonClass} ${
+              showAlbumLabels
+                ? "bg-blue-600 text-white hover:bg-blue-500"
+                : "bg-gray-600 text-white hover:bg-gray-500"
+            }`}
+          >
+            {showAlbumLabels ? "Hide Labels" : "Show Labels"}
           </button>
 
           <button

@@ -14,6 +14,7 @@ interface SortableRecordProps {
   isPinned?: boolean;
   onPinToggle?: (albumId: string) => void;
   disablePinning?: boolean;
+  showAlbumLabels: boolean | null;
 }
 
 /**
@@ -25,6 +26,7 @@ export function SortableRecord({
   isPinned = false,
   onPinToggle,
   disablePinning = false,
+  showAlbumLabels,
 }: SortableRecordProps) {
   const [showMobileDiscogsAction, setShowMobileDiscogsAction] = useState(false);
   const recordRef = useRef<HTMLDivElement | null>(null);
@@ -191,7 +193,7 @@ export function SortableRecord({
             </>
           )}
         </div>
-        <AlbumLabels album={album} isPinned={isPinned} />
+        <AlbumLabels album={album} isPinned={isPinned} showAlbumLabels={showAlbumLabels} />
       </div>
     </div>
   );

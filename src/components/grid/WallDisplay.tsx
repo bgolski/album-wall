@@ -12,6 +12,7 @@ interface WallDisplayProps {
   pinnedAlbums: Set<string>;
   onPinToggle: (albumId: string) => void;
   gridRef: React.RefObject<HTMLDivElement | null>;
+  showAlbumLabels: boolean | null;
 }
 
 /**
@@ -27,6 +28,7 @@ export function WallDisplay({
   pinnedAlbums,
   onPinToggle,
   gridRef,
+  showAlbumLabels,
 }: WallDisplayProps) {
   return (
     <div className="rounded-lg bg-gray-800 p-3 shadow sm:p-4">
@@ -59,6 +61,7 @@ export function WallDisplay({
               exportMode={isExporting}
               isPinned={pinnedAlbums.has(String(album.id))}
               onPinToggle={onPinToggle}
+              showAlbumLabels={showAlbumLabels}
             />
           ))}
         </SortableContext>
