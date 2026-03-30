@@ -56,6 +56,7 @@ export function RecordGrid({
   onAlbumsReorder,
   sharedWallState,
 }: RecordGridProps) {
+  const [showAlbumLabels, setShowAlbumLabels] = useState<boolean | null>(null);
   const sharedStateSignature = useMemo(
     () => (sharedWallState ? JSON.stringify(sharedWallState) : null),
     [sharedWallState]
@@ -102,6 +103,14 @@ export function RecordGrid({
   const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
   const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
   const [shareStatusMessage, setShareStatusMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setShowAlbumLabels(window.matchMedia("(min-width: 768px)").matches);
+  }, []);
 
   // Update albums and pool when dimensions or albums change
   useEffect(() => {
@@ -205,6 +214,13 @@ export function RecordGrid({
    */
   const handleDimensionsChange = (newRows: number, newColumns: number) => {
     updateGridDimensions(newRows, newColumns);
+  };
+
+  /**
+   * Toggles album-label visibility across the wall and pool displays.
+   */
+  const handleToggleAlbumLabels = () => {
+    setShowAlbumLabels((current) => !current);
   };
 
   // Drag and drop sensors
@@ -366,9 +382,11 @@ export function RecordGrid({
         <GridControls
           sortOption={sorting.sortOption}
           areAllPinned={areAllPinned(displayedAlbums)}
+          showAlbumLabels={showAlbumLabels ?? false}
           onSortChange={handleSortChange}
           onToggleDimensionsConfig={toggleConfig}
           onTogglePinAll={() => togglePinAll(displayedAlbums)}
+          onToggleAlbumLabels={handleToggleAlbumLabels}
           onShuffle={handleShuffle}
           onToggleExportDropdown={exportHooks.toggleDropdown}
           showDimensionsConfig={showDimensionsConfig}
@@ -409,10 +427,11 @@ export function RecordGrid({
             pinnedAlbums={pinnedAlbums}
             onPinToggle={togglePinAlbum}
             gridRef={exportHooks.gridRef}
+            showAlbumLabels={showAlbumLabels}
           />
 
           {/* Pool Display */}
-          <PoolDisplay albums={poolItems} />
+          <PoolDisplay albums={poolItems} showAlbumLabels={showAlbumLabels} />
         </div>
       </DndContext>
     </div>
