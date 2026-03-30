@@ -7,6 +7,7 @@ interface SearchInputProps {
   usernameError: string | null;
   onUsernameChange: (value: string) => void;
   onLoadCollection: () => void;
+  onLoadDemoCollection: () => void;
 }
 
 /**
@@ -18,6 +19,7 @@ export function SearchInput({
   usernameError,
   onUsernameChange,
   onLoadCollection,
+  onLoadDemoCollection,
 }: SearchInputProps) {
   const inputClassName = `w-full rounded bg-gray-800 border px-4 py-2 text-white focus:outline-none focus:border-blue-500 md:flex-1 md:rounded-r-none ${
     usernameError ? "border-red-500" : "border-gray-700"
@@ -55,6 +57,15 @@ export function SearchInput({
             isLoading={isPending}
           />
         </div>
+
+        <button
+          type="button"
+          onClick={onLoadDemoCollection}
+          disabled={isPending}
+          className="mt-3 inline-flex min-h-[42px] w-full max-w-sm items-center justify-center rounded border border-gray-700 bg-gray-800/80 px-4 py-2 text-sm font-medium text-gray-200 transition-colors hover:border-gray-600 hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-md"
+        >
+          Try Demo Collection
+        </button>
 
         {usernameError && (
           <p className="mt-2 w-full max-w-sm text-left text-sm text-red-400 sm:max-w-md">

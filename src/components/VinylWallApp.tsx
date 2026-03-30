@@ -13,11 +13,13 @@ export default function VinylWallApp() {
     albums,
     username,
     loadedUsername,
+    isDemoCollection,
     sharedWallState,
     isPending,
     error,
     usernameError,
     loadCollection,
+    loadDemoCollection,
     handleUsernameChange,
     handleAlbumsReorder,
     retry,
@@ -31,12 +33,14 @@ export default function VinylWallApp() {
         usernameError={usernameError}
         onUsernameChange={handleUsernameChange}
         onLoadCollection={loadCollection}
+        onLoadDemoCollection={loadDemoCollection}
       />
 
       <CollectionManager
         albums={albums}
         username={username}
         loadedUsername={loadedUsername}
+        isDemoCollection={isDemoCollection}
         sharedWallState={sharedWallState}
         isPending={isPending}
         error={error}

@@ -7,6 +7,7 @@ interface CollectionManagerProps {
   albums: Album[];
   username: string;
   loadedUsername: string;
+  isDemoCollection: boolean;
   sharedWallState: SharedWallState | null;
   isPending: boolean;
   error: string | null;
@@ -21,6 +22,7 @@ export function CollectionManager({
   albums,
   username,
   loadedUsername,
+  isDemoCollection,
   sharedWallState,
   isPending,
   error,
@@ -40,6 +42,7 @@ export function CollectionManager({
           <CollectionDisplay
             albums={albums}
             username={loadedUsername}
+            isDemoCollection={isDemoCollection}
             sharedWallState={sharedWallState}
             onAlbumsReorder={onAlbumsReorder}
           />

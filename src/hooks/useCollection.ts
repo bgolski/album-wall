@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { getUserCollection, validateDiscogsUsername } from "@/utils/discogs";
 import { Album, SharedWallState } from "@/types";
 import { getSharedWallStateFromHash } from "@/utils/shareState";
+import {
+  DEMO_COLLECTION_ALBUMS,
+  DEMO_SHARED_WALL_STATE,
+  DEMO_COLLECTION_USERNAME,
+} from "@/data/demoCollection";
 
 const VALIDATION_ERROR_MESSAGE =
   "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
@@ -16,6 +21,7 @@ export function useCollection() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [username, setUsername] = useState("");
   const [loadedUsername, setLoadedUsername] = useState("");
+  const [isDemoCollection, setIsDemoCollection] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -24,10 +30,32 @@ export function useCollection() {
   /**
    * Clears both collection-level and username validation errors.
    */
-  const clearErrors = () => {
+  const clearErrors = useCallback(() => {
     setError(null);
     setUsernameError(null);
-  };
+  }, []);
+
+  /**
+   * Loads the built-in demo collection and marks the session as demo-backed for UI rendering.
+   *
+   * @param nextSharedWallState Parsed shared wall state, if the load originated from a share link.
+   */
+  const loadDemoCollection = useCallback(
+    (nextSharedWallState: SharedWallState | null = null) => {
+      const demoSharedWallState = nextSharedWallState ?? DEMO_SHARED_WALL_STATE;
+
+      clearErrors();
+      setSharedWallState(demoSharedWallState);
+      setUsername(DEMO_COLLECTION_USERNAME);
+
+      startTransition(() => {
+        setAlbums(DEMO_COLLECTION_ALBUMS);
+        setLoadedUsername(DEMO_COLLECTION_USERNAME);
+        setIsDemoCollection(true);
+      });
+    },
+    [clearErrors, startTransition]
+  );
 
   /**
    * Loads a Discogs collection for a specific username and optionally preserves shared wall state.
@@ -38,6 +66,11 @@ export function useCollection() {
   const loadCollectionForUsername = useCallback(
     async (usernameToLoad: string, nextSharedWallState: SharedWallState | null = null) => {
       if (!usernameToLoad.trim()) return;
+
+      if (usernameToLoad === DEMO_COLLECTION_USERNAME) {
+        loadDemoCollection(nextSharedWallState);
+        return;
+      }
 
       if (!validateDiscogsUsername(usernameToLoad)) {
         setUsernameError(VALIDATION_ERROR_MESSAGE);
@@ -52,13 +85,14 @@ export function useCollection() {
           const collection = await getUserCollection(usernameToLoad);
           setAlbums(collection);
           setLoadedUsername(usernameToLoad);
+          setIsDemoCollection(false);
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : GENERIC_ERROR_MESSAGE;
           setError(errorMessage);
         }
       });
     },
-    [startTransition]
+    [clearErrors, loadDemoCollection, startTransition]
   );
 
   /**
@@ -67,6 +101,13 @@ export function useCollection() {
    */
   const loadCollection = async () => {
     await loadCollectionForUsername(username);
+  };
+
+  /**
+   * Activates the built-in demo collection without requiring a Discogs lookup.
+   */
+  const handleLoadDemoCollection = () => {
+    loadDemoCollection();
   };
 
   /**
@@ -99,6 +140,11 @@ export function useCollection() {
    * Retries loading the currently entered Discogs collection.
    */
   const retry = () => {
+    if (isDemoCollection) {
+      loadDemoCollection(sharedWallState);
+      return;
+    }
+
     loadCollection();
   };
 
@@ -118,12 +164,14 @@ export function useCollection() {
     albums,
     username,
     loadedUsername,
+    isDemoCollection,
     sharedWallState,
     isPending,
     error,
     usernameError,
     // Actions
     loadCollection,
+    loadDemoCollection: handleLoadDemoCollection,
     handleUsernameChange,
     handleAlbumsReorder,
     retry,
