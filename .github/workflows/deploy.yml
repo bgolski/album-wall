@@ -25,7 +25,7 @@ jobs:
         run: |
           echo "Add base path for GitHub Pages"
           echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
-          echo "NEXT_PUBLIC_DISCOGS_TOKEN=${{ secrets.DISCOGS_TOKEN }}" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=${{ secrets.DISCOGS_PROXY_URL }}" >> .env.local
 
       - name: Build with Next.js
         run: npm run build:static

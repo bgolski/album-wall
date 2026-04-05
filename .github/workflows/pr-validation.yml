@@ -40,7 +40,7 @@ jobs:
         id: build
         run: |
           echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
-          echo "NEXT_PUBLIC_DISCOGS_TOKEN=${{ secrets.DISCOGS_TOKEN }}" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=${{ secrets.DISCOGS_PROXY_URL }}" >> .env.local
           npm run build
 
       - name: PR Status Check

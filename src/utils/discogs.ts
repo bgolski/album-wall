@@ -1,41 +1,15 @@
-import axios from "axios";
-import { Album, DiscogsCollectionResponse, DiscogsRelease } from "../types/index";
+import { Album } from "../types/index";
 
-const discogsToken = process.env.NEXT_PUBLIC_DISCOGS_TOKEN;
-const baseURL = "https://api.discogs.com";
-const COLLECTION_PAGE_SIZE = 100;
+const discogsProxyUrl = process.env.NEXT_PUBLIC_DISCOGS_PROXY_URL;
 
-// Maximum retry attempts for API calls
-const MAX_RETRIES = 2;
+type DiscogsProxyResponse = {
+  username?: string;
+  albums?: Album[];
+  error?: string;
+};
 
-/**
- * Executes an async request with exponential backoff and skips retries for 404 responses.
- *
- * @param requestFunction Async request function to execute.
- * @param retries Remaining retry attempts.
- * @param delay Delay in milliseconds before the next retry.
- * @returns The resolved request result.
- */
-async function makeRequestWithRetry<T>(
-  requestFunction: () => Promise<T>,
-  retries = MAX_RETRIES,
-  delay = 1000
-): Promise<T> {
-  try {
-    return await requestFunction();
-  } catch (error) {
-    if (retries <= 0) throw error;
-
-    // Check if it's not a 404 (no point retrying not found errors)
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      throw error;
-    }
-
-    // Wait before retrying
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    return makeRequestWithRetry(requestFunction, retries - 1, delay * 2);
-  }
-}
+const GENERIC_PROXY_ERROR_MESSAGE =
+  "An unexpected error occurred while loading the Discogs collection.";
 
 /**
  * Validates the basic character rules for a Discogs username before making API calls.
@@ -44,169 +18,82 @@ async function makeRequestWithRetry<T>(
  * @returns True when the username matches the expected format.
  */
 export function validateDiscogsUsername(username: string): boolean {
-  // Discogs usernames should be alphanumeric + some special chars
-  // This is a basic validation - Discogs specific rules might vary
   return /^[a-zA-Z0-9._-]{2,}$/.test(username.trim());
 }
 
 /**
- * Builds a display-friendly artist string from Discogs artist metadata.
- *
- * @param artists Discogs artist entries, including optional join strings.
- * @returns A normalized artist label or `"Unknown Artist"` when none is available.
- */
-function extractArtistName(artists?: { name: string; join?: string }[]): string {
-  if (!artists || !Array.isArray(artists) || artists.length === 0) {
-    return "Unknown Artist";
-  }
-
-  if (artists.length === 1) {
-    return artists[0].name;
-  }
-
-  // Handle multiple artists with join strings
-  return artists.reduce((artistString, artist, index) => {
-    if (index === 0) return artist.name;
-    const join = artist.join || ", ";
-    return artistString + join + artist.name;
-  }, "");
-}
-
-/**
- * Converts Discogs API release metadata into a public Discogs release page URL.
- *
- * @param release Collection release payload from Discogs.
- * @returns A public Discogs URL when a release id can be resolved.
- */
-function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
-  const releaseId = release.basic_information.id ?? release.id;
-
-  if (!releaseId) {
-    return undefined;
-  }
-
-  return `https://www.discogs.com/release/${releaseId}`;
-}
-
-/**
- * Fetches a single page of a Discogs collection response.
- *
- * @param username Discogs username whose collection should be loaded.
- * @param page Collection page to fetch.
- * @returns One paginated Discogs collection response.
- */
-async function fetchCollectionPage(
-  username: string,
-  page: number
-): Promise<DiscogsCollectionResponse> {
-  const requestUrl = `${baseURL}/users/${username}/collection/folders/0/releases`;
-
-  return makeRequestWithRetry(() =>
-    axios
-      .get<DiscogsCollectionResponse>(requestUrl, {
-        headers: {
-          Authorization: discogsToken ? `Discogs token=${discogsToken}` : "",
-        },
-        params: {
-          per_page: COLLECTION_PAGE_SIZE,
-          sort: "artist",
-          page,
-        },
-      })
-      .then((response) => response.data)
-  );
-}
-
-/**
- * Fetches a user's Discogs collection and normalizes release data into the app's album shape.
+ * Fetches a user's Discogs collection through the AWS proxy and returns the normalized album list.
  *
  * @param username Discogs username whose collection should be loaded.
  * @returns Albums sorted by Discogs artist order for the user's collection.
- * @throws Error when the username is invalid, the collection is empty, or the Discogs API fails.
+ * @throws Error when the username is invalid, proxy config is missing, or the proxy returns a failure.
  */
 export async function getUserCollection(username: string): Promise<Album[]> {
-  try {
-    if (!username.trim()) {
-      throw new Error("Username cannot be empty");
-    }
+  if (!username.trim()) {
+    throw new Error("Username cannot be empty");
+  }
 
-    // Basic format validation
-    if (!validateDiscogsUsername(username)) {
-      throw new Error(
-        "Invalid username format. Usernames should contain only letters, numbers, dots, underscores, or hyphens."
-      );
-    }
-
-    if (!discogsToken) {
-      console.warn(
-        "No Discogs API token found in environment variables. API requests may be rate limited."
-      );
-    }
-
-    const firstPage = await fetchCollectionPage(username, 1);
-    const allReleases = [...(firstPage.releases || [])];
-    const totalPages = Math.max(firstPage.pagination?.pages || 1, 1);
-
-    for (let page = 2; page <= totalPages; page++) {
-      const pageResponse = await fetchCollectionPage(username, page);
-      allReleases.push(...(pageResponse.releases || []));
-    }
-
-    // If the API returned no releases, throw a custom error
-    if (!Array.isArray(allReleases) || allReleases.length === 0) {
-      throw new Error(`User "${username}" has no vinyl records in their collection`);
-    }
-
-    return allReleases.map((release: DiscogsRelease) => {
-      const basicInfo = release.basic_information;
-      const coverImage = basicInfo.cover_image || "";
-
-      return {
-        id: release.id,
-        title: basicInfo.title || "",
-        cover_image: coverImage,
-        coverUrl: coverImage, // For backward compatibility
-        discogsUrl: getDiscogsReleaseUrl(release),
-        artist: extractArtistName(basicInfo.artists),
-        genre: basicInfo.genres || [],
-        year: "",
-      };
-    });
-  } catch (error: unknown) {
-    console.error("Error fetching collection:", error);
-
-    // Check for specific error types and rethrow with more context
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        if (error.response.status === 404) {
-          throw new Error(`User "${username}" not found on Discogs`);
-        } else if (error.response.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again in a few minutes.");
-        } else if (error.response.status === 401) {
-          throw new Error("Authentication failed. Please check your Discogs API token.");
-        } else if (error.response.status >= 500) {
-          throw new Error(
-            "Discogs server error. The service may be experiencing issues. Please try again later."
-          );
-        } else {
-          throw new Error(
-            `Discogs API error: ${error.response.status} - ${error.response.statusText || "Unknown error"}`
-          );
-        }
-      } else if (error.request) {
-        // The request was made but no response was received
-        throw new Error("No response from Discogs API. Please check your network connection.");
-      }
-    } else if (error instanceof Error) {
-      // Pass through custom errors we've already thrown
-      throw error;
-    }
-
-    // For any other errors, provide a generic message
+  if (!validateDiscogsUsername(username)) {
     throw new Error(
-      "An unexpected error occurred while connecting to Discogs. Please try again later."
+      "Invalid username format. Usernames should contain only letters, numbers, dots, underscores, or hyphens."
     );
   }
+
+  if (!discogsProxyUrl) {
+    throw new Error("Discogs proxy URL is not configured.");
+  }
+
+  const requestUrl = new URL(discogsProxyUrl);
+  requestUrl.searchParams.set("username", username);
+
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+  } catch {
+    throw new Error("No response from the Discogs proxy. Please check your network connection.");
+  }
+
+  let responseBody: DiscogsProxyResponse | null = null;
+
+  try {
+    responseBody = (await response.json()) as DiscogsProxyResponse;
+  } catch {
+    responseBody = null;
+  }
+
+  if (!response.ok) {
+    if (responseBody?.error) {
+      throw new Error(responseBody.error);
+    }
+
+    if (response.status === 404) {
+      throw new Error(`User "${username}" not found on Discogs`);
+    }
+
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again in a few minutes.");
+    }
+
+    if (response.status >= 500) {
+      throw new Error("Discogs proxy error. Please try again later.");
+    }
+
+    throw new Error(
+      `Discogs proxy error: ${response.status} - ${response.statusText || "Unknown error"}`
+    );
+  }
+
+  if (!Array.isArray(responseBody?.albums) || responseBody.albums.length === 0) {
+    throw new Error(`User "${username}" has no vinyl records in their collection`);
+  }
+
+  return responseBody.albums;
 }
+
+export { GENERIC_PROXY_ERROR_MESSAGE };
