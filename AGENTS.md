@@ -19,9 +19,14 @@
 - Export uses `html2canvas` over the grid ref and hides labels during capture.
 
 ## Environment variables
-- `NEXT_PUBLIC_DISCOGS_TOKEN` optional but avoids Discogs rate limiting.
+- `NEXT_PUBLIC_DISCOGS_PROXY_URL` points the static frontend at the AWS Discogs proxy Lambda Function URL.
 - `NEXT_PUBLIC_BASE_PATH` needed for static deployments (GitHub Pages).
 - `NEXT_STATIC_EXPORT` controls SSR vs static export in builds.
+- Any sensitive Discogs credentials must not be exposed through static client code. Keep secrets in AWS secure storage (for example SSM Parameter Store `SecureString`) or another server-side secret manager, never in `NEXT_PUBLIC_*` variables.
+
+## AWS infrastructure expectations
+- Tag all AWS resources created for this project so they are easy to identify later in the AWS console.
+- Use a consistent project tag value of `album-wall` on all taggable resources created through CDK or other deployment tooling.
 
 ## Common commands
 - Install: `npm install`

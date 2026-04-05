@@ -13,10 +13,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "25"
+          check-latest: true
 
       - name: Install dependencies
         run: npm ci
@@ -25,7 +25,7 @@ jobs:
         run: |
           echo "Add base path for GitHub Pages"
           echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
-          echo "NEXT_PUBLIC_DISCOGS_TOKEN=${{ secrets.DISCOGS_TOKEN }}" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=${{ secrets.DISCOGS_PROXY_URL }}" >> .env.local
 
       - name: Build with Next.js
         run: npm run build:static

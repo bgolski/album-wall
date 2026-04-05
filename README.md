@@ -8,7 +8,6 @@ A web application that lets you visualize your Discogs record collection as a wa
 - Arrange records in an 8x4 grid wall display
 - Drag and drop records between the wall and the pool
 - Sort records by artist or genre
-- Export your arrangement to CSV
 - Save your wall display as an image (without album labels)
 
 ## Tech Stack
@@ -28,7 +27,7 @@ A web application that lets you visualize your Discogs record collection as a wa
 npm install
 
 # Set environment variables
-echo "NEXT_PUBLIC_DISCOGS_TOKEN=your_discogs_token" > .env.local
+echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=your_lambda_function_url" > .env.local
 
 # Run development server
 npm run dev
@@ -65,7 +64,7 @@ npm run start:next
 
 ## Environment Variables
 
-- `NEXT_PUBLIC_DISCOGS_TOKEN`: Your Discogs API token (required for accessing the Discogs API)
+- `NEXT_PUBLIC_DISCOGS_PROXY_URL`: Public AWS Lambda Function URL used by the frontend to load Discogs collections through the proxy
 - `NEXT_PUBLIC_BASE_PATH`: Base path for GitHub Pages deployment (set automatically in CI/CD)
 - `NEXT_STATIC_EXPORT`: Set to "true" for static export or "false" for server-side rendering
 
