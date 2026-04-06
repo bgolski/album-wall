@@ -9,6 +9,8 @@ jobs:
   validate:
     name: Build and Validate
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,6 +23,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install infra dependencies
+        run: npm ci --prefix infra
 
       - name: Check formatting
         id: formatting
@@ -36,6 +41,16 @@ jobs:
         id: typecheck
         run: npm run type-check
 
+      - name: Infra type check
+        id: infra-build
+        run: npm run build
+        working-directory: infra
+
+      - name: Infra synth
+        id: infra-synth
+        run: npx cdk synth
+        working-directory: infra
+
       - name: Build
         id: build
         run: |
@@ -49,6 +64,8 @@ jobs:
           if [ "${{ steps.formatting.outcome }}" == "failure" ] || \
              [ "${{ steps.linting.outcome }}" == "failure" ] || \
              [ "${{ steps.typecheck.outcome }}" == "failure" ] || \
+             [ "${{ steps.infra-build.outcome }}" == "failure" ] || \
+             [ "${{ steps.infra-synth.outcome }}" == "failure" ] || \
              [ "${{ steps.build.outcome }}" == "failure" ]; then
             echo "::error::One or more validation steps failed. Please fix the issues before merging."
             exit 1

@@ -5,9 +5,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      CDK_STACK_NAME: album-wall
     steps:
       - name: Checkout vinyl-wall repository
         uses: actions/checkout@v4
@@ -15,17 +22,45 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: "25"
-          check-latest: true
+          node-version: "20"
+          cache: "npm"
 
-      - name: Install dependencies
+      - name: Install app dependencies
         run: npm ci
+
+      - name: Install infra dependencies
+        run: npm ci --prefix infra
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy AWS Discogs proxy
+        run: npx cdk deploy --require-approval never
+        working-directory: infra
+
+      - name: Resolve deployed proxy URL
+        run: |
+          DISCOGS_PROXY_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$CDK_STACK_NAME" \
+            --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='DiscogsProxyFunctionUrl'].OutputValue" \
+            --output text)
+
+          if [ -z "$DISCOGS_PROXY_URL" ] || [ "$DISCOGS_PROXY_URL" = "None" ]; then
+            echo "::error::Failed to resolve the deployed Discogs proxy URL from CloudFormation outputs."
+            exit 1
+          fi
+
+          echo "DISCOGS_PROXY_URL=$DISCOGS_PROXY_URL" >> "$GITHUB_ENV"
 
       - name: Set base path for GitHub Pages
         run: |
           echo "Add base path for GitHub Pages"
           echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
-          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=${{ secrets.DISCOGS_PROXY_URL }}" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=$DISCOGS_PROXY_URL" >> .env.local
 
       - name: Build with Next.js
         run: npm run build:static

@@ -1,6 +1,6 @@
 # Record Wall Visualizer
 
-A web application that lets you visualize your Discogs record collection as a wall display. Arrange your vinyl collection in a virtual wall, sort by artist or genre, and export your arrangement to CSV or as an image.
+A web application that lets you visualize your Discogs record collection as a wall display. Arrange your vinyl collection in a virtual wall, sort by artist or genre, and share or save the result as an image.
 
 ## Features
 
@@ -71,6 +71,18 @@ npm run start:next
 ## CI/CD Deployment
 
 This application is configured for deployment to GitHub Pages. The CI/CD pipeline is set up using GitHub Actions to automatically build and deploy the application when changes are pushed to the main branch.
+
+### AWS Discogs Proxy
+
+The Discogs proxy infrastructure lives under [infra/README.md](/Users/bradleygolski/Developer/album-wall/infra/README.md).
+
+GitHub Actions deploys the AWS CDK stack by assuming an AWS role through GitHub OIDC. The required repository configuration is:
+
+- repository variable `AWS_DEPLOY_ROLE_ARN`
+- repository secret `DEPLOY_TOKEN`
+- repository secret `DISCOGS_PROXY_URL` for PR validation builds
+
+The production deploy workflow runs `cd infra && npx cdk deploy --require-approval never`, reads the `DiscogsProxyFunctionUrl` CloudFormation output, and uses that live URL when building the GitHub Pages site.
 
 ## Running Locally
 
