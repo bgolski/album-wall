@@ -31,8 +31,6 @@ Required repository configuration:
 
 - repository variable `AWS_DEPLOY_ROLE_ARN`
   The IAM role ARN GitHub Actions should assume.
-- repository secret `DEPLOY_TOKEN`
-  Used to push the built static site to `bgolski.github.io`.
 - repository secret `DISCOGS_PROXY_URL`
   Used only by PR validation builds, which do not deploy AWS resources.
 
