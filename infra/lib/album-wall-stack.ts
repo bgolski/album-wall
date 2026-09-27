@@ -8,6 +8,7 @@ const DISCOGS_TOKEN_PARAMETER_NAME = "/album-wall/discogs-token";
 const DISCOGS_CONSUMER_KEY_PARAMETER_NAME = "/album-wall/discogs-consumer-key";
 const DISCOGS_CONSUMER_SECRET_PARAMETER_NAME = "/album-wall/discogs-consumer-secret";
 const ALLOWED_FRONTEND_ORIGINS = [
+  "https://bradleygolski.com",
   "https://bgolski.github.io",
   "http://localhost:3000",
   "http://localhost:3001",
