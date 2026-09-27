@@ -70,17 +70,17 @@ npm run start:next
 
 ## CI/CD Deployment
 
-This application is configured for deployment to GitHub Pages. The CI/CD pipeline is set up using GitHub Actions to automatically build and deploy the application when changes are pushed to the main branch.
+This application is deployed to GitHub Pages at [bradleygolski.com/album-wall](https://bradleygolski.com/album-wall/). On every push to `main`, GitHub Actions deploys the AWS stack, builds the static site, and publishes it with `actions/deploy-pages`. No personal access token is needed.
 
 ### AWS Discogs Proxy
 
-The Discogs proxy infrastructure lives under [infra/README.md](/Users/bradleygolski/Developer/album-wall/infra/README.md).
+The Discogs proxy infrastructure lives under [infra/README.md](infra/README.md).
 
 GitHub Actions deploys the AWS CDK stack by assuming an AWS role through GitHub OIDC. The required repository configuration is:
 
 - repository variable `AWS_DEPLOY_ROLE_ARN`
-- repository secret `DEPLOY_TOKEN`
 - repository secret `DISCOGS_PROXY_URL` for PR validation builds
+- Settings → Pages → Source set to **GitHub Actions**
 
 The production deploy workflow runs `cd infra && npx cdk deploy --require-approval never`, reads the `DiscogsProxyFunctionUrl` CloudFormation output, and uses that live URL when building the GitHub Pages site.
 

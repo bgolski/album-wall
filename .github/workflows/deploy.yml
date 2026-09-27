@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
   id-token: write
+  pages: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-1
@@ -58,8 +63,8 @@ jobs:
 
       - name: Set base path for GitHub Pages
         run: |
-          echo "Add base path for GitHub Pages"
-          echo "NEXT_PUBLIC_BASE_PATH=/album-visualizer" >> .env.local
+          # Served as a project site at https://bradleygolski.com/album-wall/
+          echo "NEXT_PUBLIC_BASE_PATH=/album-wall" >> .env.local
           echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=$DISCOGS_PROXY_URL" >> .env.local
 
       - name: Build with Next.js
@@ -67,55 +72,23 @@ jobs:
 
       - name: Prepare output for GitHub Pages
         run: |
-          # Add .nojekyll file
           touch out/.nojekyll
-          # Add a basic 404 page that redirects to index
           if [ ! -f out/404.html ]; then
             cp out/index.html out/404.html
           fi
-          # Ensure all static files are present
-          echo "Checking for problematic paths in HTML files..."
-          find out -name "*.html" -exec grep -l '"/_next' {} \;
-          echo "Finished checking paths"
 
-      - name: Checkout bgolski.github.io repository
-        uses: actions/checkout@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          repository: bgolski/bgolski.github.io
-          path: gh-pages
-          token: ${{ secrets.DEPLOY_TOKEN }}
+          path: out
 
-      - name: Copy build to bgolski.github.io repository
-        run: |
-          # Create destination directory
-          mkdir -p gh-pages/album-visualizer
-
-          # Add .nojekyll at the root level
-          touch gh-pages/.nojekyll
-
-          # Copy all built files
-          cp -r out/* gh-pages/album-visualizer/
-
-          # Ensure .nojekyll exists in the subdirectory too
-          touch gh-pages/album-visualizer/.nojekyll
-
-          # Copy the redirect file to the root index if it doesn't already exist
-          # or if there's only the default "Hello World" index
-          if [ ! -f gh-pages/index.html ] || grep -q "Hello World" gh-pages/index.html; then
-            cp public/index.redirect.html gh-pages/index.html
-          fi
-
-          # Copy 404 page to the root for GitHub Pages to use
-          # This helps with deep linking
-          if [ -f gh-pages/album-visualizer/404.html ]; then
-            cp gh-pages/album-visualizer/404.html gh-pages/404.html
-          fi
-
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
-        run: |
-          cd gh-pages
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add .
-          git commit -m "Deploy album-visualizer update"
-          git push
+        id: deployment
+        uses: actions/deploy-pages@v4
