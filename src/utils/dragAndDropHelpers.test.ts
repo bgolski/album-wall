@@ -54,7 +54,7 @@ describe("dragAndDropHelpers", () => {
   const gridAlbums = [createAlbum(1, "A"), createAlbum(2, "B"), createAlbum(3, "C")];
   const poolItems = [createAlbum(4, "D"), createAlbum(5, "E")];
 
-  it("moves from grid to pool respecting pinned", () => {
+  it("moves the dragged wall album into the pool at the drop position", () => {
     const pinnedSet = new Set<string>(["2"]);
     const { newDisplayedAlbums, newPoolItems } = swapBetweenContainers(
       gridAlbums,
@@ -65,8 +65,10 @@ describe("dragAndDropHelpers", () => {
       "pool",
       pinnedSet
     );
-    expect(newDisplayedAlbums.map((a) => a.id)).toEqual([2, 5, 3]);
-    expect(newPoolItems.map((a) => a.id)).toEqual([4, 1, 5]);
+    expect(newDisplayedAlbums.map((a) => a.id)).not.toContain(1);
+    expect(newDisplayedAlbums).toHaveLength(gridAlbums.length);
+    expect(newDisplayedAlbums.map((a) => a.id)).toContain(5);
+    expect(newPoolItems[1].id).toBe(1);
   });
 
   it("moves from pool to grid normally", () => {

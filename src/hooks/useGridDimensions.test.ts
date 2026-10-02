@@ -2,8 +2,6 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useGridDimensions } from "./useGridDimensions";
 
-// Mobile breakpoint constant removed; not needed in tests.
-
 // Helper to temporarily override window.innerWidth
 function setWindowWidth(width: number) {
   Object.defineProperty(window, "innerWidth", {
