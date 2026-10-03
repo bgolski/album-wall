@@ -40,7 +40,12 @@ export function SearchInput({
 
       <div className="flex flex-col items-center">
         <div className="flex w-full max-w-sm flex-col items-stretch gap-2 sm:max-w-md md:flex-row md:items-center md:gap-0">
+          <label htmlFor="discogs-username" className="sr-only">
+            Discogs username
+          </label>
           <input
+            id="discogs-username"
+            autoComplete="username"
             type="text"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
@@ -48,6 +53,8 @@ export function SearchInput({
             placeholder="Your Discogs username"
             className={inputClassName}
             disabled={isPending}
+            aria-invalid={usernameError ? true : undefined}
+            aria-describedby={usernameError ? "discogs-username-error" : undefined}
           />
           <SubmitButton
             onClick={onLoadCollection}
@@ -57,7 +64,10 @@ export function SearchInput({
         </div>
 
         {usernameError && (
-          <p className="mt-2 w-full max-w-sm text-left text-sm text-red-400 sm:max-w-md">
+          <p
+            id="discogs-username-error"
+            className="mt-2 w-full max-w-sm text-left text-sm text-red-400 sm:max-w-md"
+          >
             {usernameError}
           </p>
         )}
