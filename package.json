@@ -17,8 +17,7 @@
     "type-check": "next typegen && tsc --noEmit",
     "fix-all": "npm run lint:fix && npm run type-check",
     "precommit-check": "npm run lint && npm run type-check",
-    "prepare": "husky",
-    "pre-commit": "lint-staged",
+    "prepare": "lefthook install",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage"
   },
@@ -54,11 +53,5 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^3.2.7"
-  },
-  "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
   }
 }
