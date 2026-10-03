@@ -46,6 +46,7 @@
     "eslint-config-next": "15.1.5",
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
+    "lefthook": "^2.1.16",
     "lint-staged": "^16.1.5",
     "postcss": "^8",
     "prettier": "^3.2.5",
