@@ -1,103 +1,109 @@
 import { describe, it, expect } from "vitest";
-import { getContainerType, reorderWithinGrid, swapBetweenContainers } from "./dragAndDropHelpers";
+import { swapAlbums } from "./dragAndDropHelpers";
 import type { Album } from "@/types";
-import type { UniqueIdentifier } from "@dnd-kit/core";
 
-// Helper to create an Album without a pinned property
-const createAlbum = (id: number, title: string): Album => ({
-  id,
-  title,
-  artist: "artist",
-});
+const createAlbum = (id: number): Album => ({ id, title: `Title ${id}`, artist: "artist" });
+const albums = (...ids: number[]) => ids.map(createAlbum);
+const ids = (list: Album[]) => list.map((album) => album.id);
 
-describe("dragAndDropHelpers", () => {
-  // ========================= getContainerType =========================
-  it("returns 'grid' when id matches an album in displayedAlbums", () => {
-    const albums: Album[] = [createAlbum(1, "A"), createAlbum(2, "B")];
-    const id = "album-1" as UniqueIdentifier;
-    expect(getContainerType(id, albums)).toBe("grid");
+describe("swapAlbums", () => {
+  const wall = albums(1, 2, 3, 4, 5, 6);
+  const pool = albums(7, 8, 9);
+  const none = new Set<string>();
+
+  it("swaps two wall albums and leaves every other slot in place", () => {
+    const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, "album-5", "album-2", none);
+    expect(ids(newDisplayedAlbums)).toEqual([1, 5, 3, 4, 2, 6]);
+    expect(ids(newPoolItems)).toEqual([7, 8, 9]);
   });
 
-  it("returns 'pool' when id does not match any album", () => {
-    const albums: Album[] = [createAlbum(1, "A"), createAlbum(2, "B")];
-    const id = "album-999" as UniqueIdentifier;
-    expect(getContainerType(id, albums)).toBe("pool");
+  it("swaps adjacent albums and the first and last slots", () => {
+    expect(ids(swapAlbums(wall, pool, "album-1", "album-2", none).newDisplayedAlbums)).toEqual([
+      2, 1, 3, 4, 5, 6,
+    ]);
+    expect(ids(swapAlbums(wall, pool, "album-6", "album-1", none).newDisplayedAlbums)).toEqual([
+      6, 2, 3, 4, 5, 1,
+    ]);
   });
 
-  // ========================= reorderWithinGrid =========================
-  const albumList = [
-    createAlbum(1, "A"),
-    createAlbum(2, "B"),
-    createAlbum(3, "C"),
-    createAlbum(4, "D"),
-  ];
-
-  it("reorders unpinned albums when no pins", () => {
-    const result = reorderWithinGrid(albumList, "2", "4", new Set<string>());
-    expect(result.map((a) => a.id)).toEqual([1, 3, 4, 2]);
+  it("swaps two pool albums", () => {
+    const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, "album-9", "album-7", none);
+    expect(ids(newDisplayedAlbums)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(ids(newPoolItems)).toEqual([9, 8, 7]);
   });
 
-  it("preserves pinned albums and reorders only unpinned", () => {
-    const pinnedSet = new Set<string>(["1"]);
-    const result = reorderWithinGrid(albumList, "2", "4", pinnedSet);
-    expect(result[0].id).toBe(1);
-    expect(result.slice(1).map((a) => a.id)).toEqual([3, 4, 2]);
-  });
-
-  it("ignores move when active album is pinned", () => {
-    const pinnedSet = new Set<string>(["3"]);
-    const result = reorderWithinGrid(albumList, "3", "4", pinnedSet);
-    expect(result.map((a) => a.id)).toEqual([1, 2, 3, 4]);
-  });
-
-  // ========================= swapBetweenContainers =========================
-  const gridAlbums = [createAlbum(1, "A"), createAlbum(2, "B"), createAlbum(3, "C")];
-  const poolItems = [createAlbum(4, "D"), createAlbum(5, "E")];
-
-  it("moves the dragged wall album into the pool at the drop position", () => {
-    const pinnedSet = new Set<string>(["2"]);
-    const { newDisplayedAlbums, newPoolItems } = swapBetweenContainers(
-      gridAlbums,
-      poolItems,
-      0,
-      1,
-      "grid",
-      "pool",
-      pinnedSet
+  it("swaps a wall album into the pool slot of the album it was dropped on", () => {
+    const { newDisplayedAlbums, newPoolItems } = swapAlbums(
+      albums(1, 2, 3),
+      albums(4, 5),
+      "album-1",
+      "album-5",
+      none
     );
-    expect(newDisplayedAlbums.map((a) => a.id)).not.toContain(1);
-    expect(newDisplayedAlbums).toHaveLength(gridAlbums.length);
-    expect(newDisplayedAlbums.map((a) => a.id)).toContain(5);
-    expect(newPoolItems[1].id).toBe(1);
+    expect(ids(newDisplayedAlbums)).toEqual([5, 2, 3]);
+    expect(ids(newPoolItems)).toEqual([4, 1]);
   });
 
-  it("moves from pool to grid normally", () => {
-    const pinnedSet = new Set<string>();
-    const { newDisplayedAlbums, newPoolItems } = swapBetweenContainers(
-      gridAlbums,
-      poolItems,
-      0,
-      1,
-      "pool",
-      "grid",
-      pinnedSet
-    );
-    expect(newDisplayedAlbums.map((a) => a.id)).toEqual([1, 4, 2, 3]);
-    expect(newPoolItems.map((a) => a.id)).toEqual([5]);
+  it("swaps a pool album into the wall slot of the album it was dropped on", () => {
+    const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, "album-8", "album-3", none);
+    expect(ids(newDisplayedAlbums)).toEqual([1, 2, 8, 4, 5, 6]);
+    expect(ids(newPoolItems)).toEqual([7, 3, 9]);
   });
 
-  it("does not replace pinned grid album; inserts next available spot", () => {
-    const pinnedSet = new Set<string>(["2"]);
-    const { newDisplayedAlbums, newPoolItems } = swapBetweenContainers(
-      gridAlbums,
-      poolItems,
-      0,
-      1,
-      "pool",
-      "grid",
-      pinnedSet
-    );
-    expect(newDisplayedAlbums.map((a) => a.id)).toEqual([1, 2, 4, 3]);
-    expect(newPoolItems.map((a) => a.id)).toEqual([5]);
+  it("never duplicates or loses an album and keeps both list lengths", () => {
+    const pairs = [
+      ["album-1", "album-8"],
+      ["album-8", "album-1"],
+      ["album-6", "album-9"],
+      ["album-2", "album-5"],
+      ["album-7", "album-9"],
+    ];
+    for (const [activeId, overId] of pairs) {
+      const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, activeId, overId, none);
+      expect(newDisplayedAlbums).toHaveLength(wall.length);
+      expect(newPoolItems).toHaveLength(pool.length);
+      expect([...ids(newDisplayedAlbums), ...ids(newPoolItems)].sort((a, b) => a - b)).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9,
+      ]);
+    }
+  });
+
+  it("keeps pinned albums in their slots while others swap around them", () => {
+    const pinned = new Set(["3", "4"]);
+    const { newDisplayedAlbums } = swapAlbums(wall, pool, "album-6", "album-1", pinned);
+    expect(ids(newDisplayedAlbums)).toEqual([6, 2, 3, 4, 5, 1]);
+  });
+
+  it("does nothing when the drop target or the dragged album is pinned", () => {
+    const pinned = new Set(["2"]);
+    for (const [activeId, overId] of [
+      ["album-5", "album-2"],
+      ["album-2", "album-5"],
+      ["album-8", "album-2"],
+    ]) {
+      const result = swapAlbums(wall, pool, activeId, overId, pinned);
+      expect(result.newDisplayedAlbums).toBe(wall);
+      expect(result.newPoolItems).toBe(pool);
+    }
+  });
+
+  it("does nothing when dropped on itself or on an unknown album", () => {
+    for (const [activeId, overId] of [
+      ["album-3", "album-3"],
+      ["album-3", "album-99"],
+      ["album-99", "album-3"],
+    ]) {
+      const result = swapAlbums(wall, pool, activeId, overId, none);
+      expect(result.newDisplayedAlbums).toBe(wall);
+      expect(result.newPoolItems).toBe(pool);
+    }
+  });
+
+  it("does not modify the input arrays", () => {
+    const wallCopy = [...wall];
+    const poolCopy = [...pool];
+    swapAlbums(wall, pool, "album-1", "album-8", none);
+    expect(wall).toEqual(wallCopy);
+    expect(pool).toEqual(poolCopy);
   });
 });

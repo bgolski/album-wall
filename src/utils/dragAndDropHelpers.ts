@@ -1,150 +1,65 @@
-import { arrayMove } from "@dnd-kit/sortable";
 import { Album } from "@/types";
 import { UniqueIdentifier } from "@dnd-kit/core";
 
-/**
- * Determines whether a dragged item currently belongs to the wall grid or the overflow pool.
- *
- * @param id Dragged item identifier from DnD Kit.
- * @param displayedAlbums Albums currently shown in the wall grid.
- * @returns The container type that owns the item.
- */
-export function getContainerType(id: UniqueIdentifier, displayedAlbums: Album[]): "grid" | "pool" {
-  return displayedAlbums.some((item) => `album-${item.id}` === id) ? "grid" : "pool";
-}
+type Location = { container: "grid" | "pool"; index: number };
 
 /**
- * Reorders only unpinned albums within the grid while preserving pinned albums at fixed indices.
+ * Finds which container holds a dragged or targeted album and its index there.
  *
+ * @param id DnD Kit item identifier (`album-<id>`).
  * @param displayedAlbums Albums currently shown in the wall grid.
- * @param activeAlbumId Dragged album id.
- * @param overAlbumId Target album id.
- * @param pinnedAlbums Set of pinned album ids.
- * @returns New displayed album order with pinned positions preserved.
+ * @param poolItems Albums currently outside the grid.
+ * @returns The album's container and index, or null when it is in neither.
  */
-export function reorderWithinGrid(
+function locateAlbum(
+  id: UniqueIdentifier,
   displayedAlbums: Album[],
-  activeAlbumId: string,
-  overAlbumId: string,
-  pinnedAlbums: Set<string>
-) {
-  // Get the subset of albums that are not pinned
-  const unpinnedAlbums = displayedAlbums.filter((album) => !pinnedAlbums.has(String(album.id)));
+  poolItems: Album[]
+): Location | null {
+  const gridIndex = displayedAlbums.findIndex((album) => `album-${album.id}` === id);
+  if (gridIndex !== -1) return { container: "grid", index: gridIndex };
 
-  // Find the indices of the dragged and target items within the unpinned subset
-  const unpinnedActiveIndex = unpinnedAlbums.findIndex(
-    (album) => String(album.id) === activeAlbumId
-  );
-  const unpinnedOverIndex = unpinnedAlbums.findIndex((album) => String(album.id) === overAlbumId);
+  const poolIndex = poolItems.findIndex((album) => `album-${album.id}` === id);
+  if (poolIndex !== -1) return { container: "pool", index: poolIndex };
 
-  // Reorder just the unpinned albums
-  const reorderedUnpinned = arrayMove(unpinnedAlbums, unpinnedActiveIndex, unpinnedOverIndex);
-
-  // Create the new album order by inserting pinned albums at their fixed positions
-  const newDisplayedAlbums: Album[] = [];
-
-  // For each position in the grid, determine what album should be there
-  for (let i = 0; i < displayedAlbums.length; i++) {
-    const originalAlbumAtPosition = displayedAlbums[i];
-    const albumId = String(originalAlbumAtPosition.id);
-
-    // If this position had a pinned album, keep it there
-    if (pinnedAlbums.has(albumId)) {
-      newDisplayedAlbums.push(originalAlbumAtPosition);
-    } else {
-      // Otherwise, take the next unpinned album from our reordered list
-      if (reorderedUnpinned.length > 0) {
-        newDisplayedAlbums.push(reorderedUnpinned.shift()!);
-      }
-    }
-  }
-
-  // If we have any remaining unpinned albums (unlikely but for safety), add them at the end
-  if (reorderedUnpinned.length > 0) {
-    newDisplayedAlbums.push(...reorderedUnpinned);
-  }
-
-  return newDisplayedAlbums;
+  return null;
 }
 
 /**
- * Moves albums between the wall grid and pool while respecting pinned grid positions.
+ * Swaps the dragged album with the album it was dropped on, within or across the wall and pool.
+ * Every other album keeps its position, and pinned albums never move.
  *
  * @param displayedAlbums Albums currently shown in the wall grid.
  * @param poolItems Albums currently outside the grid.
- * @param activeIndex Index of the dragged album in its source container.
- * @param overIndex Index of the drop target in its destination container.
- * @param activeContainer Source container for the dragged album.
- * @param overContainer Destination container for the drop target.
+ * @param activeId Dragged item identifier.
+ * @param overId Drop target identifier.
  * @param pinnedAlbums Set of pinned album ids that cannot be displaced.
- * @returns Updated grid and pool arrays after the move.
+ * @returns Updated grid and pool arrays; the inputs are returned unchanged when no swap applies.
  */
-export function swapBetweenContainers(
+export function swapAlbums(
   displayedAlbums: Album[],
   poolItems: Album[],
-  activeIndex: number,
-  overIndex: number,
-  activeContainer: "grid" | "pool",
-  overContainer: "grid" | "pool",
+  activeId: UniqueIdentifier,
+  overId: UniqueIdentifier,
   pinnedAlbums: Set<string>
 ) {
-  const activeItem =
-    activeContainer === "grid" ? displayedAlbums[activeIndex] : poolItems[activeIndex];
-  const overItem = overContainer === "grid" ? displayedAlbums[overIndex] : poolItems[overIndex];
+  const unchanged = { newDisplayedAlbums: displayedAlbums, newPoolItems: poolItems };
+  if (activeId === overId) return unchanged;
 
-  // Create new arrays with the items swapped
-  const newDisplayedAlbums = [...displayedAlbums];
-  const newPoolItems = [...poolItems];
+  const active = locateAlbum(activeId, displayedAlbums, poolItems);
+  const over = locateAlbum(overId, displayedAlbums, poolItems);
+  if (!active || !over) return unchanged;
 
-  if (activeContainer === "grid") {
-    // Moving from grid to pool means unpinning the album
-    // Remove from grid
-    newDisplayedAlbums.splice(activeIndex, 1);
-    // Find the right insertion spot in the pool
-    newPoolItems.splice(overIndex, 0, activeItem);
+  const containers = { grid: [...displayedAlbums], pool: [...poolItems] };
+  const activeAlbum = containers[active.container][active.index];
+  const overAlbum = containers[over.container][over.index];
 
-    // Insert the pool item into the grid, respecting pinned positions
-    let insertIndex = overIndex;
-    while (
-      insertIndex < newDisplayedAlbums.length &&
-      pinnedAlbums.has(String(newDisplayedAlbums[insertIndex].id))
-    ) {
-      insertIndex++;
-    }
-
-    // Insert at the found position or at the end if all remaining positions are pinned
-    if (insertIndex < newDisplayedAlbums.length) {
-      newDisplayedAlbums.splice(insertIndex, 0, overItem);
-    } else {
-      newDisplayedAlbums.push(overItem);
-    }
-  } else {
-    // Moving from pool to grid
-    // Remove from pool
-    newPoolItems.splice(activeIndex, 1);
-
-    // Find the right insertion spot in the grid, respecting pinned positions
-    if (pinnedAlbums.has(String(overItem.id))) {
-      // Can't replace a pinned item, find the next available unpinned spot
-      let insertIndex = overIndex;
-      while (
-        insertIndex < newDisplayedAlbums.length &&
-        pinnedAlbums.has(String(newDisplayedAlbums[insertIndex].id))
-      ) {
-        insertIndex++;
-      }
-
-      // Insert at the found position or at the end if all remaining positions are pinned
-      if (insertIndex < newDisplayedAlbums.length) {
-        newDisplayedAlbums.splice(insertIndex, 0, activeItem);
-      } else {
-        newDisplayedAlbums.push(activeItem);
-      }
-    } else {
-      // Normal case, just insert at the target position
-      newDisplayedAlbums.splice(overIndex, 0, activeItem);
-    }
+  if (pinnedAlbums.has(String(activeAlbum.id)) || pinnedAlbums.has(String(overAlbum.id))) {
+    return unchanged;
   }
 
-  return { newDisplayedAlbums, newPoolItems };
+  containers[active.container][active.index] = overAlbum;
+  containers[over.container][over.index] = activeAlbum;
+
+  return { newDisplayedAlbums: containers.grid, newPoolItems: containers.pool };
 }

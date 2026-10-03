@@ -9,18 +9,14 @@ import {
   TouchSensor,
   KeyboardSensor,
 } from "@dnd-kit/core";
-import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Album, SharedWallState } from "@/types";
 import { useGridDimensions } from "@/hooks/useGridDimensions";
 import { useAlbumPinning } from "@/hooks/useAlbumPinning";
 import { useAlbumSorting } from "@/hooks/useAlbumSorting";
 import { useGridExport } from "@/hooks/useGridExport";
 import { useAlbumShuffle } from "@/hooks/useAlbumShuffle";
-import {
-  getContainerType,
-  reorderWithinGrid,
-  swapBetweenContainers,
-} from "@/utils/dragAndDropHelpers";
+import { swapAlbums } from "@/utils/dragAndDropHelpers";
 import { buildSharedWallState, buildSharedWallUrl } from "@/utils/shareState";
 import { GridControls } from "./GridControls";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
@@ -239,7 +235,7 @@ export function RecordGrid({
   const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
   /**
-   * Reorders albums after a drag operation while respecting pinned slots and container boundaries.
+   * Swaps the dragged album with the album it was dropped on; everything else stays in place.
    *
    * @param event DnD Kit drag end event.
    */
@@ -247,78 +243,18 @@ export function RecordGrid({
     const { active, over } = event;
     if (!over) return;
 
-    const activeId = active.id;
-    const overId = over.id;
+    const { newDisplayedAlbums, newPoolItems } = swapAlbums(
+      displayedAlbums,
+      poolItems,
+      active.id,
+      over.id,
+      pinnedAlbums
+    );
+    if (newDisplayedAlbums === displayedAlbums && newPoolItems === poolItems) return;
 
-    // Extract album ID from the element ID (remove "album-" prefix)
-    const activeAlbumId = String(activeId).replace("album-", "");
-    const overAlbumId = String(overId).replace("album-", "");
-
-    // Check if the target position is occupied by a pinned album
-    if (pinnedAlbums.has(overAlbumId)) {
-      return;
-    }
-
-    // Get the containers of the dragged and target items
-    const activeContainer = getContainerType(activeId, displayedAlbums);
-    const overContainer = getContainerType(overId, displayedAlbums);
-
-    if (activeContainer === overContainer) {
-      // Reorder within the same container
-      if (activeContainer === "grid") {
-        const newDisplayedAlbums = reorderWithinGrid(
-          displayedAlbums,
-          activeAlbumId,
-          overAlbumId,
-          pinnedAlbums
-        );
-        setDisplayedAlbums(newDisplayedAlbums);
-        onAlbumsReorder([...newDisplayedAlbums, ...poolItems]);
-      } else {
-        const newPoolItems = arrayMove(
-          poolItems,
-          poolItems.findIndex((item) => `album-${item.id}` === activeId),
-          poolItems.findIndex((item) => `album-${item.id}` === overId)
-        );
-        setPoolItems(newPoolItems);
-        onAlbumsReorder([...displayedAlbums, ...newPoolItems]);
-      }
-    } else {
-      // Swap items between containers
-      const activeIndex =
-        activeContainer === "grid"
-          ? displayedAlbums.findIndex((item) => `album-${item.id}` === activeId)
-          : poolItems.findIndex((item) => `album-${item.id}` === activeId);
-
-      const overIndex =
-        overContainer === "grid"
-          ? displayedAlbums.findIndex((item) => `album-${item.id}` === overId)
-          : poolItems.findIndex((item) => `album-${item.id}` === overId);
-
-      if (activeIndex === -1 || overIndex === -1) return;
-
-      const { newDisplayedAlbums, newPoolItems } = swapBetweenContainers(
-        displayedAlbums,
-        poolItems,
-        activeIndex,
-        overIndex,
-        activeContainer,
-        overContainer,
-        pinnedAlbums
-      );
-
-      // Moving from grid to pool means unpinning the album
-      if (activeContainer === "grid") {
-        const activeItem = displayedAlbums[activeIndex];
-        if (pinnedAlbums.has(String(activeItem.id))) {
-          togglePinAlbum(String(activeItem.id));
-        }
-      }
-
-      setDisplayedAlbums(newDisplayedAlbums);
-      setPoolItems(newPoolItems);
-      onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
-    }
+    setDisplayedAlbums(newDisplayedAlbums);
+    setPoolItems(newPoolItems);
+    onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
   }
 
   /**

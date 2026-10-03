@@ -1,4 +1,4 @@
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 
@@ -52,7 +52,7 @@ export function WallDisplay({
       >
         <SortableContext
           items={albums.map((album) => `album-${album.id}`)}
-          strategy={rectSortingStrategy}
+          strategy={rectSwappingStrategy}
         >
           {albums.map((album) => (
             <SortableRecord

@@ -1,4 +1,4 @@
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 
@@ -21,7 +21,7 @@ export function PoolDisplay({ albums, showAlbumLabels }: PoolDisplayProps) {
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 md:gap-4 lg:grid-cols-8">
         <SortableContext
           items={albums.map((album) => `album-${album.id}`)}
-          strategy={rectSortingStrategy}
+          strategy={rectSwappingStrategy}
         >
           {albums.map((album) => (
             <SortableRecord
