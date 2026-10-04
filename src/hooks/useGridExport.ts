@@ -42,7 +42,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 /**
- * Manages export UI state and provides CSV and image export actions for the current wall.
+ * Manages export UI state and provides the image export and share-link actions for the current wall.
  *
  * @param username Discogs username used in exported filenames.
  * @param albums Albums to include in export output.

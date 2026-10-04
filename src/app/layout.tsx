@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Vinyl Wall - Your Virtual Record Collection Display",
   description:
-    "A dynamic, interactive wall display for your Discogs vinyl collection. Create customizable grid layouts, sort by artist or genre, pin favorite albums, and export your collection as an image or CSV.",
+    "A dynamic, interactive wall display for your Discogs vinyl collection. Create customizable grid layouts, sort by artist or genre, pin favorite albums, and save or share your wall as an image.",
   metadataBase: new URL(process.env.VERCEL_URL || "https://bgolski.github.io"),
   icons: {
     icon: `${basePath}/favicon.ico`,

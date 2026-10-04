@@ -7,7 +7,7 @@ interface ExportDropdownProps {
 }
 
 /**
- * Displays the export actions for downloading the wall as CSV or an image.
+ * Displays the export actions: save or share the wall as an image, or copy a share link.
  */
 export function ExportDropdown({
   isOpen,

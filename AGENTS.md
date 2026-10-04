@@ -3,7 +3,7 @@
 ## Purpose and UX flow
 - Web app that visualizes a Discogs vinyl collection as a wall of album covers with a pool of overflow items.
 - Entry point: `src/app/page.tsx` renders `src/components/VinylWallApp.tsx`.
-- User flow: enter Discogs username -> collection fetch -> grid/pool drag-and-drop -> sort/shuffle/pin -> export CSV or image.
+- User flow: enter Discogs username -> collection fetch -> grid/pool drag-and-drop -> sort/shuffle/pin -> save or share an image, or copy a share link.
 
 ## Architecture map (where to look)
 - Collection fetch + validation: `src/hooks/useCollection.ts`, `src/utils/discogs.ts`.
