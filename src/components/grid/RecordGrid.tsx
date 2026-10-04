@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useId, useMemo, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -7,6 +7,8 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  type Announcements,
+  type UniqueIdentifier,
   MouseSensor,
   TouchSensor,
   KeyboardSensor,
@@ -46,6 +48,11 @@ function buildAlbumsFromSharedWallState(albums: Album[], sharedWallState: Shared
 
   return [...sharedWallAlbums, ...remainingAlbums];
 }
+
+const DRAG_INSTRUCTIONS = {
+  draggable:
+    "To move an album, press space or enter to pick it up, use the arrow keys to reach another album, then press space or enter to swap places, or escape to cancel. Pinned albums cannot be moved.",
+};
 
 /**
  * Coordinates wall-grid interactions including sorting, pinning, shuffling, exporting,
@@ -104,6 +111,8 @@ export function RecordGrid({
   const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
   const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
   const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
+  const exportButtonRef = useRef<HTMLButtonElement | null>(null);
+  const exportMenuId = useId();
   const [sheetAlbum, setSheetAlbum] = useState<Album | null>(null);
   const [movingAlbum, setMovingAlbum] = useState<Album | null>(null);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
@@ -401,6 +410,62 @@ export function RecordGrid({
     }
   };
 
+  /**
+   * Describes where an album sits so drag announcements can name its slot: a wall slot is
+   * numbered in the order shown, a pool position in the pool's order.
+   *
+   * @param id DnD Kit item identifier (`album-<id>`).
+   * @returns The album and its place, or null when it is in neither list.
+   */
+  const describeAlbum = (id: UniqueIdentifier) => {
+    const wall = getSortedDisplayedAlbums();
+    const wallIndex = wall.findIndex((album) => `album-${album.id}` === id);
+    if (wallIndex !== -1) {
+      const album = wall[wallIndex]!;
+      return {
+        name: `${album.title || "Untitled"} by ${album.artist}`,
+        place: `wall slot ${wallIndex + 1}`,
+      };
+    }
+    const poolIndex = poolItems.findIndex((album) => `album-${album.id}` === id);
+    if (poolIndex !== -1) {
+      const album = poolItems[poolIndex]!;
+      return {
+        name: `${album.title || "Untitled"} by ${album.artist}`,
+        place: `pool position ${poolIndex + 1}`,
+      };
+    }
+    return null;
+  };
+
+  const dragAnnouncements: Announcements = {
+    onDragStart({ active }) {
+      const picked = describeAlbum(active.id);
+      return picked ? `Picked up ${picked.name}, ${picked.place}.` : undefined;
+    },
+    onDragOver({ active, over }) {
+      const picked = describeAlbum(active.id);
+      const target = over ? describeAlbum(over.id) : null;
+      // Picking an album up reports it over itself; stay quiet so "Picked up" is what is heard.
+      if (!picked || over?.id === active.id) return undefined;
+      return target
+        ? `${picked.name} is over ${target.name}, ${target.place}.`
+        : `${picked.name} is not over an album.`;
+    },
+    onDragEnd({ active, over }) {
+      const picked = describeAlbum(active.id);
+      const target = over ? describeAlbum(over.id) : null;
+      if (!picked) return undefined;
+      return target && over?.id !== active.id
+        ? `Dropped ${picked.name} on ${target.name}. They swap places if neither is pinned.`
+        : `Dropped ${picked.name}; it stays in ${picked.place}.`;
+    },
+    onDragCancel({ active }) {
+      const picked = describeAlbum(active.id);
+      return picked ? `Move cancelled. ${picked.name} stays in ${picked.place}.` : undefined;
+    },
+  };
+
   return (
     <div className="flex flex-col gap-8">
       {/* Control Bar */}
@@ -415,6 +480,9 @@ export function RecordGrid({
           onToggleAlbumLabels={handleToggleAlbumLabels}
           onShuffle={handleShuffle}
           onToggleExportDropdown={exportHooks.toggleDropdown}
+          exportOpen={exportHooks.dropdownOpen}
+          exportMenuId={exportMenuId}
+          exportButtonRef={exportButtonRef}
           showDimensionsConfig={showDimensionsConfig}
         />
 
@@ -422,6 +490,9 @@ export function RecordGrid({
         <ExportDropdown
           isOpen={exportHooks.dropdownOpen}
           isExporting={exportHooks.isExporting}
+          menuId={exportMenuId}
+          triggerRef={exportButtonRef}
+          onClose={exportHooks.closeDropdown}
           canShareLink={typeof navigator !== "undefined" && Boolean(navigator.share)}
           onShareOrSaveImage={exportHooks.shareOrSaveImage}
           onShareLink={handleShareLink}
@@ -447,14 +518,14 @@ export function RecordGrid({
         <div
           role="status"
           data-testid="move-banner"
-          className="sticky top-2 z-40 flex items-center justify-between gap-3 rounded-lg bg-yellow-400 px-4 py-3 text-black shadow-sm"
+          className="sticky top-2 z-40 flex items-center justify-between gap-3 rounded-control bg-accent-2 px-4 py-3 text-on-accent-2 shadow-sm"
         >
           <span>
             {moveMessage ?? `Moving ${movingAlbum.title || "album"}: tap another album to swap.`}
           </span>
           <button
             type="button"
-            className="rounded-md bg-black/80 px-3 py-1 text-white"
+            className="rounded-control bg-black/80 px-3 py-1 text-ink"
             onClick={() => {
               setMovingAlbum(null);
               setMoveMessage(null);
@@ -489,6 +560,10 @@ export function RecordGrid({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={() => setDraggedAlbum(null)}
+        accessibility={{
+          announcements: dragAnnouncements,
+          screenReaderInstructions: DRAG_INSTRUCTIONS,
+        }}
       >
         <div className="flex flex-col gap-8">
           {/* Wall Display */}

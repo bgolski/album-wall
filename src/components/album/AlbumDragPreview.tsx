@@ -19,7 +19,7 @@ export function AlbumDragPreview({ album }: AlbumDragPreviewProps) {
         alt={album.title || "Album"}
         fill
         sizes="200px"
-        className="object-cover rounded-lg shadow-2xl ring-2 ring-white/60"
+        className="object-cover rounded-tile shadow-2xl ring-2 ring-white/60"
         onError={handleImageError}
         style={{ backgroundColor: "#333" }}
         unoptimized

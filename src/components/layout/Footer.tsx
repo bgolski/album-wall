@@ -7,7 +7,7 @@ interface FooterProps {
  */
 export function Footer({ ownerName = "Bradley Golski" }: FooterProps) {
   return (
-    <footer className="mt-8 py-4 text-center text-gray-400 text-sm border-t border-gray-700">
+    <footer className="mt-8 py-4 text-center text-muted text-sm border-t border-line">
       <p>
         © {new Date().getFullYear()} {ownerName}
       </p>

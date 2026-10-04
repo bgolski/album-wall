@@ -34,6 +34,7 @@
 - Lint: `npm run lint` (or `npm run lint:fix`)
 - Typecheck: `npm run type-check`
 - Static build: `npm run build:static`, run with `npm run start`
+- Static build checks: `npm run check:static-output` (after `build:static`), `npm run test:a11y` (axe scans of the built site; needs `npx playwright install chromium` once), and Lighthouse with `npx @lhci/cli@0.15.1 autorun`. Set `NEXT_PUBLIC_BASE_PATH=/album-wall` for all three. `build:static` fails when `NEXT_PUBLIC_DISCOGS_PROXY_URL` or `NEXT_PUBLIC_BASE_PATH` is missing.
 - SSR build: `npm run build:ssr`, run with `npm run start:next`
 
 ## Feature readiness criteria

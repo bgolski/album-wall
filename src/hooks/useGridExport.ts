@@ -17,6 +17,16 @@ function isTouchDevice() {
   );
 }
 
+/**
+ * The wall panel's current background, so an exported image matches light or dark mode.
+ *
+ * @param grid The wall grid element being captured.
+ * @returns A CSS color string.
+ */
+function getPanelColor(grid: HTMLElement) {
+  return getComputedStyle(grid.parentElement ?? grid).backgroundColor || "#121212";
+}
+
 function getExportScale() {
   if (typeof window === "undefined") {
     return 2;
@@ -108,12 +118,12 @@ export function useGridExport(username: string, albums: Album[]) {
         label.style.display = "none";
       });
 
-      const { default: html2canvas } = await import("html2canvas");
+      const { default: html2canvas } = await import("html2canvas-pro");
 
       const canvas = await withTimeout(
         Promise.resolve(
           html2canvas(gridRef.current, {
-            backgroundColor: "#121212",
+            backgroundColor: getPanelColor(gridRef.current),
             scale: getExportScale(),
             logging: false,
             allowTaint: true,

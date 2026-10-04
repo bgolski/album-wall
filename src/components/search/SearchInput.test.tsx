@@ -22,7 +22,12 @@ function setup({
   );
   const input = screen.getByLabelText("Discogs username");
   const form = input.closest("form");
-  return { onLoadCollection, input, form, button: screen.getByRole("button") };
+  return {
+    onLoadCollection,
+    input,
+    form,
+    button: form?.querySelector<HTMLButtonElement>('button[type="submit"]') as HTMLButtonElement,
+  };
 }
 
 describe("SearchInput", () => {

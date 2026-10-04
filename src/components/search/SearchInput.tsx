@@ -19,8 +19,8 @@ export function SearchInput({
   onUsernameChange,
   onLoadCollection,
 }: SearchInputProps) {
-  const inputClassName = `w-full rounded-sm bg-gray-800 border px-4 py-2 text-white focus:outline-hidden focus:border-blue-500 md:flex-1 md:rounded-r-none ${
-    usernameError ? "border-red-500" : "border-gray-700"
+  const inputClassName = `w-full rounded-control bg-raised border px-4 py-2 text-ink focus:outline-hidden focus:border-accent md:flex-1 md:rounded-r-none ${
+    usernameError ? "border-danger" : "border-line"
   }`;
 
   const isSubmitDisabled = isPending || !username.trim();
@@ -60,7 +60,7 @@ export function SearchInput({
         {usernameError && (
           <p
             id="discogs-username-error"
-            className="mt-2 w-full max-w-sm text-left text-sm text-red-400 sm:max-w-md"
+            className="mt-2 w-full max-w-sm text-left text-sm text-danger sm:max-w-md"
           >
             {usernameError}
           </p>

@@ -1,10 +1,10 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useGridExport } from "./useGridExport";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 
 // Mock html2canvas module
-vi.mock("html2canvas", () => ({
+vi.mock("html2canvas-pro", () => ({
   default: vi.fn(),
 }));
 

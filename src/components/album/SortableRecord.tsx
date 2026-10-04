@@ -80,11 +80,12 @@ export function SortableRecord({
     <div
       ref={handleRecordRef}
       style={style}
-      {...(isPinned ? {} : attributes)}
+      {...(isPinned ? { role: "group" } : { ...attributes, role: "group" })}
+      aria-label={`${album.title || "Album"} by ${album.artist}${isPinned ? ", pinned" : ""}`}
       {...(isPinned ? {} : tileListeners)}
       className={`aspect-square cursor-pointer select-none [-webkit-touch-callout:none] group relative ${
         isPinned ? "z-10" : ""
-      } ${isMoveSource ? "ring-4 ring-yellow-400 rounded-lg" : ""}`}
+      } ${isMoveSource ? "ring-4 ring-accent-2 rounded-tile" : ""}`}
       data-album-id={album.id}
       data-pinned={isPinned ? "true" : "false"}
       onClick={handleAlbumClick}
@@ -96,7 +97,7 @@ export function SortableRecord({
             alt={`${album.title || "Album"}`}
             fill
             sizes="(max-width: 768px) 100vw, 200px"
-            className="object-cover rounded-lg shadow-lg"
+            className="object-cover rounded-tile shadow-lg"
             crossOrigin={exportMode ? "anonymous" : undefined}
             onLoad={handleImageLoad}
             onError={handleImageError}

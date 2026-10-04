@@ -70,12 +70,11 @@ jobs:
       - name: Build with Next.js
         run: npm run build:static
 
+      - name: Check the static output
+        run: npm run check:static-output
+
       - name: Prepare output for GitHub Pages
-        run: |
-          touch out/.nojekyll
-          if [ ! -f out/404.html ]; then
-            cp out/index.html out/404.html
-          fi
+        run: touch out/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

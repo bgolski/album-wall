@@ -13,12 +13,12 @@ interface CollectionDisplayProps {
  */
 const UserHeader = ({ username, albumCount }: { username: string; albumCount: number }) => (
   <div className="mb-6 text-center">
-    <div className="inline-flex items-center px-4 py-2 bg-gray-800 rounded-lg">
+    <div className="inline-flex items-center px-4 py-2 bg-panel rounded-panel">
       <a
         href={`https://www.discogs.com/user/${username}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+        className="flex items-center text-accent hover:text-accent transition-colors"
       >
         <span className="mr-2">
           <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -27,8 +27,8 @@ const UserHeader = ({ username, albumCount }: { username: string; albumCount: nu
         </span>
         <span className="font-medium">{username}</span>
       </a>
-      <span className="mx-2 text-gray-400">•</span>
-      <span className="text-gray-300">{albumCount} vinyl records</span>
+      <span className="mx-2 text-muted">•</span>
+      <span className="text-muted">{albumCount} vinyl records</span>
     </div>
   </div>
 );

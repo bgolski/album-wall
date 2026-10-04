@@ -17,6 +17,9 @@ function renderControls(overrides: Partial<Props> = {}) {
     onShuffle: vi.fn(),
     onToggleExportDropdown: vi.fn(),
     showDimensionsConfig: false,
+    exportOpen: false,
+    exportMenuId: "export-menu",
+    exportButtonRef: { current: null },
     ...overrides,
   };
   return { props, ...render(<GridControls {...props} />) };

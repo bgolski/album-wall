@@ -32,7 +32,7 @@ describe("AppContainer", () => {
     );
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain("min-h-screen");
-    expect(root.className).toContain("bg-gray-900");
+    expect(root.className).toContain("bg-page");
   });
 });
 

@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:static": "cross-env NEXT_STATIC_EXPORT=true next build",
+    "build:static": "npm run check:env && cross-env NEXT_STATIC_EXPORT=true next build",
+    "check:env": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local scripts/check-deploy-env.ts",
+    "check:static-output": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local scripts/check-static-output.ts",
     "build:ssr": "cross-env NEXT_STATIC_EXPORT=false next build",
     "start": "serve out -s -p 3001",
     "start:next": "next start --port 3001",
@@ -19,23 +21,25 @@
     "precommit-check": "npm run lint && npm run type-check",
     "prepare": "lefthook install",
     "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:a11y": "playwright test"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "disconnect": "^1.2.2",
-    "html2canvas": "^1.4.1",
+    "html2canvas-pro": "^2.5.1",
     "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
-    "@types/html2canvas": "^0.5.35",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

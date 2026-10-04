@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { SortOption } from "@/hooks/useAlbumSorting";
 
 interface GridControlsProps {
@@ -11,6 +12,9 @@ interface GridControlsProps {
   onShuffle: () => void;
   onToggleExportDropdown: () => void;
   showDimensionsConfig: boolean;
+  exportOpen: boolean;
+  exportMenuId: string;
+  exportButtonRef: RefObject<HTMLButtonElement | null>;
 }
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -33,15 +37,18 @@ export function GridControls({
   onShuffle,
   onToggleExportDropdown,
   showDimensionsConfig,
+  exportOpen,
+  exportMenuId,
+  exportButtonRef,
 }: GridControlsProps) {
   const actionButtonClass =
-    "flex-1 rounded-sm px-3 py-2 text-sm font-medium text-white transition-colors min-[360px]:basis-[calc(50%-0.25rem)] md:flex-none md:basis-auto md:px-3 md:py-1.5";
+    "flex-1 rounded-control px-3 py-2 text-sm font-medium transition-colors min-[360px]:basis-[calc(50%-0.25rem)] md:flex-none md:basis-auto md:px-3 md:py-1.5";
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+    <div className="bg-panel p-4 rounded-panel shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex flex-col gap-3 md:flex-1">
-          <h2 id="sort-records-heading" className="text-base font-semibold text-white md:text-lg">
+          <h2 id="sort-records-heading" className="text-base font-semibold text-ink md:text-lg">
             Sort Records
           </h2>
           <div
@@ -53,10 +60,10 @@ export function GridControls({
               <button
                 key={option.value}
                 onClick={() => onSortChange(option.value)}
-                className={`rounded-sm px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
+                className={`rounded-control px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
                   sortOption === option.value
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-600 text-white hover:bg-gray-500"
+                    ? "bg-accent text-on-accent"
+                    : "bg-raised text-ink hover:bg-line"
                 }`}
                 aria-pressed={sortOption === option.value}
                 type="button"
@@ -70,7 +77,7 @@ export function GridControls({
         <div className="flex flex-wrap gap-2 md:items-center md:justify-end md:gap-3">
           <button
             onClick={onToggleDimensionsConfig}
-            className={`${actionButtonClass} bg-gray-600 hover:bg-gray-500`}
+            className={`${actionButtonClass} bg-raised text-ink hover:bg-line`}
             aria-expanded={showDimensionsConfig}
             type="button"
           >
@@ -81,8 +88,8 @@ export function GridControls({
             onClick={onTogglePinAll}
             className={`${actionButtonClass} flex items-center justify-center ${
               areAllPinned
-                ? "bg-blue-600 text-white hover:bg-blue-500"
-                : "bg-gray-600 text-white hover:bg-gray-500"
+                ? "bg-accent text-on-accent hover:bg-accent-hover"
+                : "bg-raised text-ink hover:bg-line"
             }`}
             type="button"
           >
@@ -106,8 +113,8 @@ export function GridControls({
             onClick={onToggleAlbumLabels}
             className={`${actionButtonClass} ${
               showAlbumLabels
-                ? "bg-blue-600 text-white hover:bg-blue-500"
-                : "bg-gray-600 text-white hover:bg-gray-500"
+                ? "bg-accent text-on-accent hover:bg-accent-hover"
+                : "bg-raised text-ink hover:bg-line"
             }`}
             type="button"
           >
@@ -116,7 +123,7 @@ export function GridControls({
 
           <button
             onClick={onShuffle}
-            className={`${actionButtonClass} flex items-center justify-center bg-purple-600 hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50`}
+            className={`${actionButtonClass} flex items-center justify-center bg-accent-2 text-on-accent-2 hover:bg-accent-2-hover disabled:cursor-not-allowed disabled:opacity-50`}
             disabled={areAllPinned}
             title={
               areAllPinned ? "Unpin some albums to shuffle" : "Randomly rearrange unpinned albums"
@@ -137,8 +144,12 @@ export function GridControls({
 
           <div className="relative basis-full md:basis-auto">
             <button
+              ref={exportButtonRef}
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              aria-controls={exportOpen ? exportMenuId : undefined}
               onClick={onToggleExportDropdown}
-              className={`${actionButtonClass} w-full flex items-center justify-center bg-green-600 hover:bg-green-500 md:w-auto`}
+              className={`${actionButtonClass} w-full flex items-center justify-center bg-accent text-on-accent hover:bg-accent-hover md:w-auto`}
               type="button"
             >
               <span className="mr-1">Export</span>

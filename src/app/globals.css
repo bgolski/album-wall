@@ -1,45 +1,86 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/*
+  Colour and shape tokens. The values live in :root (light) and .dark (dark); components use the
+  semantic names below (bg-panel, text-ink, bg-accent, rounded-control) and never a raw palette
+  colour, so the whole app changes theme by swapping one class on <html>.
+*/
+@theme inline {
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-hover: var(--accent-2-hover);
+  --color-on-accent-2: var(--on-accent-2);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --radius-control: 10px;
+  --radius-panel: 14px;
+  --radius-tile: 10px;
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+:root {
+  color-scheme: light;
+  --page: #f1f3f9;
+  --panel: #ffffff;
+  --raised: #e5e9f4;
+  --line: #ced5e8;
+  --ink: #12172a;
+  --muted: #4a5470;
+  --accent: #4338ca;
+  --accent-hover: #3730a3;
+  --on-accent: #ffffff;
+  --accent-2: #0f766e;
+  --accent-2-hover: #115e59;
+  --on-accent-2: #ffffff;
+  --danger: #be123c;
+  --on-danger: #ffffff;
+}
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+.dark {
+  color-scheme: dark;
+  --page: #0b0f17;
+  --panel: #141b27;
+  --raised: #1d2636;
+  --line: #2a3548;
+  --ink: #e8ecf3;
+  --muted: #9aa6b8;
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --on-accent: #0b0f17;
+  --accent-2: #5eead4;
+  --accent-2-hover: #99f6e4;
+  --on-accent-2: #04201c;
+  --danger: #fb7185;
+  --on-danger: #2a0710;
+}
+
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--line);
   }
-}
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* In the base layer so the body's utility classes (bg-gray-900, text-white) still win. */
-@layer base {
+  /* In the base layer so the body's utility classes still win. */
   body {
-    color: var(--foreground);
-    background: var(--background);
-    font-family: Arial, Helvetica, sans-serif;
+    color: var(--ink);
+    background: var(--page);
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-fraunces), Georgia, serif;
   }
 }

@@ -20,7 +20,7 @@ export function AlbumLabels({ album, isPinned, showAlbumLabels }: AlbumLabelsPro
 
   return (
     <div
-      className={`album-labels absolute bottom-0 left-0 right-0 rounded-b-lg bg-black/70 p-2 text-white ${visibilityClass}`}
+      className={`album-labels absolute bottom-0 left-0 right-0 rounded-b-tile bg-black/70 p-2 text-white ${visibilityClass}`}
     >
       <p className="text-xs font-bold truncate">{album.artist || "Unknown Artist"}</p>
       <p className="text-xs truncate">{album.title || "Untitled"}</p>

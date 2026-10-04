@@ -130,13 +130,13 @@ describe("RecordGrid tap actions", () => {
   it("offers Share Link only when the browser can share", () => {
     renderGrid();
     fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    expect(screen.queryByRole("button", { name: "Share Link" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Share Link" })).toBeNull();
     cleanup();
 
     vi.stubGlobal("navigator", { ...navigator, share: vi.fn() });
     renderGrid();
     fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    expect(screen.getByRole("button", { name: "Share Link" })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Share Link" })).toBeTruthy();
   });
 
   it("shares the wall link through the share sheet", async () => {
@@ -144,11 +144,11 @@ describe("RecordGrid tap actions", () => {
     vi.stubGlobal("navigator", { ...navigator, share });
     renderGrid();
     fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Share Link" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Share Link" }));
     await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
     const [data] = share.mock.calls[0] as unknown as [{ url: string }];
     expect(data.url).toContain("#");
-    expect(screen.queryByRole("button", { name: "Share Link" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Share Link" })).toBeNull();
   });
 
   it("shows the copy result as a toast and closes the menu", async () => {
@@ -156,9 +156,99 @@ describe("RecordGrid tap actions", () => {
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     renderGrid();
     fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Copy Share Link" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy Share Link" }));
     const line = await screen.findByText("Share link copied.");
     expect(line.closest("[role=status]")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Copy Share Link" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Copy Share Link" })).toBeNull();
+  });
+
+  it("marks the Export button as a menu button and the menu as a menu", () => {
+    renderGrid();
+    const trigger = screen.getByRole("button", { name: /Export/ });
+    expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    const menu = screen.getByRole("menu", { name: "Export options" });
+    expect(trigger.getAttribute("aria-controls")).toBe(menu.id);
+  });
+
+  it("moves focus into the menu, steps with the arrow keys and wraps", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    const items = screen.getAllByRole("menuitem");
+    expect(document.activeElement).toBe(items[0]);
+
+    fireEvent.keyDown(items[0]!, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[1]);
+    fireEvent.keyDown(items[1]!, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(items[0]);
+    fireEvent.keyDown(items[0]!, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+    fireEvent.keyDown(items[items.length - 1]!, { key: "Home" });
+    expect(document.activeElement).toBe(items[0]);
+    fireEvent.keyDown(items[0]!, { key: "End" });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+  });
+
+  it("closes on Escape and returns focus to the Export button", () => {
+    renderGrid();
+    const trigger = screen.getByRole("button", { name: /Export/ });
+    fireEvent.click(trigger);
+    fireEvent.keyDown(screen.getAllByRole("menuitem")[0]!, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("closes on a click outside without taking focus from what was clicked", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    const other = screen.getByRole("button", { name: "Pin Album 2" });
+    other.focus();
+    fireEvent.pointerDown(other);
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(other);
+  });
+
+  it("announces a keyboard drag with album names and slots", async () => {
+    renderGrid();
+    const first = tile("Album 1");
+    first.focus();
+    fireEvent.keyDown(first, { code: "Space", key: " " });
+    await waitFor(() => {
+      const live = document.querySelector("[id^=DndLiveRegion]");
+      expect(live?.textContent).toContain("Picked up Album 1 by Artist 1, wall slot 1.");
+    });
+    fireEvent.keyDown(first, { code: "Escape", key: "Escape" });
+    await waitFor(() => {
+      const live = document.querySelector("[id^=DndLiveRegion]");
+      expect(live?.textContent).toContain(
+        "Move cancelled. Album 1 by Artist 1 stays in wall slot 1."
+      );
+    });
+  });
+
+  it("gives a pinned tile a name that says it is pinned", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: "Pin Album 3" }));
+    expect(tile("Album 3").getAttribute("aria-label")).toBe("Album 3 by Artist 3, pinned");
+    expect(tile("Album 4").getAttribute("aria-label")).toBe("Album 4 by Artist 4");
+  });
+
+  it("swaps a wall album with a pool album found through the pool search", () => {
+    const onAlbumsReorder = renderGrid();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search the record pool" }), {
+      target: { value: "Album 40" },
+    });
+    expect(screen.queryByAltText("Album 39")).toBeNull();
+
+    fireEvent.click(tile("Album 40"));
+    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(tile("Album 1"));
+
+    const order = onAlbumsReorder.mock.calls[0]![0].map((a: Album) => a.id);
+    expect(order[0]).toBe(40);
+    expect(order[39]).toBe(1);
   });
 });

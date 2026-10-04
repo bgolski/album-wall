@@ -401,7 +401,7 @@ describe("5xx exhaustion", () => {
 });
 
 describe("empty collection", () => {
-  it("returns 400 when user has no records", async () => {
+  it("returns an empty album list when the user has no records", async () => {
     jest
       .mocked(fetch)
       .mockResolvedValueOnce(
@@ -410,10 +410,152 @@ describe("empty collection", () => {
 
     const handler = await loadHandler();
     const resp = await handler(makeEvent({ username: "emptyuser" }));
-    expect(resp.statusCode).toBe(400);
-    const body = bodyOf(resp);
-    expect(body.error).toContain("no vinyl records");
+    expect(resp.statusCode).toBe(200);
+    expect(bodyOf(resp)).toEqual({ username: "emptyuser", albums: [] });
 
     jest.mocked(fetch).mockRestore();
+  });
+});
+
+/* -------------------------------------------------- */
+/*  retry rules, timeouts and large collections        */
+/* -------------------------------------------------- */
+
+function discogsPage(page: number, pages: number, items = pages * 100) {
+  return new Response(
+    JSON.stringify({
+      pagination: { pages, items },
+      releases: [
+        {
+          id: page,
+          basic_information: { id: page, title: `Album ${page}`, artists: [{ name: "Artist" }] },
+        },
+      ],
+    }),
+    { status: 200 }
+  );
+}
+
+describe("retry rules", () => {
+  it.each([400, 401, 403])("does not retry a %i from Discogs", async (status) => {
+    jest.mocked(fetch).mockImplementation(() => Promise.resolve(new Response("no", { status })));
+    const handler = await loadHandler();
+    await handler(makeEvent({ username: "clienterror" }));
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a 429 at once when Discogs gives no Retry-After", async () => {
+    jest
+      .mocked(fetch)
+      .mockImplementation(() => Promise.resolve(new Response("slow down", { status: 429 })));
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "limited" }));
+    expect(resp.statusCode).toBe(429);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a 429 at once when Retry-After is longer than the time left", async () => {
+    jest
+      .mocked(fetch)
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response("slow down", { status: 429, headers: { "Retry-After": "120" } })
+        )
+      );
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "limited" }));
+    expect(resp.statusCode).toBe(429);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for a short Retry-After and tries once more", async () => {
+    jest
+      .mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response("slow down", { status: 429, headers: { "Retry-After": "1" } })
+      )
+      .mockResolvedValueOnce(discogsPage(1, 1));
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "limited" }));
+    expect(resp.statusCode).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  }, 15000);
+
+  it("retries a network error", async () => {
+    jest
+      .mocked(fetch)
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(discogsPage(1, 1));
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "flaky" }));
+    expect(resp.statusCode).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  }, 15000);
+
+  it("gives every Discogs request its own timeout", async () => {
+    jest.mocked(fetch).mockImplementation(() => Promise.resolve(discogsPage(1, 1)));
+    const handler = await loadHandler();
+    await handler(makeEvent({ username: "timed" }));
+    const init = jest.mocked(fetch).mock.calls[0]![1] as { signal?: unknown };
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("maps a Discogs timeout to 504 without retrying", async () => {
+    jest
+      .mocked(fetch)
+      .mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "timedout" }));
+    expect(resp.statusCode).toBe(504);
+    expect(bodyOf(resp).error).toContain("too long");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("large collections", () => {
+  it("loads later pages at most four at a time, in page order", async () => {
+    let inFlight = 0;
+    let busiest = 0;
+    jest.mocked(fetch).mockImplementation(async (input) => {
+      const page = Number(new URL(String(input)).searchParams.get("page"));
+      inFlight += 1;
+      busiest = Math.max(busiest, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return discogsPage(page, 10);
+    });
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "big" }));
+    expect(resp.statusCode).toBe(200);
+    expect(busiest).toBe(4);
+    expect(bodyOf(resp).albums.map((album: { id: number }) => album.id)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    ]);
+  });
+
+  it("refuses a collection over the limit after the first page", async () => {
+    jest.mocked(fetch).mockImplementation(() => Promise.resolve(discogsPage(1, 81, 8100)));
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "huge" }));
+    expect(resp.statusCode).toBe(413);
+    expect(bodyOf(resp).error).toContain("8100");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers 504 when the time budget runs out between pages", async () => {
+    jest.mocked(fetch).mockImplementation(() => Promise.resolve(discogsPage(1, 3)));
+    const handler = await loadHandler();
+    const realNow = Date.now.bind(Date);
+    let calls = 0;
+    jest.spyOn(Date, "now").mockImplementation(() => {
+      calls += 1;
+      return calls <= 3 ? realNow() : realNow() + 60_000;
+    });
+    try {
+      const resp = await handler(makeEvent({ username: "slow" }));
+      expect(resp.statusCode).toBe(504);
+    } finally {
+      jest.mocked(Date.now).mockRestore();
+    }
   });
 });

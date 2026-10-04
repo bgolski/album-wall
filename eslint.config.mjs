@@ -11,5 +11,5 @@ export default defineConfig([
     // effect on purpose; they are reported as warnings until they are reworked as derived state.
     rules: { "react-hooks/set-state-in-effect": "warn" },
   },
-  globalIgnores([".next/**", "out/**", "coverage/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", "out/**", "coverage/**", "infra/cdk.out/**", "next-env.d.ts"]),
 ]);

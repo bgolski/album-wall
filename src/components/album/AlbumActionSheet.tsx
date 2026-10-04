@@ -38,7 +38,7 @@ export function AlbumActionSheet({
   const title = album.title || "Untitled album";
   const details = [album.year, album.genre?.join(", ")].filter(Boolean).join(" · ");
   const actionClass =
-    "w-full rounded-md bg-gray-700 px-4 py-3 text-left text-white hover:bg-gray-600 disabled:opacity-50";
+    "w-full rounded-control bg-raised px-4 py-3 text-left text-ink hover:bg-line disabled:opacity-50";
 
   return (
     <div
@@ -51,13 +51,13 @@ export function AlbumActionSheet({
         role="dialog"
         aria-modal="true"
         aria-label={`${title} actions`}
-        className="w-full max-w-md rounded-t-xl bg-gray-800 p-4 shadow-xl sm:rounded-xl"
+        className="w-full max-w-md rounded-t-panel bg-panel p-4 shadow-xl sm:rounded-panel"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-white">{title}</h2>
-          <p className="text-gray-200">{album.artist}</p>
-          {details && <p className="text-sm text-gray-300">{details}</p>}
+          <h2 className="text-lg font-bold text-ink">{title}</h2>
+          <p className="text-ink">{album.artist}</p>
+          {details && <p className="text-sm text-muted">{details}</p>}
         </div>
         <div className="flex flex-col gap-2">
           {canPin && (

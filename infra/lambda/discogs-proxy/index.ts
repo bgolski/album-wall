@@ -4,6 +4,13 @@ const BASE_URL = "https://api.discogs.com";
 const COLLECTION_PAGE_SIZE = 100;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
+// Measured on a 75-album collection: about 0.7 s per warm page of 100 and 573 bytes per album in
+// the response, so the 6 MB response limit allows roughly 10,000 albums. The limits below stay
+// well inside that and inside the function's 30 s timeout.
+const REQUEST_TIMEOUT_MS = 5000;
+const TIME_BUDGET_MS = 25000;
+const PAGE_CONCURRENCY = 4;
+const MAX_COLLECTION_ITEMS = 8000;
 
 type DiscogsArtist = {
   name: string;
@@ -168,33 +175,78 @@ function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
   return `https://www.discogs.com/release/${releaseId}`;
 }
 
+type DiscogsError = Error & { statusCode?: number; retryAfterMs?: number; timedOut?: boolean };
+
 /**
- * Retries a request with exponential backoff while skipping retries for 404 responses.
+ * Creates an error carrying the HTTP status that the response mapper turns into a reply.
+ *
+ * @param message Human-readable message.
+ * @param statusCode HTTP status to associate with the failure.
+ * @param retryAfterMs How long Discogs asked the client to wait, when it said.
+ * @returns The error.
+ */
+function httpError(message: string, statusCode: number, retryAfterMs?: number): DiscogsError {
+  const error: DiscogsError = new Error(message);
+  error.statusCode = statusCode;
+  if (retryAfterMs !== undefined) error.retryAfterMs = retryAfterMs;
+  return error;
+}
+
+/**
+ * Reads a Retry-After header given in seconds.
+ *
+ * @param value Header value, if any.
+ * @returns The wait in milliseconds, or undefined when it is absent or not a number of seconds.
+ */
+function parseRetryAfterMs(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : undefined;
+}
+
+/**
+ * Runs a Discogs request, retrying only what can succeed on a second try: network errors and 5xx
+ * responses with exponential backoff, and a 429 once when Discogs asks for a wait that fits in
+ * the time left. Other 4xx responses and timeouts are never retried.
  *
  * @param request Async request callback to execute.
+ * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
  * @param retries Remaining retry attempts.
  * @param delay Delay in milliseconds before the next retry.
  * @returns The resolved request result.
  */
 async function makeRequestWithRetry<T>(
   request: () => Promise<T>,
+  deadline: number,
   retries = MAX_RETRIES,
   delay = RETRY_DELAY_MS
 ): Promise<T> {
+  if (Date.now() >= deadline) {
+    throw httpError("Loading the collection took too long.", 504);
+  }
+
   try {
     return await request();
   } catch (error) {
     const statusCode =
       error instanceof Error && "statusCode" in error
-        ? Number((error as Error & { statusCode?: number }).statusCode)
+        ? Number((error as DiscogsError).statusCode)
         : undefined;
 
-    if (retries <= 0 || statusCode === 404) {
-      throw error;
+    if (statusCode === 429) {
+      const wait = (error as DiscogsError).retryAfterMs;
+      const timeLeft = deadline - Date.now();
+      if (wait === undefined || retries <= 0 || wait + REQUEST_TIMEOUT_MS > timeLeft) throw error;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+      return makeRequestWithRetry(request, deadline, 0, delay);
     }
 
+    const retryable =
+      !(error as DiscogsError).timedOut && (statusCode === undefined || statusCode >= 500);
+    if (!retryable || retries <= 0) throw error;
+
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return makeRequestWithRetry(request, retries - 1, delay * 2);
+    return makeRequestWithRetry(request, deadline, retries - 1, delay * 2);
   }
 }
 
@@ -204,12 +256,14 @@ async function makeRequestWithRetry<T>(
  * @param username Discogs username whose collection should be loaded.
  * @param token Discogs personal token used for authenticated requests.
  * @param page Collection page number to fetch.
+ * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
  * @returns One page of the Discogs collection response.
  */
 async function fetchCollectionPage(
   username: string,
   token: string,
-  page: number
+  page: number,
+  deadline: number
 ): Promise<DiscogsCollectionResponse> {
   const requestUrl = new URL(`${BASE_URL}/users/${username}/collection/folders/0/releases`);
 
@@ -218,23 +272,38 @@ async function fetchCollectionPage(
   requestUrl.searchParams.set("page", String(page));
 
   return makeRequestWithRetry(async () => {
-    const response = await fetch(requestUrl, {
-      headers: {
-        Authorization: `Discogs token=${token}`,
-        "User-Agent": "album-wall-discogs-proxy/1.0",
-      },
-    });
+    let response: Response;
 
-    if (!response.ok) {
-      const error = new Error(`Discogs request failed with status ${response.status}`) as Error & {
-        statusCode?: number;
-      };
-      error.statusCode = response.status;
+    try {
+      response = await fetch(requestUrl, {
+        headers: {
+          Authorization: `Discogs token=${token}`,
+          "User-Agent": "album-wall-discogs-proxy/1.0",
+        },
+        signal: AbortSignal.timeout(
+          Math.min(REQUEST_TIMEOUT_MS, Math.max(deadline - Date.now(), 1))
+        ),
+      });
+    } catch (error) {
+      const errorName = (error as { name?: string } | null)?.name;
+      if (errorName === "TimeoutError" || errorName === "AbortError") {
+        throw Object.assign(httpError("Discogs took too long to respond.", 504), {
+          timedOut: true,
+        });
+      }
       throw error;
     }
 
+    if (!response.ok) {
+      throw httpError(
+        `Discogs request failed with status ${response.status}`,
+        response.status,
+        parseRetryAfterMs(response.headers.get("Retry-After"))
+      );
+    }
+
     return (await response.json()) as DiscogsCollectionResponse;
-  });
+  }, deadline);
 }
 
 /**
@@ -260,18 +329,34 @@ async function getUserCollection(username: string): Promise<Album[]> {
     throw new Error("Lambda is missing DISCOGS_TOKEN_PARAMETER_NAME.");
   }
 
+  const deadline = Date.now() + TIME_BUDGET_MS;
   const token = await getSecureParameter(tokenParameterName);
-  const firstPage = await fetchCollectionPage(username, token, 1);
+  const firstPage = await fetchCollectionPage(username, token, 1, deadline);
   const allReleases = [...(firstPage.releases || [])];
   const totalPages = Math.max(firstPage.pagination?.pages || 1, 1);
+  const totalItems = firstPage.pagination?.items ?? allReleases.length;
 
-  for (let page = 2; page <= totalPages; page += 1) {
-    const pageResponse = await fetchCollectionPage(username, token, page);
-    allReleases.push(...(pageResponse.releases || []));
+  if (totalItems > MAX_COLLECTION_ITEMS) {
+    throw httpError(
+      `This collection has ${totalItems} records; the limit is ${MAX_COLLECTION_ITEMS}.`,
+      413
+    );
+  }
+
+  // Later pages load a few at a time, in page order, to stay inside Discogs's rate limit.
+  for (let first = 2; first <= totalPages; first += PAGE_CONCURRENCY) {
+    const pages = Array.from(
+      { length: Math.min(PAGE_CONCURRENCY, totalPages - first + 1) },
+      (_, offset) => first + offset
+    );
+    const responses = await Promise.all(
+      pages.map((page) => fetchCollectionPage(username, token, page, deadline))
+    );
+    for (const pageResponse of responses) allReleases.push(...(pageResponse.releases || []));
   }
 
   if (!allReleases.length) {
-    throw new Error(`User "${username}" has no vinyl records in their collection`);
+    return [];
   }
 
   return allReleases.map((release) => {
@@ -307,6 +392,18 @@ function mapErrorToResponse(error: unknown, username: string) {
   if (statusCode === 404) {
     return jsonResponse(404, {
       error: `User "${username}" not found on Discogs`,
+    });
+  }
+
+  if (statusCode === 413) {
+    return jsonResponse(413, {
+      error: error instanceof Error ? error.message : "This collection is too large to load.",
+    });
+  }
+
+  if (statusCode === 504) {
+    return jsonResponse(504, {
+      error: "Discogs took too long to respond. Please try again.",
     });
   }
 

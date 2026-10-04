@@ -1,25 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { getBasePath } from "@/utils/basePath";
 import Footer from "@/components/layout/Footer";
 
 const basePath = getBasePath();
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
   display: "swap",
 });
+
+// Runs before the first paint so the page never flashes the wrong theme: the saved choice wins,
+// otherwise the device's light or dark setting.
+const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.classList.toggle("dark",t==="dark")}catch(e){}`;
 
 export const viewport: Viewport = {
-  themeColor: "#111827", // bg-gray-900
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f1f3f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0f17" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -58,9 +65,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white min-h-screen flex flex-col`}
+        className={`${inter.variable} ${fraunces.variable} antialiased bg-page text-ink min-h-screen flex flex-col`}
       >
         <main className="grow">{children}</main>
 
