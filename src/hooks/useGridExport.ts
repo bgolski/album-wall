@@ -8,6 +8,9 @@ const STATUS_VISIBLE_MS = 4000;
 const ACTION_VISIBLE_MS = 15000;
 // Largest canvas side to capture; browsers on phones refuse much bigger canvases.
 const MAX_CAPTURE_SIDE = 4096;
+// Most pixels in an image saved at the screen's own size. A full-size wall comes to roughly two
+// megabytes as a PNG, which is easy to share; the wallpaper and print sizes are deliberately larger.
+const MAX_EXPORT_PIXELS = 1_300_000;
 
 export interface ExportStatus {
   message: string;
@@ -31,12 +34,23 @@ function getPanelColor(grid: HTMLElement) {
   return getComputedStyle(grid.parentElement ?? grid).backgroundColor || "#121212";
 }
 
-function getExportScale() {
-  if (typeof window === "undefined") {
-    return 2;
-  }
-
-  return isTouchDevice() ? Math.min(window.devicePixelRatio, 2) : window.devicePixelRatio * 2;
+/**
+ * How much to enlarge the wall when saving it at the screen's own size: twice the screen's pixel
+ * density on a computer and the density itself on a touch device, but never so much that the image
+ * passes the pixel budget.
+ *
+ * @param gridWidth Width of the wall on screen, in CSS pixels.
+ * @param gridHeight Height of the wall on screen, in CSS pixels.
+ * @returns The scale to capture at.
+ */
+function getExportScale(gridWidth: number, gridHeight: number) {
+  const wanted =
+    typeof window === "undefined"
+      ? 2
+      : isTouchDevice()
+        ? Math.min(window.devicePixelRatio, 2)
+        : window.devicePixelRatio * 2;
+  return Math.min(wanted, Math.sqrt(MAX_EXPORT_PIXELS / (gridWidth * gridHeight)));
 }
 
 /**
@@ -158,7 +172,7 @@ export function useGridExport(username: string, albums: Album[]) {
             MAX_CAPTURE_SIDE / Math.max(gridWidth, gridHeight)
           )
         )
-      : getExportScale();
+      : getExportScale(gridWidth, gridHeight);
 
     const labels = Array.from(gridRef.current.querySelectorAll<HTMLElement>(".album-labels"));
     const previousDisplayValues = labels.map((label) => label.style.display);

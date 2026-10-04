@@ -402,3 +402,52 @@ describe("useGridExport capture size", () => {
     expect(await captureScale(200, 200, 10000)).toBeCloseTo(4096 / 200);
   });
 });
+
+describe("useGridExport image size at the screen's own size", () => {
+  const originalRatio = window.devicePixelRatio;
+
+  afterEach(() => {
+    Object.defineProperty(window, "devicePixelRatio", { value: originalRatio, configurable: true });
+    delete (window as { ontouchstart?: unknown }).ontouchstart;
+  });
+
+  async function defaultScale(width: number, height: number, ratio: number, touch = false) {
+    Object.defineProperty(window, "devicePixelRatio", { value: ratio, configurable: true });
+    if (touch) (window as { ontouchstart?: unknown }).ontouchstart = null;
+    const grid = createGridWithLabels();
+    Object.defineProperty(grid, "offsetWidth", { value: width });
+    Object.defineProperty(grid, "offsetHeight", { value: height });
+    const { result } = renderHook(() => useGridExport("u", [{ id: 1, title: "A", artist: "B" }]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
+    html2canvasMock.mockReset();
+    html2canvasMock.mockResolvedValue({
+      width: 10,
+      height: 10,
+      toBlob: (callback: BlobCallback) => callback(new Blob(["png"], { type: "image/png" })),
+    });
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+    await act(async () => {
+      await result.current.shareOrSaveImage();
+    });
+    return (html2canvasMock.mock.calls[0]![1] as { scale: number }).scale;
+  }
+
+  it("keeps a saved wall to about a million pixels on a high-density computer screen", async () => {
+    // A 1120 x 552 wall at the old 2x-density scale of 4 would be about 9.9 million pixels.
+    const scale = await defaultScale(1120, 552, 2);
+    expect(1120 * scale * 552 * scale).toBeCloseTo(1_300_000, -3);
+  });
+
+  it("still saves a small wall at twice the screen's density", async () => {
+    expect(await defaultScale(354, 354, 1)).toBe(2);
+  });
+
+  it("saves a phone wall at the screen's density without exceeding the budget", async () => {
+    expect(await defaultScale(354, 354, 3, true)).toBe(2);
+    const wide = await defaultScale(1120, 552, 3, true);
+    expect(1120 * wide * 552 * wide).toBeLessThanOrEqual(1_300_001);
+  });
+});
