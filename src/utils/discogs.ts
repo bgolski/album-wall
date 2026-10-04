@@ -25,10 +25,11 @@ export function validateDiscogsUsername(username: string): boolean {
  * Fetches a user's Discogs collection through the AWS proxy and returns the normalized album list.
  *
  * @param username Discogs username whose collection should be loaded.
+ * @param signal Optional AbortSignal to cancel the fetch.
  * @returns Albums sorted by Discogs artist order for the user's collection.
  * @throws Error when the username is invalid, proxy config is missing, or the proxy returns a failure.
  */
-export async function getUserCollection(username: string): Promise<Album[]> {
+export async function getUserCollection(username: string, signal?: AbortSignal): Promise<Album[]> {
   if (!username.trim()) {
     throw new Error("Username cannot be empty");
   }
@@ -54,8 +55,10 @@ export async function getUserCollection(username: string): Promise<Album[]> {
       headers: {
         Accept: "application/json",
       },
+      signal,
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     throw new Error("No response from the Discogs proxy. Please check your network connection.");
   }
 
