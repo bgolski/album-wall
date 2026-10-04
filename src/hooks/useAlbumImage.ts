@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Album } from "@/types";
 import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 
@@ -10,28 +10,22 @@ import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProx
  * @returns Image source state, a wrapper ref, and load/error handlers for the image element.
  */
 export function useAlbumImage(album: Album, exportMode: boolean = false) {
-  const [imageError, setImageError] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string>("");
+  const coverImage = album.cover_image || album.coverUrl;
+  const proxiedUrl = coverImage ? getProxiedImageUrl(coverImage) : "";
+  // Both are tied to the url they were learned for, so a new album starts clean by itself.
+  const [failedUrl, setFailedUrl] = useState("");
+  const [exported, setExported] = useState<{ source: string; dataUrl: string } | null>(null);
   const imgRef = useRef<HTMLDivElement>(null);
 
-  // Update image URL when album changes
-  useEffect(() => {
-    const coverImage = album.cover_image || album.coverUrl;
-    if (coverImage) {
-      const proxiedUrl = getProxiedImageUrl(coverImage);
-      setImageUrl(proxiedUrl);
-      setImageError(false);
-    } else {
-      setImageError(true);
-    }
-  }, [album]);
+  const imageError = !proxiedUrl || failedUrl === proxiedUrl;
+  const imageUrl = exported && exported.source === proxiedUrl ? exported.dataUrl : proxiedUrl;
 
   /**
    * Falls back to the placeholder artwork when the album image cannot be loaded.
    */
   const handleImageError = () => {
     // Image load error - will use placeholder
-    setImageError(true);
+    setFailedUrl(proxiedUrl);
   };
 
   /**
@@ -53,7 +47,7 @@ export function useAlbumImage(album: Album, exportMode: boolean = false) {
           ctx.drawImage(imgElement, 0, 0);
           const dataUrl = canvas.toDataURL("image/png");
           if (dataUrl && dataUrl !== "data:,") {
-            setImageUrl(dataUrl);
+            setExported({ source: proxiedUrl, dataUrl });
           }
         }
       } catch (e) {

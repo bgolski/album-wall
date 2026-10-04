@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, useMemo, useRef } from "react";
+import { useState, useId, useMemo, useRef, useSyncExternalStore } from "react";
 import {
   DndContext,
   closestCenter,
@@ -38,21 +38,26 @@ interface RecordGridProps {
   sharedWallState?: SharedWallState | null;
 }
 
-function buildAlbumsFromSharedWallState(albums: Album[], sharedWallState: SharedWallState) {
-  const albumMap = new Map(albums.map((album) => [String(album.id), album]));
-  const sharedWallAlbums = sharedWallState.wallAlbumIds
-    .map((albumId) => albumMap.get(albumId))
-    .filter((album): album is Album => Boolean(album));
-  const sharedWallAlbumIds = new Set(sharedWallAlbums.map((album) => String(album.id)));
-  const remainingAlbums = albums.filter((album) => !sharedWallAlbumIds.has(String(album.id)));
-
-  return [...sharedWallAlbums, ...remainingAlbums];
-}
-
 const DRAG_INSTRUCTIONS = {
   draggable:
     "To move an album, press space or enter to pick it up, use the arrow keys to reach another album, then press space or enter to swap places, or escape to cancel. Pinned albums cannot be moved.",
 };
+
+const WIDE_SCREEN_QUERY = "(min-width: 768px)";
+
+function subscribeToWideScreen(onChange: () => void) {
+  const query = window.matchMedia(WIDE_SCREEN_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function getWideScreen() {
+  return window.matchMedia(WIDE_SCREEN_QUERY).matches;
+}
+
+function getNoScreen() {
+  return null;
+}
 
 /**
  * Coordinates wall-grid interactions including sorting, pinning, shuffling, exporting,
@@ -64,19 +69,14 @@ export function RecordGrid({
   onAlbumsReorder,
   sharedWallState,
 }: RecordGridProps) {
-  const [showAlbumLabels, setShowAlbumLabels] = useState<boolean | null>(null);
-  const sharedStateSignature = useMemo(
-    () => (sharedWallState ? JSON.stringify(sharedWallState) : null),
-    [sharedWallState]
-  );
-  const appliedSharedStateSignatureRef = useRef<string | null>(null);
+  // The label default follows the screen width until the user toggles it.
+  const [labelsOverride, setLabelsOverride] = useState<boolean | null>(null);
+  const wideScreen = useSyncExternalStore(subscribeToWideScreen, getWideScreen, getNoScreen);
+  const showAlbumLabels = labelsOverride ?? wideScreen;
   const initialDimensions =
     sharedWallState && sharedWallState.username === username
       ? { rows: sharedWallState.rows, columns: sharedWallState.columns }
       : undefined;
-  const shareRows = sharedWallState?.rows;
-  const shareColumns = sharedWallState?.columns;
-  const shareUsername = sharedWallState?.username;
 
   // Use custom hooks for state management
   const dimensions = useGridDimensions(initialDimensions);
@@ -92,101 +92,23 @@ export function RecordGrid({
     gridSize,
     showDimensionsConfig,
     handleDimensionsChange: updateGridDimensions,
-    replaceDimensions,
     resetToDefault,
     toggleConfig,
     DEFAULT_ROWS,
     DEFAULT_COLUMNS,
   } = dimensions;
-  const {
-    pinnedAlbums,
-    togglePinAlbum,
-    togglePinAll,
-    removePinsForAlbums,
-    replacePinnedAlbums,
-    areAllPinned,
-  } = pinning;
+  const { pinnedAlbums, togglePinAlbum, togglePinAll, removePinsForAlbums, areAllPinned } = pinning;
 
-  // Album distribution state
-  const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
-  const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
+  // The wall and the pool are the two parts of the one ordered list the parent owns, so they
+  // follow the grid size and every reorder without any state of their own.
+  const displayedAlbums = useMemo(() => albums.slice(0, gridSize), [albums, gridSize]);
+  const poolItems = useMemo(() => albums.slice(gridSize), [albums, gridSize]);
   const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const exportMenuId = useId();
   const [sheetAlbum, setSheetAlbum] = useState<Album | null>(null);
   const [movingAlbum, setMovingAlbum] = useState<Album | null>(null);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setShowAlbumLabels(window.matchMedia("(min-width: 768px)").matches);
-  }, []);
-
-  // Update albums and pool when dimensions or albums change
-  useEffect(() => {
-    const newGridSize = gridSize;
-    const oldGridSize = displayedAlbums.length;
-
-    if (newGridSize !== oldGridSize) {
-      const allAlbums = [...displayedAlbums, ...poolItems];
-
-      // If grid size decreases, remove pins for albums that will no longer be in display
-      if (newGridSize < oldGridSize) {
-        const albumsToUnpin = displayedAlbums.slice(newGridSize).map((album) => String(album.id));
-        removePinsForAlbums(albumsToUnpin);
-      }
-
-      setDisplayedAlbums(allAlbums.slice(0, newGridSize));
-      setPoolItems(allAlbums.slice(newGridSize));
-    }
-  }, [displayedAlbums, gridSize, poolItems, removePinsForAlbums]);
-
-  useEffect(() => {
-    if (sharedWallState && shareUsername === username && sharedStateSignature) {
-      if (appliedSharedStateSignatureRef.current === sharedStateSignature) {
-        setDisplayedAlbums(albums.slice(0, gridSize));
-        setPoolItems(albums.slice(gridSize));
-        return;
-      }
-
-      if (rows !== shareRows || columns !== shareColumns) {
-        replaceDimensions(shareRows!, shareColumns!);
-        return;
-      }
-
-      const orderedAlbums = buildAlbumsFromSharedWallState(albums, sharedWallState);
-      const validPinnedAlbumIds = sharedWallState.pinnedAlbumIds.filter((albumId) =>
-        sharedWallState.wallAlbumIds.includes(albumId)
-      );
-
-      replacePinnedAlbums(validPinnedAlbumIds);
-      setDisplayedAlbums(orderedAlbums.slice(0, gridSize));
-      setPoolItems(orderedAlbums.slice(gridSize));
-      onAlbumsReorder(orderedAlbums);
-      appliedSharedStateSignatureRef.current = sharedStateSignature;
-      return;
-    }
-
-    setDisplayedAlbums(albums.slice(0, gridSize));
-    setPoolItems(albums.slice(gridSize));
-  }, [
-    albums,
-    columns,
-    gridSize,
-    onAlbumsReorder,
-    replaceDimensions,
-    replacePinnedAlbums,
-    rows,
-    shareColumns,
-    sharedStateSignature,
-    sharedWallState,
-    shareRows,
-    shareUsername,
-    username,
-  ]);
 
   /**
    * Applies the selected sort mode to the grid and pool while preserving pinned positions.
@@ -197,11 +119,10 @@ export function RecordGrid({
     sorting.handleSortChange(option);
     if (option === "none") return;
 
-    const sortedDisplayed = sorting.sortAlbums(displayedAlbums, pinnedAlbums);
-    const sortedPool = sorting.sortAlbums(poolItems, pinnedAlbums);
-
-    setDisplayedAlbums(sortedDisplayed);
-    setPoolItems(sortedPool);
+    onAlbumsReorder([
+      ...sorting.sortAlbums(displayedAlbums, pinnedAlbums),
+      ...sorting.sortAlbums(poolItems, pinnedAlbums),
+    ]);
   };
 
   /**
@@ -214,8 +135,6 @@ export function RecordGrid({
       pinnedAlbums
     );
 
-    setDisplayedAlbums(newDisplayedAlbums);
-    setPoolItems(newPoolItems);
     onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
   };
 
@@ -226,14 +145,35 @@ export function RecordGrid({
    * @param newColumns Desired number of grid columns.
    */
   const handleDimensionsChange = (newRows: number, newColumns: number) => {
+    if (newRows < 1 || newColumns < 1) return;
+    unpinAlbumsBeyond(newRows * newColumns);
     updateGridDimensions(newRows, newColumns);
+  };
+
+  /**
+   * Restores the default wall size.
+   */
+  const handleResetDimensions = () => {
+    unpinAlbumsBeyond(DEFAULT_ROWS * DEFAULT_COLUMNS);
+    resetToDefault();
+  };
+
+  /**
+   * Unpins the albums that a smaller wall pushes back into the pool.
+   *
+   * @param newSize Number of albums the wall will hold.
+   */
+  const unpinAlbumsBeyond = (newSize: number) => {
+    if (newSize < displayedAlbums.length) {
+      removePinsForAlbums(displayedAlbums.slice(newSize).map((album) => String(album.id)));
+    }
   };
 
   /**
    * Toggles album-label visibility across the wall and pool displays.
    */
   const handleToggleAlbumLabels = () => {
-    setShowAlbumLabels((current) => !current);
+    setLabelsOverride(!(showAlbumLabels ?? false));
   };
 
   /**
@@ -265,8 +205,6 @@ export function RecordGrid({
       return;
     }
 
-    setDisplayedAlbums(newDisplayedAlbums);
-    setPoolItems(newPoolItems);
     onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
     setMovingAlbum(null);
     setMoveMessage(null);
@@ -318,8 +256,6 @@ export function RecordGrid({
     );
     if (newDisplayedAlbums === displayedAlbums && newPoolItems === poolItems) return;
 
-    setDisplayedAlbums(newDisplayedAlbums);
-    setPoolItems(newPoolItems);
     onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
   }
 
@@ -508,7 +444,7 @@ export function RecordGrid({
           defaultRows={DEFAULT_ROWS}
           defaultColumns={DEFAULT_COLUMNS}
           onDimensionsChange={handleDimensionsChange}
-          onReset={resetToDefault}
+          onReset={handleResetDimensions}
         />
       </div>
 

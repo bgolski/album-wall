@@ -1,4 +1,4 @@
-import { SharedWallState } from "@/types";
+import { Album, SharedWallState } from "@/types";
 
 const SHARE_HASH_KEY = "share";
 
@@ -139,4 +139,27 @@ export function buildSharedWallUrl(state: SharedWallState, currentUrl: string): 
   const url = new URL(currentUrl);
   url.hash = buildShareHash(encodeSharedWallState(state));
   return url.toString();
+}
+
+/**
+ * Puts a loaded collection in the order a shared wall link describes: the shared wall albums
+ * first, in the shared order (any no longer in the collection are skipped), then the rest in
+ * their own order.
+ *
+ * @param albums The loaded collection.
+ * @param sharedWallState The decoded share link.
+ * @returns The collection with the shared wall at the front.
+ */
+export function orderAlbumsBySharedWall(
+  albums: Album[],
+  sharedWallState: SharedWallState
+): Album[] {
+  const albumMap = new Map(albums.map((album) => [String(album.id), album]));
+  const sharedWallAlbums = sharedWallState.wallAlbumIds
+    .map((albumId) => albumMap.get(albumId))
+    .filter((album): album is Album => Boolean(album));
+  const sharedWallAlbumIds = new Set(sharedWallAlbums.map((album) => String(album.id)));
+  const remainingAlbums = albums.filter((album) => !sharedWallAlbumIds.has(String(album.id)));
+
+  return [...sharedWallAlbums, ...remainingAlbums];
 }

@@ -7,6 +7,7 @@ import {
   getSharedWallStateFromHash,
   buildSharedWallUrl,
   buildShareHash,
+  orderAlbumsBySharedWall,
 } from "@/utils/shareState";
 
 const toBase64Url = (s: string): string =>
@@ -104,5 +105,33 @@ describe("shareState utilities", () => {
     const parsed = new URL(url);
     expect(parsed.hash.startsWith("#share=")).toBe(true);
     expect(getSharedWallStateFromHash(parsed.hash)).toEqual(sampleState);
+  });
+});
+
+describe("orderAlbumsBySharedWall", () => {
+  const albums = [1, 2, 3, 4, 5].map((id) => ({ id, title: `T${id}`, artist: "A" }));
+  const state = (wallAlbumIds: string[]) =>
+    buildSharedWallState({ username: "u", rows: 1, columns: 3, wallAlbumIds, pinnedAlbumIds: [] });
+
+  it("puts the shared wall first, in the shared order, then the rest in their own order", () => {
+    expect(orderAlbumsBySharedWall(albums, state(["4", "2", "5"])).map((a) => a.id)).toEqual([
+      4, 2, 5, 1, 3,
+    ]);
+  });
+
+  it("skips shared albums that are not in the collection", () => {
+    expect(orderAlbumsBySharedWall(albums, state(["99", "3", "1"])).map((a) => a.id)).toEqual([
+      3, 1, 2, 4, 5,
+    ]);
+  });
+
+  it("keeps the collection order when the shared wall is empty", () => {
+    expect(orderAlbumsBySharedWall(albums, state([]))).toEqual(albums);
+  });
+
+  it("does not change the collection it was given", () => {
+    const copy = [...albums];
+    orderAlbumsBySharedWall(albums, state(["5"]));
+    expect(albums).toEqual(copy);
   });
 });

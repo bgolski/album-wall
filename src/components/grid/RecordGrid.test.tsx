@@ -9,10 +9,14 @@ const albums: Album[] = Array.from({ length: 40 }, (_, index) => ({
   artist: `Artist ${index + 1}`,
 }));
 
-function renderGrid(onAlbumsReorder = vi.fn()) {
+function renderGrid(onAlbumsReorder = vi.fn(), wideScreen = true) {
   vi.stubGlobal(
     "matchMedia",
-    vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    vi.fn(() => ({
+      matches: wideScreen,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
   );
   render(<RecordGrid username="someone" albums={albums} onAlbumsReorder={onAlbumsReorder} />);
   return onAlbumsReorder;
@@ -250,5 +254,22 @@ describe("RecordGrid tap actions", () => {
     const order = onAlbumsReorder.mock.calls[0]![0].map((a: Album) => a.id);
     expect(order[0]).toBe(40);
     expect(order[39]).toBe(1);
+  });
+
+  it("shows album labels by default on a wide screen and hides them on a narrow one", () => {
+    renderGrid(vi.fn(), true);
+    expect(screen.getByRole("button", { name: "Hide Labels" })).toBeTruthy();
+    cleanup();
+
+    renderGrid(vi.fn(), false);
+    expect(screen.getByRole("button", { name: "Show Labels" })).toBeTruthy();
+  });
+
+  it("lets the user override the label default", () => {
+    renderGrid(vi.fn(), false);
+    fireEvent.click(screen.getByRole("button", { name: "Show Labels" }));
+    expect(screen.getByRole("button", { name: "Hide Labels" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Hide Labels" }));
+    expect(screen.getByRole("button", { name: "Show Labels" })).toBeTruthy();
   });
 });

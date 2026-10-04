@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 const DEFAULT_ROWS = 4;
 const DEFAULT_COLUMNS = 8;
@@ -30,16 +30,6 @@ export function useGridDimensions(initialDimensions?: InitialGridDimensions) {
   const [rows, setRows] = useState(resolvedInitialDimensions.rows);
   const [showDimensionsConfig, setShowDimensionsConfig] = useState(false);
   const viewportDefaults = getDefaultGridDimensions();
-
-  useEffect(() => {
-    if (initialDimensions) {
-      return;
-    }
-
-    const { rows: defaultRows, columns: defaultColumns } = getDefaultGridDimensions();
-    setRows(defaultRows);
-    setColumns(defaultColumns);
-  }, [initialDimensions]);
 
   const gridSize = rows * columns;
 

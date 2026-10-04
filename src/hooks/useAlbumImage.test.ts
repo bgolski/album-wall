@@ -114,3 +114,35 @@ describe("useAlbumImage hook", () => {
     expect(result.current.imageSource).toBe("proxied2.png");
   });
 });
+
+describe("useAlbumImage with a changing album", () => {
+  it("shows the placeholder after an image fails, then a fresh image for the next album", () => {
+    vi.mocked(getProxiedImageUrl).mockImplementation((url: string) => `proxied:${url}`);
+    const { result, rerender } = renderHook(({ album }) => useAlbumImage(album), {
+      initialProps: { album: albumWithCover },
+    });
+    expect(result.current.imageSource).toBe("proxied:http://example.com/cover.jpg");
+
+    act(() => result.current.handleImageError());
+    expect(result.current.imageError).toBe(true);
+    expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
+
+    rerender({ album: albumWithCoverUrl });
+    expect(result.current.imageError).toBe(false);
+    expect(result.current.imageSource).toBe(`proxied:${albumWithCoverUrl.coverUrl}`);
+  });
+
+  it("uses the placeholder for an album with no cover and recovers when one appears", () => {
+    vi.mocked(getProxiedImageUrl).mockImplementation((url: string) => `proxied:${url}`);
+    const bare: Album = { id: 9, title: "Bare", artist: "A" };
+    const { result, rerender } = renderHook(({ album }) => useAlbumImage(album), {
+      initialProps: { album: bare },
+    });
+    expect(result.current.imageError).toBe(true);
+    expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
+
+    rerender({ album: albumWithCover });
+    expect(result.current.imageError).toBe(false);
+    expect(result.current.imageSource).toBe("proxied:http://example.com/cover.jpg");
+  });
+});

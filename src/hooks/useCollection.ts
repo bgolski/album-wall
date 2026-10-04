@@ -1,11 +1,31 @@
-import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { getUserCollection, validateDiscogsUsername } from "@/utils/discogs";
 import { Album, SharedWallState } from "@/types";
-import { getSharedWallStateFromHash } from "@/utils/shareState";
+import { getSharedWallStateFromHash, orderAlbumsBySharedWall } from "@/utils/shareState";
 
 const VALIDATION_ERROR_MESSAGE =
   "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
 const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
+
+function subscribeToNothing() {
+  return () => {};
+}
+
+function getLocationHash() {
+  return window.location.hash;
+}
+
+function getNoHash() {
+  return "";
+}
 
 /**
  * Manages Discogs username input, collection loading state, and album ordering updates.
@@ -14,7 +34,11 @@ const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
  */
 export function useCollection() {
   const [albums, setAlbums] = useState<Album[]>([]);
-  const [username, setUsername] = useState("");
+  // What the user typed; until they type, the box shows the name from a share link, if any.
+  const [typedUsername, setTypedUsername] = useState<string | null>(null);
+  const hash = useSyncExternalStore(subscribeToNothing, getLocationHash, getNoHash);
+  const linkedWallState = useMemo(() => getSharedWallStateFromHash(hash), [hash]);
+  const username = typedUsername ?? linkedWallState?.username ?? "";
   const [loadedUsername, setLoadedUsername] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +74,11 @@ export function useCollection() {
       startTransition(async () => {
         try {
           const collection = await getUserCollection(usernameToLoad);
-          setAlbums(collection);
+          setAlbums(
+            nextSharedWallState && nextSharedWallState.username === usernameToLoad
+              ? orderAlbumsBySharedWall(collection, nextSharedWallState)
+              : collection
+          );
           setLoadedUsername(usernameToLoad);
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : GENERIC_ERROR_MESSAGE;
@@ -75,7 +103,7 @@ export function useCollection() {
    * @param value New username input value.
    */
   const handleUsernameChange = (value: string) => {
-    setUsername(value);
+    setTypedUsername(value);
     if (sharedWallState && value !== sharedWallState.username) {
       setSharedWallState(null);
     }
@@ -102,16 +130,13 @@ export function useCollection() {
     loadCollection();
   };
 
+  // A share link in the address loads its collection once, when the page opens.
+  const startedFromLink = useRef(false);
   useEffect(() => {
-    const nextSharedWallState = getSharedWallStateFromHash(window.location.hash);
-
-    if (!nextSharedWallState) {
-      return;
-    }
-
-    setUsername(nextSharedWallState.username);
-    void loadCollectionForUsername(nextSharedWallState.username, nextSharedWallState);
-  }, [loadCollectionForUsername]);
+    if (!linkedWallState || startedFromLink.current) return;
+    startedFromLink.current = true;
+    void loadCollectionForUsername(linkedWallState.username, linkedWallState);
+  }, [linkedWallState, loadCollectionForUsername]);
 
   return {
     // State
