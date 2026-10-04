@@ -112,27 +112,44 @@ function validateDiscogsUsername(username: string): boolean {
 }
 
 /**
+ * Removes the number Discogs appends to tell apart artists who share a name,
+ * for example "Travis Scott (2)" becomes "Travis Scott".
+ *
+ * @param name Artist name as returned by Discogs.
+ * @returns The name without a trailing " (n)".
+ */
+export function cleanArtistName(name: string): string {
+  return name.replace(/\s+\(\d+\)$/, "");
+}
+
+/**
  * Builds a display-friendly artist string from Discogs artist metadata.
  *
- * @param artists Discogs artist entries, including optional join strings.
+ * @param artistEntries Discogs artist entries, including optional join strings.
  * @returns A normalized artist label or `"Unknown Artist"` when none is available.
  */
-function extractArtistName(artists?: DiscogsArtist[]): string {
-  if (!artists || artists.length === 0) {
+function extractArtistName(artistEntries?: DiscogsArtist[]): string {
+  if (!artistEntries || artistEntries.length === 0) {
     return "Unknown Artist";
   }
 
-  if (artists.length === 1) {
-    return artists[0].name;
-  }
+  const artists = artistEntries.map((artist) => ({
+    ...artist,
+    name: cleanArtistName(artist.name),
+  }));
 
-  return artists.reduce((artistString, artist, index) => {
-    if (index === 0) {
-      return artist.name;
-    }
+  // Discogs puts each separator on the artist before it ("Tony Bennett" join "&", "Amy
+  // Winehouse" join ""), without surrounding spaces; a missing join or "," means a comma.
+  return artists
+    .map((artist, index) => {
+      if (index === artists.length - 1) {
+        return artist.name;
+      }
 
-    return `${artistString}${artist.join || ", "}${artist.name}`;
-  }, "");
+      const join = artist.join?.trim();
+      return `${artist.name}${!join || join === "," ? ", " : ` ${join} `}`;
+    })
+    .join("");
 }
 
 /**
