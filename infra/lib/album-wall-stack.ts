@@ -56,6 +56,7 @@ export class AlbumWallStack extends cdk.Stack {
       description: "Discogs proxy for the album-wall static frontend.",
       timeout: cdk.Duration.seconds(10),
       memorySize: 256,
+      reservedConcurrentExecutions: 5,
       environment: {
         DISCOGS_TOKEN_PARAMETER_NAME,
         DISCOGS_CONSUMER_KEY_PARAMETER_NAME,
