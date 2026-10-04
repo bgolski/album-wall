@@ -32,7 +32,7 @@ describe("useAlbumShuffle", () => {
     expect(newPoolItems).toHaveLength(pool.length);
 
     // Pinned album remains at original index
-    expect(newDisplayedAlbums[0].id).toBe(1);
+    expect(newDisplayedAlbums[0]!.id).toBe(1);
 
     // All albums appear exactly once across the new arrays
     const allIds = newDisplayedAlbums

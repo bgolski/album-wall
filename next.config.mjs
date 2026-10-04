@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  // Memoizes components and hooks automatically at build time.
+  reactCompiler: true,
   // Use environment variable to determine if we're doing static export
   ...(process.env.NEXT_STATIC_EXPORT === "true" ? { output: "export" } : {}),
 

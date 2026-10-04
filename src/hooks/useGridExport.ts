@@ -1,7 +1,15 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Album, Html2CanvasOptions } from "@/types";
 
 const EXPORT_TIMEOUT_MS = 20000;
+const STATUS_VISIBLE_MS = 4000;
+const ACTION_VISIBLE_MS = 15000;
+
+export interface ExportStatus {
+  message: string;
+  tone: "info" | "error";
+  action?: { label: string; run: () => void };
+}
 
 function isTouchDevice() {
   return (
@@ -50,7 +58,19 @@ function downloadBlob(blob: Blob, filename: string) {
 export function useGridExport(username: string, albums: Album[]) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<ExportStatus | null>(null);
+  const setStatusMessage = (message: string | null) =>
+    setStatus(message ? { message, tone: "info" } : null);
+
+  // A toast goes away on its own; one that offers an action stays longer so it can be used.
+  useEffect(() => {
+    if (!status) return;
+    const timer = window.setTimeout(
+      () => setStatus(null),
+      status.action ? ACTION_VISIBLE_MS : STATUS_VISIBLE_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [status]);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const userDisplayName = username || "Anonymous";
@@ -115,7 +135,7 @@ export function useGridExport(username: string, albums: Album[]) {
       });
     } finally {
       labels.forEach((label, index) => {
-        label.style.display = previousDisplayValues[index];
+        label.style.display = previousDisplayValues[index] ?? "";
       });
     }
   };
@@ -149,7 +169,7 @@ export function useGridExport(username: string, albums: Album[]) {
     setStatusMessage(null);
 
     if (!gridRef.current || albums.length === 0) {
-      alert("No albums to share");
+      setStatus({ message: "No albums to share.", tone: "error" });
       return;
     }
 
@@ -158,9 +178,31 @@ export function useGridExport(username: string, albums: Album[]) {
       const imageBlob = await captureGridImageBlob();
       const imageFile = new File([imageBlob], imageFilename, { type: "image/png" });
 
-      if (await tryNativeImageShare(imageFile)) {
-        setStatusMessage("Use the share sheet to save or send the image.");
-        return;
+      try {
+        if (await tryNativeImageShare(imageFile)) return;
+      } catch (error) {
+        // Safari only opens the share sheet right after a tap, and capturing the wall takes a
+        // while. Offer a button so the share happens from a fresh tap instead of failing.
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          setStatus({
+            message: "Image ready.",
+            tone: "info",
+            action: {
+              label: "Share image",
+              run: () => {
+                void tryNativeImageShare(imageFile).catch((shareError) => {
+                  if (shareError instanceof DOMException && shareError.name === "AbortError")
+                    return;
+                  console.error("Error sharing image:", shareError);
+                  downloadBlob(imageBlob, imageFilename);
+                  setStatusMessage("Image saved.");
+                });
+              },
+            },
+          });
+          return;
+        }
+        throw error;
       }
 
       downloadBlob(imageBlob, imageFilename);
@@ -172,7 +214,7 @@ export function useGridExport(username: string, albums: Album[]) {
       }
 
       console.error("Error exporting image:", error);
-      alert("Failed to export image. Please try again.");
+      setStatus({ message: "Failed to export image. Please try again.", tone: "error" });
     } finally {
       setIsExporting(false);
     }
@@ -185,10 +227,14 @@ export function useGridExport(username: string, albums: Album[]) {
     setDropdownOpen(!dropdownOpen);
   };
 
+  const closeDropdown = () => setDropdownOpen(false);
+
   return {
     dropdownOpen,
     isExporting,
-    statusMessage,
+    status,
+    setStatus,
+    closeDropdown,
     gridRef,
     shareOrSaveImage,
     toggleDropdown,

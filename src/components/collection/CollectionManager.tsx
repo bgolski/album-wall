@@ -2,6 +2,7 @@ import { Album, SharedWallState } from "@/types";
 import { CollectionLoader } from "./CollectionLoader";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { CollectionDisplay } from "./CollectionDisplay";
+import { EmptyCollection } from "./EmptyCollection";
 
 interface CollectionManagerProps {
   albums: Album[];
@@ -43,6 +44,8 @@ export function CollectionManager({
             sharedWallState={sharedWallState}
             onAlbumsReorder={onAlbumsReorder}
           />
+        ) : loadedUsername ? (
+          <EmptyCollection username={loadedUsername} />
         ) : null)}
     </>
   );

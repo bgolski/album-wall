@@ -8,6 +8,9 @@ type DiscogsProxyResponse = {
   error?: string;
 };
 
+// The proxy reports a user with no records as an error; the app treats it as an empty collection.
+const EMPTY_COLLECTION_PATTERN = /has no vinyl records/i;
+
 const GENERIC_PROXY_ERROR_MESSAGE =
   "An unexpected error occurred while loading the Discogs collection.";
 
@@ -55,7 +58,7 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
       headers: {
         Accept: "application/json",
       },
-      signal,
+      ...(signal ? { signal } : {}),
     });
   } catch (error) {
     if (signal?.aborted) throw error;
@@ -71,6 +74,10 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
   }
 
   if (!response.ok) {
+    if (responseBody?.error && EMPTY_COLLECTION_PATTERN.test(responseBody.error)) {
+      return [];
+    }
+
     if (responseBody?.error) {
       throw new Error(responseBody.error);
     }
@@ -92,8 +99,8 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
     );
   }
 
-  if (!Array.isArray(responseBody?.albums) || responseBody.albums.length === 0) {
-    throw new Error(`User "${username}" has no vinyl records in their collection`);
+  if (!Array.isArray(responseBody?.albums)) {
+    throw new Error(GENERIC_PROXY_ERROR_MESSAGE);
   }
 
   return responseBody.albums;

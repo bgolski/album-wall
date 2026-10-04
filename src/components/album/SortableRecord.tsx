@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Album } from "@/types";
@@ -13,6 +13,8 @@ interface SortableRecordProps {
   exportMode?: boolean;
   isPinned?: boolean;
   onPinToggle?: (albumId: string) => void;
+  onSelect?: (album: Album) => void;
+  isMoveSource?: boolean;
   disablePinning?: boolean;
   showAlbumLabels: boolean | null;
 }
@@ -25,10 +27,11 @@ export function SortableRecord({
   exportMode = false,
   isPinned = false,
   onPinToggle,
+  onSelect,
+  isMoveSource = false,
   disablePinning = false,
   showAlbumLabels,
 }: SortableRecordProps) {
-  const [showMobileDiscogsAction, setShowMobileDiscogsAction] = useState(false);
   const recordRef = useRef<HTMLDivElement | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `album-${album.id}`,
@@ -51,51 +54,19 @@ export function SortableRecord({
 
   const canOpenDiscogs = Boolean(album.discogsUrl);
 
-  useEffect(() => {
-    if (!showMobileDiscogsAction) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!recordRef.current?.contains(event.target as Node)) {
-        setShowMobileDiscogsAction(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [showMobileDiscogsAction]);
-
   /**
-   * Toggles pinning for the clicked album when pinning is enabled on this record tile.
+   * Reports the tapped album so the grid can open its actions or finish a move.
    *
    * @param e Click event from the album tile.
    */
   const handleAlbumClick = (e: React.MouseEvent) => {
-    if (disablePinning || !onPinToggle) return;
+    if (!onSelect) return;
     e.stopPropagation();
-    onPinToggle(String(album.id));
+    onSelect(album);
   };
 
-  /**
-   * Toggles the mobile Discogs action chip from the dedicated album hotspot.
-   *
-   * @param e Click event from the Discogs action trigger.
-   */
-  const handleDiscogsTriggerClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowMobileDiscogsAction((current) => !current);
-  };
-
-  /**
-   * Closes the mobile Discogs action chip after the release link is activated.
-   */
-  const handleDiscogsLinkClick = () => {
-    setShowMobileDiscogsAction(false);
-  };
+  // Touch drags start only from the grip, so the rest of the tile scrolls the page normally.
+  const { onTouchStart: gripTouchStart, ...tileListeners } = listeners ?? {};
 
   const handleRecordRef = (node: HTMLDivElement | null) => {
     recordRef.current = node;
@@ -110,10 +81,10 @@ export function SortableRecord({
       ref={handleRecordRef}
       style={style}
       {...(isPinned ? {} : attributes)}
-      {...(isPinned ? {} : listeners)}
-      className={`aspect-square ${isPinned ? "cursor-pointer" : "cursor-move"} group relative ${
+      {...(isPinned ? {} : tileListeners)}
+      className={`aspect-square cursor-pointer select-none [-webkit-touch-callout:none] group relative ${
         isPinned ? "z-10" : ""
-      }`}
+      } ${isMoveSource ? "ring-4 ring-yellow-400 rounded-lg" : ""}`}
       data-album-id={album.id}
       data-pinned={isPinned ? "true" : "false"}
       onClick={handleAlbumClick}
@@ -133,7 +104,34 @@ export function SortableRecord({
             unoptimized
           />
           <AlbumBorder isPinned={isPinned} />
-          <PinButton isPinned={isPinned} disabled={disablePinning} />
+          <PinButton
+            isPinned={isPinned}
+            title={album.title || "album"}
+            disabled={disablePinning || !onPinToggle}
+            hidden={exportMode}
+            onToggle={() => onPinToggle?.(String(album.id))}
+          />
+          {!isPinned && !exportMode && (
+            <button
+              type="button"
+              aria-label={`Drag ${album.title || "album"}`}
+              onTouchStart={
+                gripTouchStart as React.TouchEventHandler<HTMLButtonElement> | undefined
+              }
+              style={{ touchAction: "none" }}
+              className="absolute left-1.5 top-1.5 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white pointer-coarse:flex"
+            >
+              <svg
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-4 w-4"
+              >
+                <path d="M9 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 20a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+              </svg>
+            </button>
+          )}
           {canOpenDiscogs && (
             <>
               <a
@@ -141,7 +139,7 @@ export function SortableRecord({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="absolute left-2 top-2 z-10 hidden h-6 items-center gap-1 rounded-full bg-black/70 px-2 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 md:flex"
+                className="absolute left-2 top-2 z-10 hidden h-6 items-center gap-1 rounded-full bg-black/70 px-2 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 md:flex pointer-coarse:hidden!"
                 aria-label={`Open ${album.title || "album"} in Discogs`}
                 title="Open in Discogs"
               >
@@ -157,43 +155,6 @@ export function SortableRecord({
                 </svg>
                 <span>Discogs</span>
               </a>
-
-              <div className="absolute left-2 top-2 z-10 md:hidden">
-                <button
-                  type="button"
-                  onClick={handleDiscogsTriggerClick}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white shadow-sm transition-colors hover:bg-black/75"
-                  aria-label={`Show Discogs link for ${album.title || "album"}`}
-                >
-                  <svg
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="h-4 w-4"
-                  >
-                    <path d="M13.5 3a1 1 0 0 0 0 2h4.59l-8.8 8.79a1 1 0 1 0 1.42 1.42l8.79-8.8V11a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-7z" />
-                    <path d="M5 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4a1 1 0 1 0-2 0v4H5V7h4a1 1 0 1 0 0-2H5z" />
-                  </svg>
-                </button>
-              </div>
-
-              {showMobileDiscogsAction && (
-                <div className="absolute inset-x-2 bottom-2 z-10 flex justify-center md:hidden">
-                  <a
-                    href={album.discogsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDiscogsLinkClick();
-                    }}
-                    className="flex max-w-full items-center rounded-2xl bg-black/80 px-3 py-2 text-xs font-medium text-white shadow-lg"
-                  >
-                    <span className="truncate">Open in Discogs</span>
-                  </a>
-                </div>
-              )}
             </>
           )}
         </div>

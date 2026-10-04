@@ -19,7 +19,7 @@ export function SearchInput({
   onUsernameChange,
   onLoadCollection,
 }: SearchInputProps) {
-  const inputClassName = `w-full rounded bg-gray-800 border px-4 py-2 text-white focus:outline-none focus:border-blue-500 md:flex-1 md:rounded-r-none ${
+  const inputClassName = `w-full rounded-sm bg-gray-800 border px-4 py-2 text-white focus:outline-hidden focus:border-blue-500 md:flex-1 md:rounded-r-none ${
     usernameError ? "border-red-500" : "border-gray-700"
   }`;
 

@@ -11,6 +11,8 @@ interface WallDisplayProps {
   isExporting: boolean;
   pinnedAlbums: Set<string>;
   onPinToggle: (albumId: string) => void;
+  onSelect: (album: Album) => void;
+  moveSourceId: number | null;
   gridRef: React.RefObject<HTMLDivElement | null>;
   showAlbumLabels: boolean | null;
 }
@@ -27,11 +29,13 @@ export function WallDisplay({
   isExporting,
   pinnedAlbums,
   onPinToggle,
+  onSelect,
+  moveSourceId,
   gridRef,
   showAlbumLabels,
 }: WallDisplayProps) {
   return (
-    <div className="rounded-lg bg-gray-800 p-3 shadow sm:p-4">
+    <div className="rounded-lg bg-gray-800 p-3 shadow-sm sm:p-4">
       <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-bold text-white sm:mb-4 sm:text-xl">
         <span>Wall Display</span>
         <span className="text-gray-200">
@@ -61,6 +65,8 @@ export function WallDisplay({
               exportMode={isExporting}
               isPinned={pinnedAlbums.has(String(album.id))}
               onPinToggle={onPinToggle}
+              onSelect={onSelect}
+              isMoveSource={moveSourceId === album.id}
               showAlbumLabels={showAlbumLabels}
             />
           ))}

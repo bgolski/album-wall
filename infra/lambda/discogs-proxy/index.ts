@@ -36,7 +36,7 @@ type Album = {
   title: string;
   cover_image?: string;
   coverUrl?: string;
-  discogsUrl?: string;
+  discogsUrl?: string | undefined;
   artist: string;
   genre?: string[];
   year?: string;

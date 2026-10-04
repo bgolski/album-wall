@@ -8,6 +8,8 @@
     ],
     "declaration": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
@@ -21,6 +23,7 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "skipLibCheck": true,
+    "types": ["node", "jest"],
     "typeRoots": [
       "./node_modules/@types"
     ]

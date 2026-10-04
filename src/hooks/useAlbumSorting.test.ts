@@ -4,7 +4,7 @@ import { useAlbumSorting } from "./useAlbumSorting";
 import type { Album } from "@/types";
 
 function makeAlbum(id: number, artist: string, title: string, genre?: string[]): Album {
-  return { id, artist, title, genre };
+  return { id, artist, title, ...(genre ? { genre } : {}) };
 }
 
 describe("useAlbumSorting", () => {
@@ -80,7 +80,7 @@ describe("useAlbumSorting", () => {
         result.current.handleSortChange("artist");
       });
       const sorted = result.current.sortAlbums([albumNoArtist, albumWithArtist], new Set());
-      expect(sorted[0].title).toBe("No Artist");
+      expect(sorted[0]!.title).toBe("No Artist");
     });
 
     it("ties preserve original order (stable sort)", () => {
@@ -90,8 +90,8 @@ describe("useAlbumSorting", () => {
         result.current.handleSortChange("artist");
       });
       const sorted = result.current.sortAlbums(albums, new Set());
-      expect(sorted[0].title).toBe("First");
-      expect(sorted[1].title).toBe("Second");
+      expect(sorted[0]!.title).toBe("First");
+      expect(sorted[1]!.title).toBe("Second");
     });
   });
 
@@ -118,7 +118,7 @@ describe("useAlbumSorting", () => {
         result.current.handleSortChange("genre");
       });
       const sorted = result.current.sortAlbums([albumNoGenre, albumWithGenre], new Set());
-      expect(sorted[0].title).toBe("No Genre");
+      expect(sorted[0]!.title).toBe("No Genre");
     });
 
     it("treats empty genre array as empty string", () => {
@@ -129,7 +129,7 @@ describe("useAlbumSorting", () => {
         result.current.handleSortChange("genre");
       });
       const sorted = result.current.sortAlbums([album, albumWithGenre], new Set());
-      expect(sorted[0].title).toBe("Empty Genre");
+      expect(sorted[0]!.title).toBe("Empty Genre");
     });
   });
 
@@ -146,9 +146,9 @@ describe("useAlbumSorting", () => {
         result.current.handleSortChange("artist");
       });
       const sorted = result.current.sortAlbums(albums, pinned);
-      expect(sorted[0].id).toBe(1);
-      expect(sorted[1].id).toBe(3);
-      expect(sorted[2].id).toBe(2);
+      expect(sorted[0]!.id).toBe(1);
+      expect(sorted[1]!.id).toBe(3);
+      expect(sorted[2]!.id).toBe(2);
     });
 
     it("keeps pinned albums in place during genre sort", () => {
@@ -163,9 +163,9 @@ describe("useAlbumSorting", () => {
         result.current.handleSortChange("genre");
       });
       const sorted = result.current.sortAlbums(albums, pinned);
-      expect(sorted[0].id).toBe(1);
-      expect(sorted[1].id).toBe(2);
-      expect(sorted[2].id).toBe(3);
+      expect(sorted[0]!.id).toBe(1);
+      expect(sorted[1]!.id).toBe(2);
+      expect(sorted[2]!.id).toBe(3);
     });
 
     it("returns albums unchanged when pinned and sortOption is 'none'", () => {

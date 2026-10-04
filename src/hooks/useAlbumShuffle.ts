@@ -62,8 +62,10 @@ export function useAlbumShuffle() {
     // Fill empty spots with shuffled unpinned albums
     let unpinnedIndex = 0;
     for (let i = 0; i < newDisplayedAlbums.length; i++) {
-      if (!newDisplayedAlbums[i] && unpinnedIndex < unpinnedForDisplay.length) {
-        newDisplayedAlbums[i] = unpinnedForDisplay[unpinnedIndex++];
+      const nextAlbum = newDisplayedAlbums[i] ? undefined : unpinnedForDisplay[unpinnedIndex];
+      if (nextAlbum) {
+        newDisplayedAlbums[i] = nextAlbum;
+        unpinnedIndex++;
       }
     }
 

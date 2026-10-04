@@ -35,10 +35,10 @@ export function GridControls({
   showDimensionsConfig,
 }: GridControlsProps) {
   const actionButtonClass =
-    "flex-1 rounded px-3 py-2 text-sm font-medium text-white transition-colors min-[360px]:basis-[calc(50%-0.25rem)] md:flex-none md:basis-auto md:px-3 md:py-1.5";
+    "flex-1 rounded-sm px-3 py-2 text-sm font-medium text-white transition-colors min-[360px]:basis-[calc(50%-0.25rem)] md:flex-none md:basis-auto md:px-3 md:py-1.5";
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow">
+    <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex flex-col gap-3 md:flex-1">
           <h2 id="sort-records-heading" className="text-base font-semibold text-white md:text-lg">
@@ -53,7 +53,7 @@ export function GridControls({
               <button
                 key={option.value}
                 onClick={() => onSortChange(option.value)}
-                className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
+                className={`rounded-sm px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
                   sortOption === option.value
                     ? "bg-blue-500 text-white"
                     : "bg-gray-600 text-white hover:bg-gray-500"

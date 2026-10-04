@@ -51,7 +51,7 @@ describe("swapAlbums", () => {
   });
 
   it("never duplicates or loses an album and keeps both list lengths", () => {
-    const pairs = [
+    const pairs: [string, string][] = [
       ["album-1", "album-8"],
       ["album-8", "album-1"],
       ["album-6", "album-9"],
@@ -76,11 +76,12 @@ describe("swapAlbums", () => {
 
   it("does nothing when the drop target or the dragged album is pinned", () => {
     const pinned = new Set(["2"]);
-    for (const [activeId, overId] of [
+    const pinnedPairs: [string, string][] = [
       ["album-5", "album-2"],
       ["album-2", "album-5"],
       ["album-8", "album-2"],
-    ]) {
+    ];
+    for (const [activeId, overId] of pinnedPairs) {
       const result = swapAlbums(wall, pool, activeId, overId, pinned);
       expect(result.newDisplayedAlbums).toBe(wall);
       expect(result.newPoolItems).toBe(pool);
@@ -88,11 +89,12 @@ describe("swapAlbums", () => {
   });
 
   it("does nothing when dropped on itself or on an unknown album", () => {
-    for (const [activeId, overId] of [
+    const noOpPairs: [string, string][] = [
       ["album-3", "album-3"],
       ["album-3", "album-99"],
       ["album-99", "album-3"],
-    ]) {
+    ];
+    for (const [activeId, overId] of noOpPairs) {
       const result = swapAlbums(wall, pool, activeId, overId, none);
       expect(result.newDisplayedAlbums).toBe(wall);
       expect(result.newPoolItems).toBe(pool);

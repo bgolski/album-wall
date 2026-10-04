@@ -26,6 +26,8 @@ import { ExportDropdown } from "./ExportDropdown";
 import { WallDisplay } from "./WallDisplay";
 import { PoolDisplay } from "./PoolDisplay";
 import { AlbumDragPreview } from "../album/AlbumDragPreview";
+import { AlbumActionSheet } from "../album/AlbumActionSheet";
+import { Toast } from "../ui/Toast";
 
 interface RecordGridProps {
   username: string;
@@ -101,8 +103,10 @@ export function RecordGrid({
   // Album distribution state
   const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
   const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
-  const [shareStatusMessage, setShareStatusMessage] = useState<string | null>(null);
   const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
+  const [sheetAlbum, setSheetAlbum] = useState<Album | null>(null);
+  const [movingAlbum, setMovingAlbum] = useState<Album | null>(null);
+  const [moveMessage, setMoveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -223,13 +227,49 @@ export function RecordGrid({
     setShowAlbumLabels((current) => !current);
   };
 
+  /**
+   * Handles a tap on a tile: finishes a pending move by swapping with the tapped album,
+   * otherwise opens the tapped album's action sheet.
+   *
+   * @param album Album that was tapped.
+   */
+  const handleSelectAlbum = (album: Album) => {
+    if (!movingAlbum) {
+      setSheetAlbum(album);
+      return;
+    }
+    if (album.id === movingAlbum.id) {
+      setMovingAlbum(null);
+      setMoveMessage(null);
+      return;
+    }
+
+    const { newDisplayedAlbums, newPoolItems } = swapAlbums(
+      displayedAlbums,
+      poolItems,
+      `album-${movingAlbum.id}`,
+      `album-${album.id}`,
+      pinnedAlbums
+    );
+    if (newDisplayedAlbums === displayedAlbums && newPoolItems === poolItems) {
+      setMoveMessage("Pinned albums can't be swapped. Tap another album.");
+      return;
+    }
+
+    setDisplayedAlbums(newDisplayedAlbums);
+    setPoolItems(newPoolItems);
+    onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
+    setMovingAlbum(null);
+    setMoveMessage(null);
+  };
+
   // Drag and drop sensors
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
   });
 
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 200, tolerance: 8 },
+    activationConstraint: { distance: 4 },
   });
 
   const keyboardSensor = useSensor(KeyboardSensor, {
@@ -288,11 +328,8 @@ export function RecordGrid({
   /**
    * Copies a shareable hash URL for the current wall configuration to the clipboard.
    */
-  const handleCopyShareLink = async () => {
-    if (typeof window === "undefined" || !username) {
-      setShareStatusMessage("Unable to build a share link yet.");
-      return;
-    }
+  const buildShareUrl = () => {
+    if (typeof window === "undefined" || !username) return null;
 
     const currentWallAlbums = getSortedDisplayedAlbums();
     const sharedWallStatePayload = buildSharedWallState({
@@ -304,7 +341,19 @@ export function RecordGrid({
         currentWallAlbums.some((album) => String(album.id) === albumId)
       ),
     });
-    const shareUrl = buildSharedWallUrl(sharedWallStatePayload, window.location.href);
+    return buildSharedWallUrl(sharedWallStatePayload, window.location.href);
+  };
+
+  /**
+   * Copies the wall's share link to the clipboard.
+   */
+  const handleCopyShareLink = async () => {
+    exportHooks.closeDropdown();
+    const shareUrl = buildShareUrl();
+    if (!shareUrl) {
+      exportHooks.setStatus({ message: "Unable to build a share link yet.", tone: "error" });
+      return;
+    }
 
     try {
       if (navigator.clipboard?.writeText) {
@@ -321,10 +370,34 @@ export function RecordGrid({
         document.body.removeChild(textArea);
       }
 
-      setShareStatusMessage("Share link copied.");
+      exportHooks.setStatus({ message: "Share link copied.", tone: "info" });
     } catch (error) {
       console.error("Error copying share link:", error);
-      setShareStatusMessage("Unable to copy link.");
+      exportHooks.setStatus({ message: "Unable to copy link.", tone: "error" });
+    }
+  };
+
+  /**
+   * Opens the device's share sheet with the wall's share link.
+   */
+  const handleShareLink = async () => {
+    exportHooks.closeDropdown();
+    const shareUrl = buildShareUrl();
+    if (!shareUrl) {
+      exportHooks.setStatus({ message: "Unable to build a share link yet.", tone: "error" });
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: `${username}'s Vinyl Wall`,
+        text: `Check out ${username}'s vinyl wall.`,
+        url: shareUrl,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error("Error sharing link:", error);
+      await handleCopyShareLink();
     }
   };
 
@@ -349,8 +422,9 @@ export function RecordGrid({
         <ExportDropdown
           isOpen={exportHooks.dropdownOpen}
           isExporting={exportHooks.isExporting}
-          statusMessage={shareStatusMessage ?? exportHooks.statusMessage}
+          canShareLink={typeof navigator !== "undefined" && Boolean(navigator.share)}
           onShareOrSaveImage={exportHooks.shareOrSaveImage}
+          onShareLink={handleShareLink}
           onCopyShareLink={handleCopyShareLink}
         />
 
@@ -366,6 +440,48 @@ export function RecordGrid({
           onReset={resetToDefault}
         />
       </div>
+
+      <Toast toast={exportHooks.status} onDismiss={() => exportHooks.setStatus(null)} />
+
+      {movingAlbum && (
+        <div
+          role="status"
+          data-testid="move-banner"
+          className="sticky top-2 z-40 flex items-center justify-between gap-3 rounded-lg bg-yellow-400 px-4 py-3 text-black shadow-sm"
+        >
+          <span>
+            {moveMessage ?? `Moving ${movingAlbum.title || "album"}: tap another album to swap.`}
+          </span>
+          <button
+            type="button"
+            className="rounded-md bg-black/80 px-3 py-1 text-white"
+            onClick={() => {
+              setMovingAlbum(null);
+              setMoveMessage(null);
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {sheetAlbum && (
+        <AlbumActionSheet
+          album={sheetAlbum}
+          isPinned={pinnedAlbums.has(String(sheetAlbum.id))}
+          canPin={displayedAlbums.some((album) => album.id === sheetAlbum.id)}
+          onClose={() => setSheetAlbum(null)}
+          onTogglePin={() => {
+            togglePinAlbum(String(sheetAlbum.id));
+            setSheetAlbum(null);
+          }}
+          onMove={() => {
+            setMovingAlbum(sheetAlbum);
+            setMoveMessage(null);
+            setSheetAlbum(null);
+          }}
+        />
+      )}
 
       <DndContext
         sensors={sensors}
@@ -385,12 +501,19 @@ export function RecordGrid({
             isExporting={exportHooks.isExporting}
             pinnedAlbums={pinnedAlbums}
             onPinToggle={togglePinAlbum}
+            onSelect={handleSelectAlbum}
+            moveSourceId={movingAlbum?.id ?? null}
             gridRef={exportHooks.gridRef}
             showAlbumLabels={showAlbumLabels}
           />
 
           {/* Pool Display */}
-          <PoolDisplay albums={poolItems} showAlbumLabels={showAlbumLabels} />
+          <PoolDisplay
+            albums={poolItems}
+            onSelect={handleSelectAlbum}
+            moveSourceId={movingAlbum?.id ?? null}
+            showAlbumLabels={showAlbumLabels}
+          />
         </div>
 
         {/* The dragged cover is drawn above both panels, so it stays visible between them. */}

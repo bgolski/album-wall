@@ -54,6 +54,8 @@ export function swapAlbums(
   const activeAlbum = containers[active.container][active.index];
   const overAlbum = containers[over.container][over.index];
 
+  if (!activeAlbum || !overAlbum) return unchanged;
+
   if (pinnedAlbums.has(String(activeAlbum.id)) || pinnedAlbums.has(String(overAlbum.id))) {
     return unchanged;
   }

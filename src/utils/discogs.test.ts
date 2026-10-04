@@ -186,9 +186,25 @@ describe("getUserCollection", () => {
         )
       )
     );
-    await expect(getUserCollection("user")).rejects.toThrow(
-      "has no vinyl records in their collection"
+    await expect(getUserCollection("user")).resolves.toEqual([]);
+  });
+
+  it("treats the proxy's no-records error as an empty collection", async () => {
+    const { getUserCollection } = await loadDiscogsModule({
+      NEXT_PUBLIC_DISCOGS_PROXY_URL: proxyUrl,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: 'User "user" has no vinyl records in their collection' }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+          )
+        )
+      )
     );
+    await expect(getUserCollection("user")).resolves.toEqual([]);
   });
 
   it("returns albums on successful fetch", async () => {

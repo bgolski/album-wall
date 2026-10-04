@@ -35,7 +35,7 @@ export function ErrorMessage({ error, username, onRetry }: ErrorMessageProps) {
       <div className="flex flex-wrap justify-center gap-3">
         <button
           onClick={onRetry}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 transition-colors"
         >
           Try Again
         </button>
@@ -43,7 +43,7 @@ export function ErrorMessage({ error, username, onRetry }: ErrorMessageProps) {
           href="https://www.discogs.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
+          className="px-4 py-2 bg-gray-700 text-white rounded-sm hover:bg-gray-600 transition-colors"
         >
           Visit Discogs
         </a>

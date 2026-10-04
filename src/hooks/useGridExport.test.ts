@@ -74,7 +74,7 @@ describe("useGridExport", () => {
     expect(result.current.dropdownOpen).toBe(false);
   });
 
-  it("alerts when no grid or albums and closes dropdown", async () => {
+  it("reports in the status line when no grid or albums and closes dropdown", async () => {
     const { result } = renderHook(() => useGridExport(username, []));
     act(() => {
       result.current.toggleDropdown();
@@ -83,23 +83,24 @@ describe("useGridExport", () => {
     await act(async () => {
       await result.current.shareOrSaveImage();
     });
-    expect(window.alert).toHaveBeenCalledWith("No albums to share");
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(result.current.status).toEqual({ message: "No albums to share.", tone: "error" });
     expect(result.current.dropdownOpen).toBe(false);
-    expect(result.current.statusMessage).toBeNull();
   });
 
-  it("alerts when grid is missing even with albums", async () => {
+  it("reports in the status line when grid is missing even with albums", async () => {
     const { result } = renderHook(() => useGridExport(username, albums));
     // gridRef.current stays null
     await act(async () => {
       await result.current.shareOrSaveImage();
     });
-    expect(window.alert).toHaveBeenCalledWith("No albums to share");
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(result.current.status).toEqual({ message: "No albums to share.", tone: "error" });
     expect(result.current.dropdownOpen).toBe(false);
     expect(result.current.isExporting).toBe(false);
   });
 
-  it("alerts when albums are empty even with a grid present", async () => {
+  it("reports in the status line when albums are empty even with a grid present", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() => useGridExport(username, []));
     act(() => {
@@ -108,9 +109,9 @@ describe("useGridExport", () => {
     await act(async () => {
       await result.current.shareOrSaveImage();
     });
-    expect(window.alert).toHaveBeenCalledWith("No albums to share");
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(result.current.status).toEqual({ message: "No albums to share.", tone: "error" });
     expect(result.current.dropdownOpen).toBe(false);
-    expect(result.current.statusMessage).toBeNull();
     expect(result.current.isExporting).toBe(false);
   });
 
@@ -136,7 +137,7 @@ describe("useGridExport", () => {
     });
 
     expect(clickSpy).toHaveBeenCalled();
-    expect(result.current.statusMessage).toBe("Image saved.");
+    expect(result.current.status?.message).toBe("Image saved.");
   });
 
   it("passes correct filename to downloadBlob", async () => {
@@ -155,7 +156,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    const anchorEl = createSpy.mock.results[0].value as HTMLAnchorElement;
+    const anchorEl = createSpy.mock.results[0]!.value as HTMLAnchorElement;
     expect(anchorEl.tagName).toBe("A");
     expect(anchorEl.getAttribute("download")).toBe("testuser_vinyl_wall.png");
   });
@@ -177,7 +178,39 @@ describe("useGridExport", () => {
     });
 
     expect(shareSpy).toHaveBeenCalled();
-    expect(result.current.statusMessage).toBe("Use the share sheet to save or send the image.");
+    expect(result.current.status).toBeNull();
+  });
+
+  it("offers a Share image button when Safari refuses the share after the capture", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport(username, albums));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    const blob = new Blob(["png"], { type: "image/png" });
+    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
+    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    const shareSpy = vi
+      .spyOn(window.navigator, "share")
+      .mockRejectedValueOnce(new DOMException("needs a tap", "NotAllowedError"))
+      .mockResolvedValue();
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(true);
+
+    await act(async () => {
+      await result.current.shareOrSaveImage();
+    });
+
+    expect(result.current.status?.message).toBe("Image ready.");
+    expect(result.current.status?.tone).toBe("info");
+    expect(shareSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result.current.status?.action?.run();
+    });
+
+    expect(shareSpy).toHaveBeenCalledTimes(2);
+    const [shared] = shareSpy.mock.calls[1] as unknown as [{ files: File[] }];
+    expect(shared.files[0]!.name).toBe("testuser_vinyl_wall.png");
   });
 
   it("uses Anonymous_vinyl_wall.png filename when username is empty", async () => {
@@ -196,7 +229,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    const anchorEl = createSpy.mock.results[0].value as HTMLAnchorElement;
+    const anchorEl = createSpy.mock.results[0]!.value as HTMLAnchorElement;
     expect(anchorEl.tagName).toBe("A");
     expect(anchorEl.getAttribute("download")).toBe("Anonymous_vinyl_wall.png");
   });
@@ -218,11 +251,11 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    expect(result.current.statusMessage).toBe("Save canceled.");
+    expect(result.current.status?.message).toBe("Save canceled.");
     expect(window.alert).not.toHaveBeenCalled();
   });
 
-  it("handles generic export errors with alert", async () => {
+  it("handles generic export errors in the status line", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() => useGridExport(username, albums));
     act(() => {
@@ -236,7 +269,27 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    expect(window.alert).toHaveBeenCalledWith("Failed to export image. Please try again.");
-    expect(result.current.statusMessage).toBeNull();
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(result.current.status).toEqual({
+      message: "Failed to export image. Please try again.",
+      tone: "error",
+    });
+  });
+
+  it("clears the status after a few seconds", async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useGridExport(username, []));
+      await act(async () => {
+        await result.current.shareOrSaveImage();
+      });
+      expect(result.current.status).not.toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(6000);
+      });
+      expect(result.current.status).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
