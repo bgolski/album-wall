@@ -3,12 +3,7 @@
  * built-in placeholder when no usable image is available.
  */
 
-// List of image proxy services we can use
-const PROXY_SERVICES = [
-  "https://images.weserv.nl/?url=",
-  "https://cors-anywhere.herokuapp.com/",
-  "https://api.allorigins.win/raw?url=",
-];
+const IMAGE_PROXY = "https://images.weserv.nl/?url=";
 
 // Default embedded placeholder image as base64 - this ensures we never get 404s for images
 export const DEFAULT_PLACEHOLDER_IMAGE =
@@ -18,10 +13,11 @@ export const DEFAULT_PLACEHOLDER_IMAGE =
  * Converts a remote image URL into a proxied URL to improve browser loading and export behavior.
  *
  * @param url Original image URL.
- * @param proxyIndex Preferred proxy service index.
+ * @param options Options for proxied image generation.
+ * @param options.size Desired square dimensions (width and height) for the proxied image.
  * @returns A proxied image URL or the placeholder image when no URL is provided.
  */
-export function getProxiedImageUrl(url: string, proxyIndex = 0): string {
+export function getProxiedImageUrl(url: string, options: { size?: number } = {}): string {
   // If no URL is provided, return the placeholder
   if (!url) return DEFAULT_PLACEHOLDER_IMAGE;
 
@@ -30,16 +26,13 @@ export function getProxiedImageUrl(url: string, proxyIndex = 0): string {
     return url;
   }
 
-  // Make sure we're using a valid proxy index
-  const serviceIndex = Math.min(proxyIndex, PROXY_SERVICES.length - 1);
-  const proxyService = PROXY_SERVICES[serviceIndex];
-
   // Use images.weserv.nl as the default proxy which works well for most images
-  if (serviceIndex === 0) {
-    // For weserv.nl, we need to encode the URL
-    return `${proxyService}${encodeURIComponent(url)}`;
+  const baseUrl = `${IMAGE_PROXY}${encodeURIComponent(url)}`;
+
+  // Append size parameters when requested
+  if (options.size) {
+    return `${baseUrl}&w=${options.size}&h=${options.size}&fit=cover`;
   }
 
-  // For other proxies, we can just append the URL
-  return `${proxyService}${url}`;
+  return baseUrl;
 }

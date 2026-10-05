@@ -3,6 +3,7 @@ import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "./imageProxy";
 
 // Helper to construct a URL with special characters
 const urlWithSpecialChars = "https://example.com/cover image.jpg?size=large&color=blue#section";
+const proxyPrefix = "https://images.weserv.nl/?url=";
 
 describe("getProxiedImageUrl", () => {
   it("returns the placeholder when no URL is provided", () => {
@@ -16,24 +17,34 @@ describe("getProxiedImageUrl", () => {
     expect(result).toBe(dataUrl);
   });
 
-  it("encodes the URL with the default weserv proxy", () => {
-    const result = getProxiedImageUrl(urlWithSpecialChars, 0);
-    // weserv URL should start with the proxy service and an encoded URL
-    expect(result).toMatch(/^https:\/\/images\.weserv\.nl\/\?url=/);
+  it("encodes the URL with the weserv proxy", () => {
+    const result = getProxiedImageUrl(urlWithSpecialChars);
+    expect(result).toBe(`${proxyPrefix}${encodeURIComponent(urlWithSpecialChars)}`);
     // The encoded part should contain %20 for the space
     expect(result).toContain("%20");
-    // The decoded part should match the original URL
-    const encoded = result.split("=")[1];
-    expect(decodeURIComponent(encoded)).toBe(urlWithSpecialChars);
   });
 
-  it("appends the URL without encoding for other proxies", () => {
-    const result = getProxiedImageUrl(urlWithSpecialChars, 1);
-    expect(result).toBe(`https://cors-anywhere.herokuapp.com/${urlWithSpecialChars}`);
+  it("requests the original size when no size is given", () => {
+    expect(getProxiedImageUrl(urlWithSpecialChars)).not.toContain("&w=");
+    expect(getProxiedImageUrl(urlWithSpecialChars, {})).not.toContain("&w=");
   });
 
-  it("uses the last proxy when the index is out of range", () => {
-    const result = getProxiedImageUrl(urlWithSpecialChars, 10);
-    expect(result).toBe(`https://api.allorigins.win/raw?url=${urlWithSpecialChars}`);
+  it("asks the proxy for a square of the given size", () => {
+    const result = getProxiedImageUrl(urlWithSpecialChars, { size: 320 });
+    expect(result).toBe(
+      `${proxyPrefix}${encodeURIComponent(urlWithSpecialChars)}&w=320&h=320&fit=cover`
+    );
+  });
+
+  it("gives the same URL every time for the same cover and size", () => {
+    expect(getProxiedImageUrl(urlWithSpecialChars, { size: 320 })).toBe(
+      getProxiedImageUrl(urlWithSpecialChars, { size: 320 })
+    );
+  });
+
+  it("leaves data URLs and the placeholder alone when a size is given", () => {
+    const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA";
+    expect(getProxiedImageUrl(dataUrl, { size: 320 })).toBe(dataUrl);
+    expect(getProxiedImageUrl("", { size: 320 })).toBe(DEFAULT_PLACEHOLDER_IMAGE);
   });
 });
