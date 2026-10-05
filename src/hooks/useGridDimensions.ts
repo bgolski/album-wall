@@ -44,28 +44,19 @@ export function useGridDimensions(initialDimensions?: InitialGridDimensions) {
   const gridSize = rows * columns;
 
   /**
-   * Updates the grid dimensions when both values are greater than zero.
+   * Sets the grid dimensions when both values are greater than zero; used for user changes and
+   * for hydrating shared wall state.
    *
    * @param newRows Desired number of rows.
    * @param newColumns Desired number of columns.
-   */
-  const handleDimensionsChange = (newRows: number, newColumns: number) => {
-    if (newRows < 1 || newColumns < 1) return;
-    setRows(newRows);
-    setColumns(newColumns);
-  };
-
-  /**
-   * Replaces the current grid dimensions, typically when hydrating shared wall state.
-   *
-   * @param newRows Desired number of grid rows.
-   * @param newColumns Desired number of grid columns.
    */
   const replaceDimensions = useCallback((newRows: number, newColumns: number) => {
     if (newRows < 1 || newColumns < 1) return;
     setRows(newRows);
     setColumns(newColumns);
   }, []);
+
+  const handleDimensionsChange = replaceDimensions;
 
   /**
    * Restores the grid dimensions to the default layout for the current viewport.
