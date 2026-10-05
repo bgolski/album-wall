@@ -10,6 +10,8 @@ interface GridControlsProps {
   onTogglePinAll: () => void;
   onToggleAlbumLabels: () => void;
   onShuffle: () => void;
+  canUndo?: boolean | undefined;
+  onUndo?: (() => void) | undefined;
   onToggleExportDropdown: () => void;
   showDimensionsConfig: boolean;
   exportOpen: boolean;
@@ -35,6 +37,8 @@ export function GridControls({
   onTogglePinAll,
   onToggleAlbumLabels,
   onShuffle,
+  canUndo = false,
+  onUndo,
   onToggleExportDropdown,
   showDimensionsConfig,
   exportOpen,
@@ -142,7 +146,27 @@ export function GridControls({
             Shuffle
           </button>
 
-          <div className="relative basis-full md:basis-auto">
+          <button
+            onClick={onUndo}
+            className={`${actionButtonClass} flex items-center justify-center bg-raised text-ink hover:bg-line disabled:cursor-not-allowed disabled:opacity-50`}
+            disabled={!canUndo}
+            title="Undo the last change (Ctrl+Z)"
+            aria-keyshortcuts="Control+Z Meta+Z"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-4 h-4 mr-1"
+            >
+              <path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+            </svg>
+            Undo
+          </button>
+
+          <div className="relative flex-1 min-[360px]:basis-[calc(50%-0.25rem)] md:flex-none md:basis-auto">
             <button
               ref={exportButtonRef}
               aria-haspopup="menu"

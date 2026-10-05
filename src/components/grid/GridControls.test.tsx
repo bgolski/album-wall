@@ -108,3 +108,16 @@ describe("GridControls", () => {
     expect(screen.getByRole("button", { name: "Unpin All" })).toHaveProperty("disabled", false);
   });
 });
+
+describe("GridControls undo", () => {
+  it("disables Undo until there is something to undo", () => {
+    renderControls();
+    expect(screen.getByRole("button", { name: "Undo" })).toHaveProperty("disabled", true);
+  });
+
+  it("calls onUndo", () => {
+    const { props } = renderControls({ canUndo: true, onUndo: vi.fn() });
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(props.onUndo).toHaveBeenCalledTimes(1);
+  });
+});

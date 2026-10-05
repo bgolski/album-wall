@@ -1,4 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from "react";
+import type { ExportPreset } from "@/utils/exportFrame";
 
 interface ExportDropdownProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface ExportDropdownProps {
   triggerRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onShareOrSaveImage: () => void;
+  presets?: readonly ExportPreset[];
+  onExportPreset?: (preset: ExportPreset) => void;
   onShareLink: () => void;
   onCopyShareLink: () => void;
 }
@@ -29,6 +32,8 @@ function ExportMenu({
   triggerRef,
   onClose,
   onShareOrSaveImage,
+  presets = [],
+  onExportPreset,
   onShareLink,
   onCopyShareLink,
 }: Omit<ExportDropdownProps, "isOpen">) {
@@ -103,12 +108,27 @@ function ExportMenu({
         <button
           type="button"
           role="menuitem"
-          onClick={onShareOrSaveImage}
+          onClick={() => onShareOrSaveImage()}
           disabled={isExporting}
           className={itemClass}
         >
           {isExporting ? "Preparing image..." : "Share or Save Image"}
         </button>
+        {presets.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            role="menuitem"
+            onClick={() => onExportPreset?.(preset)}
+            disabled={isExporting}
+            className={itemClass}
+          >
+            {preset.label}
+            <span className="block text-xs text-muted">
+              {preset.width} × {preset.height}
+            </span>
+          </button>
+        ))}
         {canShareLink && (
           <button
             type="button"

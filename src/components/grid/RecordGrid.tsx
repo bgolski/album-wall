@@ -1,4 +1,4 @@
-import { useState, useId, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffect, useState, useId, useMemo, useRef, useSyncExternalStore } from "react";
 import {
   DndContext,
   closestCenter,
@@ -22,6 +22,8 @@ import { useGridExport } from "@/hooks/useGridExport";
 import { useAlbumShuffle } from "@/hooks/useAlbumShuffle";
 import { swapAlbums } from "@/utils/dragAndDropHelpers";
 import { buildSharedWallState, buildSharedWallUrl } from "@/utils/shareState";
+import { saveWall } from "@/utils/savedWall";
+import { EXPORT_PRESETS } from "@/utils/exportFrame";
 import { GridControls } from "./GridControls";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
 import { ExportDropdown } from "./ExportDropdown";
@@ -36,6 +38,9 @@ interface RecordGridProps {
   albums: Album[];
   onAlbumsReorder: (newAlbums: Album[]) => void;
   sharedWallState?: SharedWallState | null;
+  canUndo?: boolean | undefined;
+  onUndo?: (() => boolean) | undefined;
+  onPinsChange?: (() => void) | undefined;
 }
 
 const DRAG_INSTRUCTIONS = {
@@ -68,6 +73,9 @@ export function RecordGrid({
   albums,
   onAlbumsReorder,
   sharedWallState,
+  canUndo = false,
+  onUndo,
+  onPinsChange,
 }: RecordGridProps) {
   // The label default follows the screen width until the user toggles it.
   const [labelsOverride, setLabelsOverride] = useState<boolean | null>(null);
@@ -270,24 +278,70 @@ export function RecordGrid({
       : sorting.sortAlbums(displayedAlbums, pinnedAlbums);
   };
 
+  const currentWallAlbums = getSortedDisplayedAlbums();
+  const currentWallState = buildSharedWallState({
+    username,
+    rows,
+    columns,
+    wallAlbumIds: currentWallAlbums.map((album) => String(album.id)),
+    pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
+      currentWallAlbums.some((album) => String(album.id) === albumId)
+    ),
+  });
+  const currentWallSignature = JSON.stringify(currentWallState);
+
+  // An older order could move an album that is now pinned, so a pin change resets undo.
+  const pinSignature = Array.from(pinnedAlbums).sort().join(",");
+  const previousPinSignature = useRef(pinSignature);
+  useEffect(() => {
+    if (previousPinSignature.current === pinSignature) return;
+    previousPinSignature.current = pinSignature;
+    onPinsChange?.();
+  }, [pinSignature, onPinsChange]);
+
+  // Remember the wall on this device so it comes back the next time this collection loads.
+  useEffect(() => {
+    if (!username) return;
+    try {
+      saveWall(window.localStorage, JSON.parse(currentWallSignature));
+    } catch {
+      // Storage is blocked; the wall just is not remembered.
+    }
+  }, [username, currentWallSignature]);
+
   /**
    * Copies a shareable hash URL for the current wall configuration to the clipboard.
    */
   const buildShareUrl = () => {
     if (typeof window === "undefined" || !username) return null;
-
-    const currentWallAlbums = getSortedDisplayedAlbums();
-    const sharedWallStatePayload = buildSharedWallState({
-      username,
-      rows,
-      columns,
-      wallAlbumIds: currentWallAlbums.map((album) => String(album.id)),
-      pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
-        currentWallAlbums.some((album) => String(album.id) === albumId)
-      ),
-    });
-    return buildSharedWallUrl(sharedWallStatePayload, window.location.href);
+    return buildSharedWallUrl(currentWallState, window.location.href);
   };
+
+  /**
+   * Puts back the album order from before the last change and returns to the custom order, so
+   * the restored order is what shows.
+   */
+  const handleUndo = () => {
+    if (!onUndo?.()) return;
+    sorting.handleSortChange("none");
+    setMovingAlbum(null);
+    setMoveMessage(null);
+    exportHooks.setStatus({ message: "Undid the last change.", tone: "info" });
+  };
+
+  // Ctrl+Z (Cmd+Z on a Mac) undoes too, unless the user is typing in a field.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "z" || !(event.ctrlKey || event.metaKey)) return;
+      if (event.shiftKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      event.preventDefault();
+      handleUndo();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  });
 
   /**
    * Copies the wall's share link to the clipboard.
@@ -415,6 +469,8 @@ export function RecordGrid({
           onTogglePinAll={() => togglePinAll(displayedAlbums)}
           onToggleAlbumLabels={handleToggleAlbumLabels}
           onShuffle={handleShuffle}
+          canUndo={canUndo}
+          onUndo={handleUndo}
           onToggleExportDropdown={exportHooks.toggleDropdown}
           exportOpen={exportHooks.dropdownOpen}
           exportMenuId={exportMenuId}
@@ -430,7 +486,9 @@ export function RecordGrid({
           triggerRef={exportButtonRef}
           onClose={exportHooks.closeDropdown}
           canShareLink={typeof navigator !== "undefined" && Boolean(navigator.share)}
-          onShareOrSaveImage={exportHooks.shareOrSaveImage}
+          onShareOrSaveImage={() => void exportHooks.shareOrSaveImage()}
+          presets={EXPORT_PRESETS}
+          onExportPreset={(preset) => void exportHooks.shareOrSaveImage(preset)}
           onShareLink={handleShareLink}
           onCopyShareLink={handleCopyShareLink}
         />
@@ -504,7 +562,7 @@ export function RecordGrid({
         <div className="flex flex-col gap-8">
           {/* Wall Display */}
           <WallDisplay
-            albums={getSortedDisplayedAlbums()}
+            albums={currentWallAlbums}
             columns={columns}
             rows={rows}
             gridSize={gridSize}

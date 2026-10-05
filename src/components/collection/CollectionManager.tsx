@@ -8,10 +8,14 @@ interface CollectionManagerProps {
   albums: Album[];
   username: string;
   loadedUsername: string;
+  loadCount: number;
   sharedWallState: SharedWallState | null;
   isPending: boolean;
   error: string | null;
   onAlbumsReorder: (newAlbums: Album[]) => void;
+  canUndo: boolean;
+  onUndo: () => boolean;
+  onPinsChange: () => void;
   onRetry: () => void;
 }
 
@@ -22,10 +26,14 @@ export function CollectionManager({
   albums,
   username,
   loadedUsername,
+  loadCount,
   sharedWallState,
   isPending,
   error,
   onAlbumsReorder,
+  canUndo,
+  onUndo,
+  onPinsChange,
   onRetry,
 }: CollectionManagerProps) {
   return (
@@ -39,10 +47,14 @@ export function CollectionManager({
           <CollectionLoader username={username} />
         ) : albums.length > 0 ? (
           <CollectionDisplay
+            key={loadCount}
             albums={albums}
             username={loadedUsername}
             sharedWallState={sharedWallState}
             onAlbumsReorder={onAlbumsReorder}
+            canUndo={canUndo}
+            onUndo={onUndo}
+            onPinsChange={onPinsChange}
           />
         ) : loadedUsername ? (
           <EmptyCollection username={loadedUsername} />
