@@ -4,6 +4,33 @@ import { Album } from "@/types";
 export type SortOption = "none" | "artist" | "genre";
 
 /**
+ * Derives the comparison key for an album under a given sort option.
+ *
+ * For "artist" returns `album.artist` or the empty string.
+ * For "genre" returns the genre string, or the first entry of a genre array, or ""
+ * when genre is missing or the array is empty.
+ *
+ * @param album Album whose sort key to derive.
+ * @param option Active sort option.
+ * @returns A string suitable for alphabetical ordering.
+ */
+export function getSortKey(album: Album, option: SortOption): string {
+  if (option === "artist") {
+    return album.artist || "";
+  }
+  if (option === "genre") {
+    if (typeof album.genre === "string") {
+      return album.genre;
+    }
+    if (Array.isArray(album.genre) && album.genre.length > 0) {
+      return album.genre[0] || "";
+    }
+    return "";
+  }
+  return "";
+}
+
+/**
  * Tracks the active sort mode and exposes sorting behavior that respects pinned album positions.
  *
  * @returns Current sort option plus actions for updating and applying the sort.
@@ -12,7 +39,10 @@ export function useAlbumSorting() {
   const [sortOption, setSortOption] = useState<SortOption>("none");
 
   /**
-   * Sorts albums by the active sort option while preserving pinned albums at their current indices.
+   * Sorts albums by the active sort option while preserving pinned album positions.
+   *
+   * Unpinned albums are sorted once using {@link getSortKey}; pinned albums stay at their
+   * original indices while sorted unpinned albums fill the remaining slots in order.
    *
    * @param albumsToSort Albums to sort.
    * @param pinnedAlbums Set of pinned album ids that must remain fixed in place.
@@ -21,69 +51,43 @@ export function useAlbumSorting() {
   const sortAlbums = (albumsToSort: Album[], pinnedAlbums: Set<string>) => {
     if (sortOption === "none") return albumsToSort;
 
-    // Keep pinned albums in their positions during sort
-    if (pinnedAlbums.size > 0) {
-      const pinnedIndices = new Map<string, number>();
-      albumsToSort.forEach((album, index) => {
-        if (pinnedAlbums.has(String(album.id))) {
-          pinnedIndices.set(String(album.id), index);
-        }
-      });
-
-      // Sort non-pinned albums
-      const nonPinnedAlbums = albumsToSort.filter((album) => !pinnedAlbums.has(String(album.id)));
-      const sortedNonPinned = [...nonPinnedAlbums].sort((a, b) => {
-        if (sortOption === "artist") {
-          const artistA = a.artist || "";
-          const artistB = b.artist || "";
-          return artistA.localeCompare(artistB);
-        } else if (sortOption === "genre") {
-          const genreA =
-            typeof a.genre === "string" ? a.genre : Array.isArray(a.genre) ? a.genre[0] || "" : "";
-          const genreB =
-            typeof b.genre === "string" ? b.genre : Array.isArray(b.genre) ? b.genre[0] || "" : "";
-          return String(genreA).localeCompare(String(genreB));
-        }
-        return 0;
-      });
-
-      // Create result array with all albums
-      const result = new Array(albumsToSort.length);
-
-      // Place pinned albums at their original positions
-      pinnedIndices.forEach((index, albumId) => {
-        const album = albumsToSort.find((a) => String(a.id) === albumId);
-        if (album) {
-          result[index] = album;
-        }
-      });
-
-      // Fill empty slots with sorted non-pinned albums
-      let nonPinnedIndex = 0;
-      for (let i = 0; i < result.length; i++) {
-        if (!result[i] && nonPinnedIndex < sortedNonPinned.length) {
-          result[i] = sortedNonPinned[nonPinnedIndex++];
-        }
+    // Collect pinned album positions
+    const pinnedIndices = new Map<string, number>();
+    albumsToSort.forEach((album, index) => {
+      if (pinnedAlbums.has(String(album.id))) {
+        pinnedIndices.set(String(album.id), index);
       }
+    });
 
-      return result.filter(Boolean);
+    // Sort unpinned albums using a single shared comparison path
+    const unpinnedAlbums = albumsToSort.filter((album) => !pinnedAlbums.has(String(album.id)));
+    const sortedUnpinned = [...unpinnedAlbums].sort((a, b) =>
+      getSortKey(a, sortOption).localeCompare(getSortKey(b, sortOption))
+    );
+
+    // When nothing is pinned the result is just the plain sorted list
+    if (pinnedIndices.size === 0) {
+      return sortedUnpinned;
     }
 
-    // Regular sort if no pins
-    return [...albumsToSort].sort((a, b) => {
-      if (sortOption === "artist") {
-        const artistA = a.artist || "";
-        const artistB = b.artist || "";
-        return artistA.localeCompare(artistB);
-      } else if (sortOption === "genre") {
-        const genreA =
-          typeof a.genre === "string" ? a.genre : Array.isArray(a.genre) ? a.genre[0] || "" : "";
-        const genreB =
-          typeof b.genre === "string" ? b.genre : Array.isArray(b.genre) ? b.genre[0] || "" : "";
-        return String(genreA).localeCompare(String(genreB));
+    // Build the final array: pinned albums stay, unpinned fill the gaps
+    const result = new Array<Album | undefined>(albumsToSort.length);
+
+    pinnedIndices.forEach((index, albumId) => {
+      const album = albumsToSort.find((a) => String(a.id) === albumId);
+      if (album) {
+        result[index] = album;
       }
-      return 0;
     });
+
+    let unpinnedIndex = 0;
+    for (let i = 0; i < result.length; i++) {
+      if (!result[i] && unpinnedIndex < sortedUnpinned.length) {
+        result[i] = sortedUnpinned[unpinnedIndex++];
+      }
+    }
+
+    return result.filter(Boolean) as Album[];
   };
 
   /**
