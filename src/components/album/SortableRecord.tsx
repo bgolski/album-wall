@@ -30,7 +30,7 @@ export function SortableRecord({
 }: SortableRecordProps) {
   const [showMobileDiscogsAction, setShowMobileDiscogsAction] = useState(false);
   const recordRef = useRef<HTMLDivElement | null>(null);
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `album-${album.id}`,
     disabled: isPinned,
   });
@@ -45,6 +45,8 @@ export function SortableRecord({
     : {
         transform: CSS.Transform.toString(transform),
         transition,
+        // The drag overlay shows the moving cover; the original stays as a faded placeholder.
+        opacity: isDragging ? 0.4 : undefined,
       };
 
   const canOpenDiscogs = Boolean(album.discogsUrl);

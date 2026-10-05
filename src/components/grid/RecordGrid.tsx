@@ -5,6 +5,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
   MouseSensor,
   TouchSensor,
   KeyboardSensor,
@@ -23,6 +25,7 @@ import { GridDimensionsConfig } from "./GridDimensionsConfig";
 import { ExportDropdown } from "./ExportDropdown";
 import { WallDisplay } from "./WallDisplay";
 import { PoolDisplay } from "./PoolDisplay";
+import { AlbumDragPreview } from "../album/AlbumDragPreview";
 
 interface RecordGridProps {
   username: string;
@@ -99,6 +102,7 @@ export function RecordGrid({
   const [displayedAlbums, setDisplayedAlbums] = useState<Album[]>(albums.slice(0, gridSize));
   const [poolItems, setPoolItems] = useState<Album[]>(albums.slice(gridSize));
   const [shareStatusMessage, setShareStatusMessage] = useState<string | null>(null);
+  const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -235,11 +239,24 @@ export function RecordGrid({
   const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
   /**
+   * Remembers the dragged album so the drag overlay can show its cover above both panels.
+   *
+   * @param event DnD Kit drag start event.
+   */
+  function handleDragStart(event: DragStartEvent) {
+    const id = String(event.active.id);
+    setDraggedAlbum(
+      [...displayedAlbums, ...poolItems].find((album) => `album-${album.id}` === id) ?? null
+    );
+  }
+
+  /**
    * Swaps the dragged album with the album it was dropped on; everything else stays in place.
    *
    * @param event DnD Kit drag end event.
    */
   function handleDragEnd(event: DragEndEvent) {
+    setDraggedAlbum(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -350,7 +367,13 @@ export function RecordGrid({
         />
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDraggedAlbum(null)}
+      >
         <div className="flex flex-col gap-8">
           {/* Wall Display */}
           <WallDisplay
@@ -369,6 +392,9 @@ export function RecordGrid({
           {/* Pool Display */}
           <PoolDisplay albums={poolItems} showAlbumLabels={showAlbumLabels} />
         </div>
+
+        {/* The dragged cover is drawn above both panels, so it stays visible between them. */}
+        <DragOverlay>{draggedAlbum ? <AlbumDragPreview album={draggedAlbum} /> : null}</DragOverlay>
       </DndContext>
     </div>
   );
