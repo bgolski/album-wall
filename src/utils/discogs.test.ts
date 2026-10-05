@@ -228,3 +228,31 @@ describe("getUserCollection", () => {
     expect(result).toEqual(albums);
   });
 });
+
+describe("getUserCollection with duplicate copies", () => {
+  it("gives a second copy of a release its own id", async () => {
+    const { getUserCollection } = await loadDiscogsModule({
+      NEXT_PUBLIC_DISCOGS_PROXY_URL: "https://proxy.example/collection",
+    });
+    const albums = [
+      { id: 7, title: "First copy", artist: "A" },
+      { id: 7, title: "Second copy", artist: "A" },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ albums }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        )
+      )
+    );
+    const result = await getUserCollection("user");
+    expect(result.map((album) => [album.id, album.title])).toEqual([
+      [7, "First copy"],
+      [-701, "Second copy"],
+    ]);
+  });
+});

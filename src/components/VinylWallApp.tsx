@@ -13,13 +13,16 @@ export default function VinylWallApp() {
     albums,
     username,
     loadedUsername,
+    loadCount,
     sharedWallState,
     isPending,
     error,
     usernameError,
+    canUndo,
     loadCollection,
     handleUsernameChange,
     handleAlbumsReorder,
+    undo,
     retry,
   } = useCollection();
 
@@ -37,10 +40,13 @@ export default function VinylWallApp() {
         albums={albums}
         username={username}
         loadedUsername={loadedUsername}
+        loadCount={loadCount}
         sharedWallState={sharedWallState}
         isPending={isPending}
         error={error}
         onAlbumsReorder={handleAlbumsReorder}
+        canUndo={canUndo}
+        onUndo={undo}
         onRetry={retry}
       />
     </AppContainer>

@@ -11,6 +11,9 @@ const baseProps = {
   error: null,
   onAlbumsReorder: vi.fn(),
   onRetry: vi.fn(),
+  loadCount: 0,
+  canUndo: false,
+  onUndo: vi.fn(),
 };
 
 describe("CollectionManager empty collection", () => {

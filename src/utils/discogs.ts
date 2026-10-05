@@ -1,3 +1,4 @@
+import { giveCopiesUniqueIds } from "./uniqueAlbumIds";
 import { Album } from "../types/index";
 
 const discogsProxyUrl = process.env.NEXT_PUBLIC_DISCOGS_PROXY_URL;
@@ -103,7 +104,8 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
     throw new Error(GENERIC_PROXY_ERROR_MESSAGE);
   }
 
-  return responseBody.albums;
+  // Someone who owns two copies of a release gets the same id twice; tiles need distinct ones.
+  return giveCopiesUniqueIds(responseBody.albums);
 }
 
 export { GENERIC_PROXY_ERROR_MESSAGE };

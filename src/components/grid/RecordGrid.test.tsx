@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { RecordGrid } from "./RecordGrid";
 import { Album } from "@/types";
+import { decodeSharedWallState } from "@/utils/shareState";
 
 const albums: Album[] = Array.from({ length: 40 }, (_, index) => ({
   id: index + 1,
@@ -271,5 +272,75 @@ describe("RecordGrid tap actions", () => {
     expect(screen.getByRole("button", { name: "Hide Labels" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Hide Labels" }));
     expect(screen.getByRole("button", { name: "Show Labels" })).toBeTruthy();
+  });
+});
+
+describe("RecordGrid undo, memory and sized exports", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function renderWithUndo(onUndo = vi.fn(() => true)) {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    render(
+      <RecordGrid
+        username="someone"
+        albums={albums}
+        onAlbumsReorder={vi.fn()}
+        canUndo
+        onUndo={onUndo}
+      />
+    );
+    return onUndo;
+  }
+
+  it("undoes from the button and says so", () => {
+    const onUndo = renderWithUndo();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Undid the last change.")).toBeTruthy();
+  });
+
+  it("undoes with Ctrl+Z or Cmd+Z, but not while typing in a field", () => {
+    const onUndo = renderWithUndo();
+    fireEvent.keyDown(document.body, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(document.body, { key: "z", metaKey: true });
+    fireEvent.keyDown(document.body, { key: "z", ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(document.body, { key: "z" });
+    expect(onUndo).toHaveBeenCalledTimes(2);
+
+    const search = screen.getByRole("searchbox");
+    fireEvent.keyDown(search, { key: "z", ctrlKey: true });
+    expect(onUndo).toHaveBeenCalledTimes(2);
+  });
+
+  it("remembers the wall on this device", () => {
+    renderWithUndo();
+    const saved = window.localStorage.getItem("album-wall:wall:someone");
+    expect(saved).toBeTruthy();
+    expect(decodeSharedWallState(saved ?? "")).toMatchObject({
+      username: "someone",
+      wallAlbumIds: albums.slice(0, 32).map((album) => String(album.id)),
+      pinnedAlbumIds: [],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Pin Album 1" }));
+    expect(
+      decodeSharedWallState(window.localStorage.getItem("album-wall:wall:someone") ?? "")
+    ).toMatchObject({ pinnedAlbumIds: ["1"] });
+  });
+
+  it("offers the sized exports in the Export menu", () => {
+    renderWithUndo();
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    const menu = screen.getByRole("menu");
+    for (const name of [/Phone wallpaper/, /Desktop wallpaper/, /Square print/]) {
+      expect(within(menu).getByRole("menuitem", { name })).toBeTruthy();
+    }
   });
 });

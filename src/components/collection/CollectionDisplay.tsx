@@ -6,6 +6,8 @@ interface CollectionDisplayProps {
   username: string;
   sharedWallState: SharedWallState | null;
   onAlbumsReorder: (newAlbums: Album[]) => void;
+  canUndo?: boolean | undefined;
+  onUndo?: (() => boolean) | undefined;
 }
 
 /**
@@ -41,6 +43,8 @@ export function CollectionDisplay({
   username,
   sharedWallState,
   onAlbumsReorder,
+  canUndo,
+  onUndo,
 }: CollectionDisplayProps) {
   return (
     <>
@@ -50,6 +54,8 @@ export function CollectionDisplay({
         username={username}
         sharedWallState={sharedWallState}
         onAlbumsReorder={onAlbumsReorder}
+        canUndo={canUndo}
+        onUndo={onUndo}
       />
     </>
   );
