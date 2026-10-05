@@ -13,6 +13,12 @@ interface GridControlsProps {
   showDimensionsConfig: boolean;
 }
 
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "none", label: "Custom Order" },
+  { value: "artist", label: "Sort by Artist" },
+  { value: "genre", label: "Sort by Genre" },
+];
+
 /**
  * Renders the grid control bar for sorting, pinning, shuffling, exporting, and grid settings.
  */
@@ -35,38 +41,29 @@ export function GridControls({
     <div className="bg-gray-800 p-4 rounded-lg shadow">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex flex-col gap-3 md:flex-1">
-          <h2 className="text-base font-semibold text-white md:text-lg">Sort Records</h2>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:flex md:flex-wrap md:gap-4">
-            <button
-              onClick={() => onSortChange("none")}
-              className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
-                sortOption === "none"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-600 text-white hover:bg-gray-500"
-              }`}
-            >
-              Custom Order
-            </button>
-            <button
-              onClick={() => onSortChange("artist")}
-              className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
-                sortOption === "artist"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-600 text-white hover:bg-gray-500"
-              }`}
-            >
-              Sort by Artist
-            </button>
-            <button
-              onClick={() => onSortChange("genre")}
-              className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
-                sortOption === "genre"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-600 text-white hover:bg-gray-500"
-              }`}
-            >
-              Sort by Genre
-            </button>
+          <h2 id="sort-records-heading" className="text-base font-semibold text-white md:text-lg">
+            Sort Records
+          </h2>
+          <div
+            role="group"
+            aria-labelledby="sort-records-heading"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:flex md:flex-wrap md:gap-4"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => onSortChange(option.value)}
+                className={`rounded px-3 py-2 text-sm font-medium transition-colors md:px-3 md:py-1.5 ${
+                  sortOption === option.value
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-600 text-white hover:bg-gray-500"
+                }`}
+                aria-pressed={sortOption === option.value}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -74,6 +71,8 @@ export function GridControls({
           <button
             onClick={onToggleDimensionsConfig}
             className={`${actionButtonClass} bg-gray-600 hover:bg-gray-500`}
+            aria-expanded={showDimensionsConfig}
+            type="button"
           >
             {showDimensionsConfig ? "Hide Grid Config" : "Configure Grid"}
           </button>
@@ -85,8 +84,10 @@ export function GridControls({
                 ? "bg-blue-600 text-white hover:bg-blue-500"
                 : "bg-gray-600 text-white hover:bg-gray-500"
             }`}
+            type="button"
           >
             <svg
+              aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
@@ -108,6 +109,7 @@ export function GridControls({
                 ? "bg-blue-600 text-white hover:bg-blue-500"
                 : "bg-gray-600 text-white hover:bg-gray-500"
             }`}
+            type="button"
           >
             {showAlbumLabels ? "Hide Labels" : "Show Labels"}
           </button>
@@ -119,8 +121,10 @@ export function GridControls({
             title={
               areAllPinned ? "Unpin some albums to shuffle" : "Randomly rearrange unpinned albums"
             }
+            type="button"
           >
             <svg
+              aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
@@ -135,9 +139,11 @@ export function GridControls({
             <button
               onClick={onToggleExportDropdown}
               className={`${actionButtonClass} w-full flex items-center justify-center bg-green-600 hover:bg-green-500 md:w-auto`}
+              type="button"
             >
               <span className="mr-1">Export</span>
               <svg
+                aria-hidden="true"
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
