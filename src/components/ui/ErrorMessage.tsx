@@ -11,6 +11,7 @@ export function ErrorMessage({ error, username, onRetry }: ErrorMessageProps) {
   return (
     <div className="mb-10 flex flex-col items-center justify-center py-12 px-6 bg-gray-800 rounded-lg">
       <svg
+        aria-hidden="true"
         className="w-16 h-16 text-red-500 mb-4"
         fill="none"
         stroke="currentColor"

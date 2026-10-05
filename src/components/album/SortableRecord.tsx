@@ -144,6 +144,7 @@ export function SortableRecord({
                 title="Open in Discogs"
               >
                 <svg
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
@@ -163,6 +164,7 @@ export function SortableRecord({
                   aria-label={`Show Discogs link for ${album.title || "album"}`}
                 >
                   <svg
+                    aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="currentColor"

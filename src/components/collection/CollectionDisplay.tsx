@@ -21,7 +21,7 @@ const UserHeader = ({ username, albumCount }: { username: string; albumCount: nu
         className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
       >
         <span className="mr-2">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+          <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 3a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
           </svg>
         </span>
