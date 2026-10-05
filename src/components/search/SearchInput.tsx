@@ -23,23 +23,22 @@ export function SearchInput({
     usernameError ? "border-red-500" : "border-gray-700"
   }`;
 
-  /**
-   * Submits the collection load when the user presses Enter in the username input.
-   *
-   * @param e Keyboard event from the username input.
-   */
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") onLoadCollection();
-  };
-
   const isSubmitDisabled = isPending || !username.trim();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!isSubmitDisabled) onLoadCollection();
+  };
 
   return (
     <div className="mb-8 text-center">
       <AppHeader />
 
       <div className="flex flex-col items-center">
-        <div className="flex w-full max-w-sm flex-col items-stretch gap-2 sm:max-w-md md:flex-row md:items-center md:gap-0">
+        <form
+          onSubmit={handleSubmit}
+          className="flex w-full max-w-sm flex-col items-stretch gap-2 sm:max-w-md md:flex-row md:items-center md:gap-0"
+        >
           <label htmlFor="discogs-username" className="sr-only">
             Discogs username
           </label>
@@ -49,19 +48,14 @@ export function SearchInput({
             type="text"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder="Your Discogs username"
             className={inputClassName}
             disabled={isPending}
             aria-invalid={usernameError ? true : undefined}
             aria-describedby={usernameError ? "discogs-username-error" : undefined}
           />
-          <SubmitButton
-            onClick={onLoadCollection}
-            disabled={isSubmitDisabled}
-            isLoading={isPending}
-          />
-        </div>
+          <SubmitButton disabled={isSubmitDisabled} isLoading={isPending} />
+        </form>
 
         {usernameError && (
           <p

@@ -1,7 +1,7 @@
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface SubmitButtonProps {
-  onClick: () => void;
+  onClick?: () => void;
   disabled: boolean;
   isLoading: boolean;
 }
@@ -12,8 +12,10 @@ interface SubmitButtonProps {
 export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps) {
   return (
     <button
+      type="submit"
       onClick={onClick}
       disabled={disabled}
+      aria-busy={isLoading}
       className="flex min-h-[42px] w-full items-center justify-center rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 md:min-w-[120px] md:w-auto md:rounded-l-none"
     >
       {isLoading ? (
