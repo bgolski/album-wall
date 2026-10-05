@@ -31,11 +31,11 @@ describe("GridControls", () => {
   it("groups the sort buttons under the Sort Records heading", () => {
     renderControls();
     const group = screen.getByRole("group", { name: "Sort Records" });
-    expect(within(group).getAllByRole("button").map((button) => button.textContent)).toEqual([
-      "Custom Order",
-      "Sort by Artist",
-      "Sort by Genre",
-    ]);
+    expect(
+      within(group)
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+    ).toEqual(["Custom Order", "Sort by Artist", "Sort by Genre"]);
   });
 
   it.each([
@@ -46,7 +46,9 @@ describe("GridControls", () => {
     renderControls({ sortOption: option });
     const group = screen.getByRole("group", { name: "Sort Records" });
     for (const button of within(group).getAllByRole("button")) {
-      expect(button.getAttribute("aria-pressed")).toBe(button.textContent === label ? "true" : "false");
+      expect(button.getAttribute("aria-pressed")).toBe(
+        button.textContent === label ? "true" : "false"
+      );
     }
   });
 
@@ -60,9 +62,9 @@ describe("GridControls", () => {
 
   it("says whether the grid settings panel is open", () => {
     const { props, rerender } = renderControls();
-    expect(screen.getByRole("button", { name: "Configure Grid" }).getAttribute("aria-expanded")).toBe(
-      "false"
-    );
+    expect(
+      screen.getByRole("button", { name: "Configure Grid" }).getAttribute("aria-expanded")
+    ).toBe("false");
     rerender(<GridControls {...props} showDimensionsConfig />);
     expect(
       screen.getByRole("button", { name: "Hide Grid Config" }).getAttribute("aria-expanded")
