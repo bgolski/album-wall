@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { Album, Html2CanvasOptions } from "@/types";
-import html2canvas from "html2canvas";
 
 const EXPORT_TIMEOUT_MS = 20000;
 
@@ -88,6 +87,8 @@ export function useGridExport(username: string, albums: Album[]) {
       labels.forEach((label) => {
         label.style.display = "none";
       });
+
+      const { default: html2canvas } = await import("html2canvas");
 
       const canvas = await withTimeout(
         Promise.resolve(
