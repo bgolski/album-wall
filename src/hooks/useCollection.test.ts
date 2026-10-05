@@ -245,3 +245,19 @@ describe("useCollection memory", () => {
     });
   });
 });
+
+describe("useCollection forgetUndo", () => {
+  it("empties the undo history", async () => {
+    mockDiscogs.validateDiscogsUsername.mockReturnValue(true);
+    mockDiscogs.getUserCollection.mockResolvedValue([{ id: 1, title: "A", artist: "B" }]);
+    const { result } = renderHook(() => useCollection());
+    act(() => {
+      result.current.handleAlbumsReorder([{ id: 2, title: "C", artist: "D" }]);
+    });
+    expect(result.current.canUndo).toBe(true);
+    act(() => {
+      result.current.forgetUndo();
+    });
+    expect(result.current.canUndo).toBe(false);
+  });
+});

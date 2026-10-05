@@ -15,6 +15,7 @@ interface CollectionManagerProps {
   onAlbumsReorder: (newAlbums: Album[]) => void;
   canUndo: boolean;
   onUndo: () => boolean;
+  onPinsChange: () => void;
   onRetry: () => void;
 }
 
@@ -32,6 +33,7 @@ export function CollectionManager({
   onAlbumsReorder,
   canUndo,
   onUndo,
+  onPinsChange,
   onRetry,
 }: CollectionManagerProps) {
   return (
@@ -52,6 +54,7 @@ export function CollectionManager({
             onAlbumsReorder={onAlbumsReorder}
             canUndo={canUndo}
             onUndo={onUndo}
+            onPinsChange={onPinsChange}
           />
         ) : loadedUsername ? (
           <EmptyCollection username={loadedUsername} />

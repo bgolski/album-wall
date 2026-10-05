@@ -8,6 +8,7 @@ interface CollectionDisplayProps {
   onAlbumsReorder: (newAlbums: Album[]) => void;
   canUndo?: boolean | undefined;
   onUndo?: (() => boolean) | undefined;
+  onPinsChange?: (() => void) | undefined;
 }
 
 /**
@@ -45,6 +46,7 @@ export function CollectionDisplay({
   onAlbumsReorder,
   canUndo,
   onUndo,
+  onPinsChange,
 }: CollectionDisplayProps) {
   return (
     <>
@@ -56,6 +58,7 @@ export function CollectionDisplay({
         onAlbumsReorder={onAlbumsReorder}
         canUndo={canUndo}
         onUndo={onUndo}
+        onPinsChange={onPinsChange}
       />
     </>
   );

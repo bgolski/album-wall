@@ -192,6 +192,12 @@ export function useCollection() {
   }, [undoHistory]);
 
   /**
+   * Forgets the undo history. Pinning changes which albums must stay put, and an older order
+   * could move a pinned album, so undo starts again from the pins as they are now.
+   */
+  const forgetUndo = clearHistory;
+
+  /**
    * Retries loading the currently entered Discogs collection, asking Discogs again.
    */
   const retry = () => {
@@ -222,6 +228,7 @@ export function useCollection() {
     handleUsernameChange,
     handleAlbumsReorder,
     undo,
+    forgetUndo,
     retry,
   };
 }

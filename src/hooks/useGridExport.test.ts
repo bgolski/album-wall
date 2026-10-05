@@ -342,3 +342,43 @@ describe("useGridExport sized images", () => {
     expect(result.current.status?.message).toBe("Image saved.");
   });
 });
+
+describe("useGridExport capture size", () => {
+  async function captureScale(width: number, height: number, size = 3000) {
+    const grid = createGridWithLabels();
+    Object.defineProperty(grid, "offsetWidth", { value: width });
+    Object.defineProperty(grid, "offsetHeight", { value: height });
+    const { result } = renderHook(() => useGridExport("u", [{ id: 1, title: "A", artist: "B" }]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
+    html2canvasMock.mockReset();
+    html2canvasMock.mockResolvedValue({ width: 10, height: 10 });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      fillRect: vi.fn(),
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback: BlobCallback) =>
+      callback(new Blob(["png"], { type: "image/png" }))
+    );
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+    await act(async () => {
+      await result.current.shareOrSaveImage({
+        id: "square",
+        label: "Square print",
+        width: size,
+        height: size,
+      });
+    });
+    return (html2canvasMock.mock.calls[0]![1] as { scale: number }).scale;
+  }
+
+  it("captures a narrow phone wall at the size it is printed instead of stretching it", async () => {
+    expect(await captureScale(340, 200)).toBeCloseTo(2700 / 340);
+  });
+
+  it("keeps the capture within a canvas size phones can render", async () => {
+    expect(await captureScale(200, 200, 10000)).toBeCloseTo(4096 / 200);
+  });
+});

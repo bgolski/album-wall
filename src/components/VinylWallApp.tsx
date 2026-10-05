@@ -23,6 +23,7 @@ export default function VinylWallApp() {
     handleUsernameChange,
     handleAlbumsReorder,
     undo,
+    forgetUndo,
     retry,
   } = useCollection();
 
@@ -47,6 +48,7 @@ export default function VinylWallApp() {
         onAlbumsReorder={handleAlbumsReorder}
         canUndo={canUndo}
         onUndo={undo}
+        onPinsChange={forgetUndo}
         onRetry={retry}
       />
     </AppContainer>

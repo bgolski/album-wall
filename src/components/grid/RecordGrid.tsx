@@ -40,6 +40,7 @@ interface RecordGridProps {
   sharedWallState?: SharedWallState | null;
   canUndo?: boolean | undefined;
   onUndo?: (() => boolean) | undefined;
+  onPinsChange?: (() => void) | undefined;
 }
 
 const DRAG_INSTRUCTIONS = {
@@ -74,6 +75,7 @@ export function RecordGrid({
   sharedWallState,
   canUndo = false,
   onUndo,
+  onPinsChange,
 }: RecordGridProps) {
   // The label default follows the screen width until the user toggles it.
   const [labelsOverride, setLabelsOverride] = useState<boolean | null>(null);
@@ -287,6 +289,15 @@ export function RecordGrid({
     ),
   });
   const currentWallSignature = JSON.stringify(currentWallState);
+
+  // An older order could move an album that is now pinned, so a pin change resets undo.
+  const pinSignature = Array.from(pinnedAlbums).sort().join(",");
+  const previousPinSignature = useRef(pinSignature);
+  useEffect(() => {
+    if (previousPinSignature.current === pinSignature) return;
+    previousPinSignature.current = pinSignature;
+    onPinsChange?.();
+  }, [pinSignature, onPinsChange]);
 
   // Remember the wall on this device so it comes back the next time this collection loads.
   useEffect(() => {

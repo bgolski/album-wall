@@ -5,6 +5,8 @@ import { fitIntoFrame, type ExportPreset } from "@/utils/exportFrame";
 const EXPORT_TIMEOUT_MS = 20000;
 const STATUS_VISIBLE_MS = 4000;
 const ACTION_VISIBLE_MS = 15000;
+// Largest canvas side to capture; browsers on phones refuse much bigger canvases.
+const MAX_CAPTURE_SIDE = 4096;
 
 export interface ExportStatus {
   message: string;
@@ -142,16 +144,17 @@ export function useGridExport(username: string, albums: Album[]) {
     const grid = gridRef.current;
     const background = getPanelColor(grid);
     const padding = preset ? Math.round(Math.min(preset.width, preset.height) * 0.05) : 0;
-    // Capture a preset at about the resolution it is drawn at, within what a phone can render.
+    // Capture a preset at the resolution it is drawn at, so a narrow wall on a phone is not
+    // stretched, but keep the capture within a canvas size phones can render.
+    const gridWidth = grid.offsetWidth || 1;
+    const gridHeight = grid.offsetHeight || 1;
     const scale = preset
-      ? Math.min(
-          4,
-          Math.max(
-            1,
-            Math.min(
-              (preset.width - 2 * padding) / (grid.offsetWidth || 1),
-              (preset.height - 2 * padding) / (grid.offsetHeight || 1)
-            )
+      ? Math.max(
+          1,
+          Math.min(
+            (preset.width - 2 * padding) / gridWidth,
+            (preset.height - 2 * padding) / gridHeight,
+            MAX_CAPTURE_SIDE / Math.max(gridWidth, gridHeight)
           )
         )
       : getExportScale();

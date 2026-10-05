@@ -14,6 +14,7 @@ const baseProps = {
   loadCount: 0,
   canUndo: false,
   onUndo: vi.fn(),
+  onPinsChange: vi.fn(),
 };
 
 describe("CollectionManager empty collection", () => {

@@ -344,3 +344,29 @@ describe("RecordGrid undo, memory and sized exports", () => {
     }
   });
 });
+
+describe("RecordGrid pins and undo", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("resets undo when the pins change, not when the grid first shows", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    const onPinsChange = vi.fn();
+    render(
+      <RecordGrid
+        username="someone"
+        albums={albums}
+        onAlbumsReorder={vi.fn()}
+        onPinsChange={onPinsChange}
+      />
+    );
+    expect(onPinsChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Pin Album 1" }));
+    expect(onPinsChange).toHaveBeenCalledTimes(1);
+  });
+});
