@@ -65,9 +65,13 @@ jobs:
 
       - name: Build
         id: build
+        env:
+          # Pull requests are never deployed, and the browser checks answer proxy requests
+          # themselves, so a placeholder serves when secrets are unavailable (Dependabot, forks).
+          DISCOGS_PROXY_URL: ${{ secrets.DISCOGS_PROXY_URL || 'https://discogs-proxy.invalid/' }}
         run: |
           echo "NEXT_PUBLIC_BASE_PATH=/album-wall" >> .env.local
-          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=${{ secrets.DISCOGS_PROXY_URL }}" >> .env.local
+          echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=$DISCOGS_PROXY_URL" >> .env.local
           npm run build:static
 
       - name: Check the static output
