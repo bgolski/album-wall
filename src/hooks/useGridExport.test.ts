@@ -213,6 +213,26 @@ describe("useGridExport", () => {
     expect(shared.files[0]!.name).toBe("testuser_vinyl_wall.png");
   });
 
+  it("names the demo wall's image Demo_vinyl_wall.png, not after its reserved username", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport("~demo", albums));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    const blob = new Blob(["png"], { type: "image/png" });
+    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
+    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+    const createSpy = vi.spyOn(document, "createElement");
+
+    await act(async () => {
+      await result.current.shareOrSaveImage();
+    });
+
+    const anchorEl = createSpy.mock.results[0]!.value as HTMLAnchorElement;
+    expect(anchorEl.getAttribute("download")).toBe("Demo_vinyl_wall.png");
+  });
+
   it("uses Anonymous_vinyl_wall.png filename when username is empty", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() => useGridExport("", albums));

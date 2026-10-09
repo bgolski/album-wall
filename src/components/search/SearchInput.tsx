@@ -7,6 +7,7 @@ interface SearchInputProps {
   usernameError: string | null;
   onUsernameChange: (value: string) => void;
   onLoadCollection: () => void;
+  onTryDemo?: (() => void) | undefined;
 }
 
 /**
@@ -18,6 +19,7 @@ export function SearchInput({
   usernameError,
   onUsernameChange,
   onLoadCollection,
+  onTryDemo,
 }: SearchInputProps) {
   const inputClassName = `w-full rounded-control bg-raised border px-4 py-2 text-ink focus:outline-hidden focus:border-accent md:flex-1 md:rounded-r-none ${
     usernameError ? "border-danger" : "border-line"
@@ -32,7 +34,7 @@ export function SearchInput({
 
   return (
     <div className="mb-8 text-center">
-      <AppHeader />
+      <AppHeader onTryDemo={onTryDemo} demoDisabled={isPending} />
 
       <div className="flex flex-col items-center">
         <form

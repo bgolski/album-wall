@@ -20,13 +20,15 @@ afterEach(() => {
 });
 
 describe("getUserCollection cancellation", () => {
-  it("passes the caller's signal to fetch", async () => {
+  it("cancels the request in flight when the caller's signal aborts", async () => {
     const { getUserCollection } = await load();
-    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ albums }), { status: 200 }));
+    vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
     const controller = new AbortController();
-    await getUserCollection("vinylfan", controller.signal);
-    const init = vi.mocked(fetch).mock.calls[0]?.[1];
-    expect(init?.signal).toBe(controller.signal);
+    void getUserCollection("vinylfan", controller.signal).catch(() => {});
+    const sent = vi.mocked(fetch).mock.calls[0]?.[1]?.signal;
+    expect(sent?.aborted).toBe(false);
+    controller.abort();
+    expect(sent?.aborted).toBe(true);
   });
 
   it("rejects with the AbortError when the load is cancelled", async () => {

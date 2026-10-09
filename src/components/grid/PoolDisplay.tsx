@@ -27,7 +27,7 @@ export function PoolDisplay({ albums, onSelect, moveSourceId, showAlbumLabels }:
     <div className="rounded-panel bg-panel p-4 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-ink">
-          Remaining Record Pool (
+          Remaining Records (
           <span aria-live="polite">
             {isFiltering ? `${visibleAlbums.length} of ${albums.length}` : albums.length} albums
           </span>

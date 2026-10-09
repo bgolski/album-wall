@@ -18,6 +18,8 @@ export const albums = Array.from({ length: 40 }, (_, index) => ({
 }));
 
 export async function stubNetwork(page: Page) {
+  // Most checks are about a returning visitor, so the first-visit welcome is already dismissed.
+  await page.addInitScript(() => localStorage.setItem("album-wall:welcome-dismissed", "1"));
   await page.route(
     (url) => url.searchParams.has("username"),
     (route) =>

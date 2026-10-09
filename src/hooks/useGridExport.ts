@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { wallDisplayName } from "@/utils/demoCollection";
 import { Album, Html2CanvasOptions } from "@/types";
 import { fitIntoFrame, type ExportPreset } from "@/utils/exportFrame";
 
@@ -113,7 +114,7 @@ export function useGridExport(username: string, albums: Album[]) {
   }, [status]);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const userDisplayName = username || "Anonymous";
+  const userDisplayName = wallDisplayName(username) || "Anonymous";
   const imageFilenameFor = (preset?: ExportPreset) =>
     `${userDisplayName}_vinyl_wall${preset ? `_${preset.id}` : ""}.png`;
 

@@ -3,7 +3,9 @@
 import { AppContainer } from "./layout/AppContainer";
 import { SearchInput } from "./search/SearchInput";
 import { CollectionManager } from "./collection/CollectionManager";
+import { WelcomeDialog } from "./search/WelcomeDialog";
 import { useCollection } from "@/hooks/useCollection";
+import { useWelcome } from "@/hooks/useWelcome";
 
 /**
  * Top-level client component that wires collection state to the search and display flows.
@@ -18,6 +20,7 @@ export default function VinylWallApp() {
     isPending,
     error,
     usernameError,
+    demoAvailable,
     canUndo,
     loadCollection,
     handleUsernameChange,
@@ -25,7 +28,14 @@ export default function VinylWallApp() {
     undo,
     forgetUndo,
     retry,
+    loadDemo,
   } = useCollection();
+  const welcome = useWelcome(demoAvailable, albums.length > 0);
+
+  const tryDemo = () => {
+    welcome.dismiss();
+    loadDemo();
+  };
 
   return (
     <AppContainer>
@@ -35,6 +45,7 @@ export default function VinylWallApp() {
         usernameError={usernameError}
         onUsernameChange={handleUsernameChange}
         onLoadCollection={loadCollection}
+        onTryDemo={demoAvailable ? tryDemo : undefined}
       />
 
       <CollectionManager
@@ -51,6 +62,8 @@ export default function VinylWallApp() {
         onPinsChange={forgetUndo}
         onRetry={retry}
       />
+
+      {welcome.open && <WelcomeDialog onTryDemo={tryDemo} onClose={welcome.dismiss} />}
     </AppContainer>
   );
 }

@@ -1,5 +1,6 @@
 import { Album, SharedWallState } from "@/types";
 import { RecordGrid } from "../grid/RecordGrid";
+import { DEMO_USERNAME } from "@/utils/demoCollection";
 
 interface CollectionDisplayProps {
   albums: Album[];
@@ -14,27 +15,36 @@ interface CollectionDisplayProps {
 /**
  * Displays the loaded collection summary and the interactive record grid.
  */
-const UserHeader = ({ username, albumCount }: { username: string; albumCount: number }) => (
-  <div className="mb-6 text-center">
-    <div className="inline-flex items-center px-4 py-2 bg-panel rounded-panel">
-      <a
-        href={`https://www.discogs.com/user/${username}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center text-accent hover:text-accent transition-colors"
-      >
-        <span className="mr-2">
-          <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 3a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
-          </svg>
-        </span>
-        <span className="font-medium">{username}</span>
-      </a>
-      <span className="mx-2 text-muted">•</span>
-      <span className="text-muted">{albumCount} vinyl records</span>
+const UserHeader = ({ username, albumCount }: { username: string; albumCount: number }) =>
+  username === DEMO_USERNAME ? (
+    <div className="mb-6 text-center">
+      <div className="inline-flex items-center px-4 py-2 bg-panel rounded-panel">
+        <span className="font-medium text-accent">Demo wall</span>
+        <span className="mx-2 text-muted">•</span>
+        <span className="text-muted">{albumCount} albums</span>
+      </div>
     </div>
-  </div>
-);
+  ) : (
+    <div className="mb-6 text-center">
+      <div className="inline-flex items-center px-4 py-2 bg-panel rounded-panel">
+        <a
+          href={`https://www.discogs.com/user/${username}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center text-accent hover:text-accent transition-colors"
+        >
+          <span className="mr-2">
+            <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 3a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
+            </svg>
+          </span>
+          <span className="font-medium">{username}</span>
+        </a>
+        <span className="mx-2 text-muted">•</span>
+        <span className="text-muted">{albumCount} vinyl records</span>
+      </div>
+    </div>
+  );
 
 /**
  * Renders the loaded collection header and the wall/pool grid interface.

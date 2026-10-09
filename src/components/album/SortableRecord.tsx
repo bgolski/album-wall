@@ -11,6 +11,7 @@ import { AlbumBorder } from "./AlbumBorder";
 interface SortableRecordProps {
   album: Album;
   exportMode?: boolean;
+  imageSize?: number;
   isPinned?: boolean;
   onPinToggle?: (albumId: string) => void;
   onSelect?: (album: Album) => void;
@@ -25,6 +26,7 @@ interface SortableRecordProps {
 export function SortableRecord({
   album,
   exportMode = false,
+  imageSize,
   isPinned = false,
   onPinToggle,
   onSelect,
@@ -40,7 +42,8 @@ export function SortableRecord({
 
   const { imageSource, imgRef, handleImageError, handleImageLoad } = useAlbumImage(
     album,
-    exportMode
+    exportMode,
+    imageSize
   );
 
   const style = isPinned

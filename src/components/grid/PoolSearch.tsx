@@ -5,21 +5,21 @@ interface PoolSearchProps {
 }
 
 /**
- * A search field for the record pool with a clear button. The text is 16px so iOS Safari does
+ * A search field for the remaining records with a clear button. The text is 16px so iOS Safari does
  * not zoom the page when the field is focused.
  */
 export function PoolSearch({ query, onQueryChange, className = "" }: PoolSearchProps) {
   return (
     <div className={`relative ${className}`}>
       <label htmlFor="pool-search" className="sr-only">
-        Search the record pool
+        Search
       </label>
       <input
         id="pool-search"
         type="search"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="Search the pool"
+        placeholder="Search"
         autoComplete="off"
         className="w-full rounded-control border border-line bg-raised py-2 pl-3 pr-10 text-base text-ink placeholder:text-muted focus:border-accent focus:outline-hidden [&::-webkit-search-cancel-button]:appearance-none"
       />

@@ -12,6 +12,12 @@ type DiscogsProxyResponse = {
 // The proxy reports a user with no records as an error; the app treats it as an empty collection.
 const EMPTY_COLLECTION_PATTERN = /has no vinyl records/i;
 
+// Long enough for a large collection to be paged through, short enough that a stalled request
+// ends in an error with a retry button instead of a spinner that never stops.
+const PROXY_TIMEOUT_MS = 60_000;
+
+const TIMEOUT_MESSAGE = "The Discogs proxy took too long to respond. Please try again.";
+
 const GENERIC_PROXY_ERROR_MESSAGE =
   "An unexpected error occurred while loading the Discogs collection.";
 
@@ -51,61 +57,79 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
   const requestUrl = new URL(discogsProxyUrl);
   requestUrl.searchParams.set("username", username);
 
-  let response: Response;
+  // One timer covers both the request and reading its body; a caller's own signal still wins.
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, PROXY_TIMEOUT_MS);
+  const abortWithCaller = () => controller.abort();
+  signal?.addEventListener("abort", abortWithCaller, { once: true });
 
   try {
-    response = await fetch(requestUrl.toString(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-      ...(signal ? { signal } : {}),
-    });
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    throw new Error("No response from the Discogs proxy. Please check your network connection.");
+    let response: Response;
+
+    try {
+      response = await fetch(requestUrl.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      if (timedOut) throw new Error(TIMEOUT_MESSAGE);
+      throw new Error("No response from the Discogs proxy. Please check your network connection.");
+    }
+
+    let responseBody: DiscogsProxyResponse | null = null;
+
+    try {
+      responseBody = (await response.json()) as DiscogsProxyResponse;
+    } catch {
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (timedOut) throw new Error(TIMEOUT_MESSAGE);
+      responseBody = null;
+    }
+
+    if (!response.ok) {
+      if (responseBody?.error && EMPTY_COLLECTION_PATTERN.test(responseBody.error)) {
+        return [];
+      }
+
+      if (responseBody?.error) {
+        throw new Error(responseBody.error);
+      }
+
+      if (response.status === 404) {
+        throw new Error(`User "${username}" not found on Discogs`);
+      }
+
+      if (response.status === 429) {
+        throw new Error("Rate limit exceeded. Please try again in a few minutes.");
+      }
+
+      if (response.status >= 500) {
+        throw new Error("Discogs proxy error. Please try again later.");
+      }
+
+      throw new Error(
+        `Discogs proxy error: ${response.status} - ${response.statusText || "Unknown error"}`
+      );
+    }
+
+    if (!Array.isArray(responseBody?.albums)) {
+      throw new Error(GENERIC_PROXY_ERROR_MESSAGE);
+    }
+
+    // Someone who owns two copies of a release gets the same id twice; tiles need distinct ones.
+    return giveCopiesUniqueIds(responseBody.albums);
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abortWithCaller);
   }
-
-  let responseBody: DiscogsProxyResponse | null = null;
-
-  try {
-    responseBody = (await response.json()) as DiscogsProxyResponse;
-  } catch {
-    responseBody = null;
-  }
-
-  if (!response.ok) {
-    if (responseBody?.error && EMPTY_COLLECTION_PATTERN.test(responseBody.error)) {
-      return [];
-    }
-
-    if (responseBody?.error) {
-      throw new Error(responseBody.error);
-    }
-
-    if (response.status === 404) {
-      throw new Error(`User "${username}" not found on Discogs`);
-    }
-
-    if (response.status === 429) {
-      throw new Error("Rate limit exceeded. Please try again in a few minutes.");
-    }
-
-    if (response.status >= 500) {
-      throw new Error("Discogs proxy error. Please try again later.");
-    }
-
-    throw new Error(
-      `Discogs proxy error: ${response.status} - ${response.statusText || "Unknown error"}`
-    );
-  }
-
-  if (!Array.isArray(responseBody?.albums)) {
-    throw new Error(GENERIC_PROXY_ERROR_MESSAGE);
-  }
-
-  // Someone who owns two copies of a release gets the same id twice; tiles need distinct ones.
-  return giveCopiesUniqueIds(responseBody.albums);
 }
 
 export { GENERIC_PROXY_ERROR_MESSAGE };

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Album } from "@/types";
 import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 
@@ -7,11 +7,22 @@ import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProx
  *
  * @param album Album whose artwork should be displayed.
  * @param exportMode When true, converts the loaded image to a data URL for canvas export.
+ * @param imageSize When provided and exportMode is false, requests a proxied URL at this
+ *                   pixel size for larger tile displays.
  * @returns Image source state, a wrapper ref, and load/error handlers for the image element.
  */
-export function useAlbumImage(album: Album, exportMode: boolean = false) {
+export function useAlbumImage(album: Album, exportMode: boolean = false, imageSize?: number) {
   const coverImage = album.cover_image || album.coverUrl;
-  const proxiedUrl = coverImage ? getProxiedImageUrl(coverImage) : "";
+
+  // Memoize by cover URL, requested size, and export mode.
+  const proxiedUrl = useMemo(() => {
+    if (!coverImage) return "";
+    if (imageSize != null && !exportMode) {
+      return getProxiedImageUrl(coverImage, { size: imageSize });
+    }
+    return getProxiedImageUrl(coverImage);
+  }, [coverImage, imageSize, exportMode]);
+
   // Both are tied to the url they were learned for, so a new album starts clean by itself.
   const [failedUrl, setFailedUrl] = useState("");
   const [exported, setExported] = useState<{ source: string; dataUrl: string } | null>(null);

@@ -229,6 +229,88 @@ describe("getUserCollection", () => {
   });
 });
 
+describe("getUserCollection when the proxy stalls", () => {
+  const proxyUrl = "https://proxy.example/collection";
+  const stalledFetch = () =>
+    vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError"))
+        );
+      });
+    });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("gives up with a clear error when the proxy never answers", async () => {
+    vi.useFakeTimers();
+    const { getUserCollection } = await loadDiscogsModule({
+      NEXT_PUBLIC_DISCOGS_PROXY_URL: proxyUrl,
+    });
+    vi.stubGlobal("fetch", stalledFetch());
+    const result = getUserCollection("validUser");
+    const assertion = expect(result).rejects.toThrow("took too long to respond");
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+  });
+
+  it("gives up when the answer starts but the body never finishes", async () => {
+    vi.useFakeTimers();
+    const { getUserCollection } = await loadDiscogsModule({
+      NEXT_PUBLIC_DISCOGS_PROXY_URL: proxyUrl,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener("abort", () =>
+                reject(new DOMException("Aborted", "AbortError"))
+              );
+            }),
+        } as unknown as Response)
+      )
+    );
+    const result = getUserCollection("validUser");
+    const assertion = expect(result).rejects.toThrow("took too long to respond");
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+  });
+
+  it("does not report a timeout when the caller cancels", async () => {
+    const { getUserCollection } = await loadDiscogsModule({
+      NEXT_PUBLIC_DISCOGS_PROXY_URL: proxyUrl,
+    });
+    vi.stubGlobal("fetch", stalledFetch());
+    const controller = new AbortController();
+    const result = getUserCollection("validUser", controller.signal);
+    controller.abort();
+    await expect(result).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("does not leave a timer running after a successful load", async () => {
+    vi.useFakeTimers();
+    const { getUserCollection } = await loadDiscogsModule({
+      NEXT_PUBLIC_DISCOGS_PROXY_URL: proxyUrl,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ albums: [{ id: 1, title: "Test" }] }), { status: 200 })
+        )
+      )
+    );
+    await getUserCollection("validUser");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
 describe("getUserCollection with duplicate copies", () => {
   it("gives a second copy of a release its own id", async () => {
     const { getUserCollection } = await loadDiscogsModule({

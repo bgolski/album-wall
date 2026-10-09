@@ -243,7 +243,7 @@ describe("RecordGrid tap actions", () => {
 
   it("swaps a wall album with a pool album found through the pool search", () => {
     const onAlbumsReorder = renderGrid();
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search the record pool" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
       target: { value: "Album 40" },
     });
     expect(screen.queryByAltText("Album 39")).toBeNull();

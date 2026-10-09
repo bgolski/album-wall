@@ -109,7 +109,10 @@ export function GridDimensionsConfig({
       </div>
 
       <div className="mt-3 text-xs text-accent">
-        <p>Note: Changing dimensions will redistribute albums between the wall display and pool.</p>
+        <p>
+          Note: Changing dimensions will redistribute albums between the wall display and the
+          remaining records.
+        </p>
       </div>
     </div>
   );

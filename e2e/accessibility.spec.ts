@@ -39,7 +39,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("pool search", async ({ page }) => {
       await loadWall(page);
-      await page.getByRole("searchbox", { name: "Search the record pool" }).fill("Album 40");
+      await page.getByRole("searchbox", { name: "Search" }).fill("Album 40");
       await expect(page.getByText("1 of 8 albums")).toBeVisible();
       await expectNoViolations(page);
     });

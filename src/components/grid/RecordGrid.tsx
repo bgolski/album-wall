@@ -1,4 +1,5 @@
 import { useEffect, useState, useId, useMemo, useRef, useSyncExternalStore } from "react";
+import { wallDisplayName } from "@/utils/demoCollection";
 import {
   DndContext,
   closestCenter,
@@ -389,8 +390,8 @@ export function RecordGrid({
 
     try {
       await navigator.share({
-        title: `${username}'s Vinyl Wall`,
-        text: `Check out ${username}'s vinyl wall.`,
+        title: `${wallDisplayName(username)}'s Vinyl Wall`,
+        text: `Check out ${wallDisplayName(username)}'s vinyl wall.`,
         url: shareUrl,
       });
     } catch (error) {

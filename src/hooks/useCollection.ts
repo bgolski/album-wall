@@ -13,9 +13,12 @@ import { getSharedWallStateFromHash, orderAlbumsBySharedWall } from "@/utils/sha
 import { loadLastUsername, loadSavedWall, saveLastUsername } from "@/utils/savedWall";
 import { readCachedCollection, writeCachedCollection } from "@/utils/collectionCache";
 import { useUndoHistory } from "@/hooks/useUndoHistory";
+import { DEMO_USERNAME, parseDemoCollection } from "@/utils/demoCollection";
+import { getBasePath } from "@/utils/basePath";
 
 const VALIDATION_ERROR_MESSAGE =
   "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
+const DEMO_MISSING_MESSAGE = "The demo wall is not available right now.";
 const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
 
 function subscribeToNothing() {
@@ -67,7 +70,9 @@ export function useCollection() {
   const hash = useSyncExternalStore(subscribeToNothing, getLocationHash, getNoHash);
   const lastUsername = useSyncExternalStore(subscribeToNothing, getLastUsername, getNoUsername);
   const linkedWallState = useMemo(() => getSharedWallStateFromHash(hash), [hash]);
-  const username = typedUsername ?? linkedWallState?.username ?? lastUsername ?? "";
+  const linkedIsDemo = linkedWallState?.username === DEMO_USERNAME;
+  const username =
+    typedUsername ?? (linkedIsDemo ? undefined : linkedWallState?.username) ?? lastUsername ?? "";
   const [loadedUsername, setLoadedUsername] = useState("");
   // Counts finished loads, so the wall starts afresh even when a load finishes without a
   // visible loading state (a cached collection).
@@ -76,6 +81,8 @@ export function useCollection() {
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [sharedWallState, setSharedWallState] = useState<SharedWallState | null>(null);
+  const [demoAlbums, setDemoAlbums] = useState<Album[] | null>(null);
+  const [demoStatus, setDemoStatus] = useState<"loading" | "done">("loading");
   const history = useUndoHistory<Album[]>();
   const { clear: clearHistory, record: recordHistory, undo: undoHistory } = history;
 
@@ -204,13 +211,69 @@ export function useCollection() {
     void loadCollectionForUsername(username, null, true);
   };
 
+  /**
+   * Loads the fictional demo wall from the local file. Shows the wall from a share link when there
+   * is one, otherwise the wall saved on this device. Never contacts Discogs and does not change
+   * the remembered username or the recently loaded collection.
+   *
+   * @param linkedState Parsed shared wall state, if the load came from a share link.
+   */
+  const loadDemo = useCallback(
+    (linkedState: SharedWallState | null = null) => {
+      if (!demoAlbums) return;
+      const localStore = getStorage("localStorage");
+      const savedState = localStore ? loadSavedWall(localStore, DEMO_USERNAME) : null;
+      const wallState = linkedState ?? savedState;
+      setSharedWallState(wallState);
+      setAlbums(wallState ? orderAlbumsBySharedWall(demoAlbums, wallState) : demoAlbums);
+      setLoadedUsername(DEMO_USERNAME);
+      setLoadCount((count) => count + 1);
+      clearHistory();
+      setError(null);
+      setUsernameError(null);
+    },
+    [demoAlbums, clearHistory]
+  );
+
   // A share link in the address loads its collection once, when the page opens.
   const startedFromLink = useRef(false);
   useEffect(() => {
     if (!linkedWallState || startedFromLink.current) return;
+    if (linkedWallState.username === DEMO_USERNAME) return;
     startedFromLink.current = true;
-    void loadCollectionForUsername(linkedWallState.username, linkedWallState);
+    queueMicrotask(() => void loadCollectionForUsername(linkedWallState.username, linkedWallState));
   }, [linkedWallState, loadCollectionForUsername]);
+
+  // A demo share link waits for the demo file, then opens the demo once.
+  const startedFromDemoLink = useRef(false);
+  useEffect(() => {
+    if (!linkedWallState || linkedWallState.username !== DEMO_USERNAME) return;
+    if (startedFromDemoLink.current || !demoAlbums) return;
+    startedFromDemoLink.current = true;
+    queueMicrotask(() => loadDemo(linkedWallState));
+  }, [linkedWallState, demoAlbums, loadDemo]);
+
+  // Fetch the demo collection once on mount. The demo is offered only when the file loads and
+  // parses; a missing or invalid file leaves the normal username flow untouched.
+  useEffect(() => {
+    let cancelled = false;
+    const loadDemoCollection = async () => {
+      try {
+        const res = await fetch(`${getBasePath()}/demo/collection.json`);
+        if (!res.ok) return;
+        const parsed = parseDemoCollection(await res.json());
+        if (!cancelled && parsed) setDemoAlbums(parsed);
+      } catch {
+        // No demo offered.
+      } finally {
+        if (!cancelled) setDemoStatus("done");
+      }
+    };
+    void loadDemoCollection();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return {
     // State
@@ -220,8 +283,10 @@ export function useCollection() {
     loadCount,
     sharedWallState,
     isPending,
-    error,
+    error:
+      error ?? (linkedIsDemo && demoStatus === "done" && !demoAlbums ? DEMO_MISSING_MESSAGE : null),
     usernameError,
+    demoAvailable: demoAlbums !== null,
     canUndo: history.canUndo,
     // Actions
     loadCollection,
@@ -230,5 +295,6 @@ export function useCollection() {
     undo,
     forgetUndo,
     retry,
+    loadDemo,
   };
 }

@@ -4,11 +4,26 @@ A web application that lets you visualize your Discogs record collection as a wa
 
 ## Features
 
-- Load your Discogs vinyl collection
+- Load your Discogs vinyl collection, or try the built-in demo wall without an account
 - Arrange records in an 8x4 grid wall display
 - Drag and drop records between the wall and the pool
 - Sort records by artist or genre
 - Save your wall display as an image (without album labels)
+
+## Demo wall
+
+Visitors without a Discogs account can try a demo wall of 96 well-known albums. First-time visitors
+are offered it in a welcome dialog; after that it stays one click away in the page header. The
+albums are listed in `public/demo/collection.json`, so the demo never contacts Discogs or the
+proxy and does not change the remembered username. Cover art is loaded from the
+[Cover Art Archive](https://coverartarchive.org/) through the same image proxy as real
+collections, and any cover that fails to load falls back to a placeholder. Shuffling, pinning,
+rearranging, saving the wall as an image and copying a share link all work as they do for a real
+collection, and a demo share link reopens the same arrangement.
+
+The demo is saved and shared under the reserved name `~demo`. Discogs usernames cannot contain a
+tilde, so the demo can never overwrite or open a real account's saved wall. If the demo file is
+missing or invalid the demo is not offered and loading by username is unaffected.
 
 ## Tech Stack
 

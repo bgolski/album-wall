@@ -13,7 +13,7 @@ function renderPool(list = albums) {
   render(<PoolDisplay albums={list} onSelect={vi.fn()} moveSourceId={null} showAlbumLabels />);
 }
 
-const search = () => screen.getByRole("searchbox", { name: "Search the record pool" });
+const search = () => screen.getByRole("searchbox", { name: "Search" });
 const type = (text: string) => fireEvent.change(search(), { target: { value: text } });
 
 describe("PoolDisplay search", () => {

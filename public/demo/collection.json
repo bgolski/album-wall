@@ -1,0 +1,773 @@
+{
+  "v": 1,
+  "albums": [
+    {
+      "id": 900001,
+      "title": "Thriller",
+      "artist": "Michael Jackson",
+      "genre": ["Pop"],
+      "year": "1982",
+      "cover_image": "https://coverartarchive.org/release-group/f32fab67-77dd-3937-addc-9062e28e4c37/front-500"
+    },
+    {
+      "id": 900002,
+      "title": "Back in Black",
+      "artist": "AC/DC",
+      "genre": ["Rock"],
+      "year": "1980",
+      "cover_image": "https://coverartarchive.org/release-group/d3bc1a64-7561-3787-b680-0003aa50f8f1/front-500"
+    },
+    {
+      "id": 900003,
+      "title": "The Dark Side of the Moon",
+      "artist": "Pink Floyd",
+      "genre": ["Rock"],
+      "year": "1973",
+      "cover_image": "https://coverartarchive.org/release-group/f5093c06-23e3-404f-aeaa-40f72885ee3a/front-500"
+    },
+    {
+      "id": 900004,
+      "title": "Their Greatest Hits (1971–1975)",
+      "artist": "Eagles",
+      "genre": ["Rock"],
+      "year": "1976",
+      "cover_image": "https://coverartarchive.org/release-group/56ecf5cb-ad82-3d7e-82bf-1904cc16f451/front-500"
+    },
+    {
+      "id": 900005,
+      "title": "Bat Out of Hell",
+      "artist": "Meat Loaf",
+      "genre": ["Rock"],
+      "year": "1977",
+      "cover_image": "https://coverartarchive.org/release-group/47616c4c-5d4b-30f6-83bc-60e1c696b099/front-500"
+    },
+    {
+      "id": 900006,
+      "title": "Rumours",
+      "artist": "Fleetwood Mac",
+      "genre": ["Rock"],
+      "year": "1977",
+      "cover_image": "https://coverartarchive.org/release-group/416bb5e5-c7d1-3977-8fd7-7c9daf6c2be6/front-500"
+    },
+    {
+      "id": 900007,
+      "title": "Come On Over",
+      "artist": "Shania Twain",
+      "genre": ["Country"],
+      "year": "1997",
+      "cover_image": "https://coverartarchive.org/release-group/45bcf3e0-a274-3bdd-9130-299a5ef780ea/front-500"
+    },
+    {
+      "id": 900008,
+      "title": "Saturday Night Fever",
+      "artist": "Bee Gees",
+      "genre": ["Soundtrack"],
+      "year": "1977",
+      "cover_image": "https://coverartarchive.org/release-group/6e9a06a8-c8bb-3ea9-877a-417e74bb1c2e/front-500"
+    },
+    {
+      "id": 900009,
+      "title": "Led Zeppelin IV",
+      "artist": "Led Zeppelin",
+      "genre": ["Rock"],
+      "year": "1971",
+      "cover_image": "https://coverartarchive.org/release-group/2e61da88-39e9-3473-81d2-c964cb394952/front-500"
+    },
+    {
+      "id": 900010,
+      "title": "Millennium",
+      "artist": "Backstreet Boys",
+      "genre": ["Pop"],
+      "year": "1999",
+      "cover_image": "https://coverartarchive.org/release-group/a8fb6ac6-a659-320f-8736-87b52ad65e3a/front-500"
+    },
+    {
+      "id": 900011,
+      "title": "Jagged Little Pill",
+      "artist": "Alanis Morissette",
+      "genre": ["Rock"],
+      "year": "1995",
+      "cover_image": "https://coverartarchive.org/release-group/ee3d18ed-d6a8-37c7-a964-41bbdb6d59f1/front-500"
+    },
+    {
+      "id": 900012,
+      "title": "Falling Into You",
+      "artist": "Celine Dion",
+      "genre": ["Pop"],
+      "year": "1996",
+      "cover_image": "https://coverartarchive.org/release-group/7c89982d-e6a6-3811-828d-5462a69f0ddf/front-500"
+    },
+    {
+      "id": 900013,
+      "title": "Bad",
+      "artist": "Michael Jackson",
+      "genre": ["Pop"],
+      "year": "1987",
+      "cover_image": "https://coverartarchive.org/release-group/a5711a77-42d1-3f4c-830c-e27a96f0800f/front-500"
+    },
+    {
+      "id": 900014,
+      "title": "Dangerous",
+      "artist": "Michael Jackson",
+      "genre": ["Pop"],
+      "year": "1991",
+      "cover_image": "https://coverartarchive.org/release-group/d6b52521-0dfa-390f-970f-790174c22752/front-500"
+    },
+    {
+      "id": 900015,
+      "title": "Nevermind",
+      "artist": "Nirvana",
+      "genre": ["Rock"],
+      "year": "1991",
+      "cover_image": "https://coverartarchive.org/release-group/1b022e01-4da6-387b-8658-8678046e4cef/front-500"
+    },
+    {
+      "id": 900016,
+      "title": "Appetite for Destruction",
+      "artist": "Guns N' Roses",
+      "genre": ["Rock"],
+      "year": "1987",
+      "cover_image": "https://coverartarchive.org/release-group/a0b94d0a-210b-4b15-bd1d-93be2196c14a/front-500"
+    },
+    {
+      "id": 900017,
+      "title": "Sgt. Pepper's Lonely Hearts Club Band",
+      "artist": "The Beatles",
+      "genre": ["Rock"],
+      "year": "1967",
+      "cover_image": "https://coverartarchive.org/release-group/9f7a4c28-8fa2-3113-929c-c47a9f7982c3/front-500"
+    },
+    {
+      "id": 900018,
+      "title": "The Beatles",
+      "artist": "The Beatles",
+      "genre": ["Rock"],
+      "year": "1994",
+      "cover_image": "https://coverartarchive.org/release-group/71aa4dac-b705-4b6e-be77-ecfa8c238ad0/front-500"
+    },
+    {
+      "id": 900019,
+      "title": "Abbey Road",
+      "artist": "The Beatles",
+      "genre": ["Rock"],
+      "year": "1969",
+      "cover_image": "https://coverartarchive.org/release-group/9162580e-5df4-32de-80cc-f45a8d8a9b1d/front-500"
+    },
+    {
+      "id": 900020,
+      "title": "21",
+      "artist": "Adele",
+      "genre": ["Pop"],
+      "year": "2011",
+      "cover_image": "https://coverartarchive.org/release-group/e4174758-d333-4a8e-a31f-dd0edd51518e/front-500"
+    },
+    {
+      "id": 900021,
+      "title": "Purple Rain",
+      "artist": "Prince and The Revolution",
+      "genre": ["Pop"],
+      "year": "1984",
+      "cover_image": "https://coverartarchive.org/release-group/b93a7c47-a6d4-33f2-9034-53fdd991f4ba/front-500"
+    },
+    {
+      "id": 900022,
+      "title": "Born in the U.S.A.",
+      "artist": "Bruce Springsteen",
+      "genre": ["Rock"],
+      "year": "1984",
+      "cover_image": "https://coverartarchive.org/release-group/3c39a076-8e52-38f2-8076-260d0672fb23/front-500"
+    },
+    {
+      "id": 900023,
+      "title": "The Immaculate Collection",
+      "artist": "Madonna",
+      "genre": ["Pop"],
+      "year": "1990",
+      "cover_image": "https://coverartarchive.org/release-group/b14e9927-081e-4a07-b0f7-8ddf22319b27/front-500"
+    },
+    {
+      "id": 900024,
+      "title": "Like a Virgin",
+      "artist": "Madonna",
+      "genre": ["Pop"],
+      "year": "1984",
+      "cover_image": "https://coverartarchive.org/release-group/b69580b9-7050-3994-b544-4407a22c097a/front-500"
+    },
+    {
+      "id": 900025,
+      "title": "Whitney Houston",
+      "artist": "Whitney Houston",
+      "genre": ["R&B"],
+      "year": "1985",
+      "cover_image": "https://coverartarchive.org/release-group/131d12c0-e720-31df-a2f9-d9abd868ceaf/front-500"
+    },
+    {
+      "id": 900026,
+      "title": "Supernatural",
+      "artist": "Santana",
+      "genre": ["Rock"],
+      "year": "1999",
+      "cover_image": "https://coverartarchive.org/release-group/70e23797-9da2-33bb-be6f-a85e7b581b69/front-500"
+    },
+    {
+      "id": 900027,
+      "title": "The Joshua Tree",
+      "artist": "U2",
+      "genre": ["Rock"],
+      "year": "1987",
+      "cover_image": "https://coverartarchive.org/release-group/6f3e9fa6-be7a-3de8-a2b2-2072ece8a54d/front-500"
+    },
+    {
+      "id": 900028,
+      "title": "Tapestry",
+      "artist": "Carole King",
+      "genre": ["Pop"],
+      "year": "1971",
+      "cover_image": "https://coverartarchive.org/release-group/6e4f39e6-3403-39d7-81c6-8e61a990d509/front-500"
+    },
+    {
+      "id": 900029,
+      "title": "Brothers in Arms",
+      "artist": "Dire Straits",
+      "genre": ["Rock"],
+      "year": "1985",
+      "cover_image": "https://coverartarchive.org/release-group/b02f651e-32a1-30ae-bc23-070b59170278/front-500"
+    },
+    {
+      "id": 900030,
+      "title": "Legend",
+      "artist": "Bob Marley & The Wailers",
+      "genre": ["Reggae"],
+      "year": "1984",
+      "cover_image": "https://coverartarchive.org/release-group/1a4c52cd-483a-347c-93f9-4d512767c7ba/front-500"
+    },
+    {
+      "id": 900031,
+      "title": "Greatest Hits",
+      "artist": "Elton John",
+      "genre": ["Pop"],
+      "year": "1974",
+      "cover_image": "https://coverartarchive.org/release-group/6619f357-4115-3d8a-bd52-238641c23c28/front-500"
+    },
+    {
+      "id": 900032,
+      "title": "Greatest Hits",
+      "artist": "Queen",
+      "genre": ["Rock"],
+      "year": "1981",
+      "cover_image": "https://coverartarchive.org/release-group/69ce61c8-127f-3809-95d8-62fdf3ae1347/front-500"
+    },
+    {
+      "id": 900033,
+      "title": "Gold: Greatest Hits",
+      "artist": "ABBA",
+      "genre": ["Pop"],
+      "year": "1992",
+      "cover_image": "https://coverartarchive.org/release-group/b69d665a-3eee-39f3-b156-58b122232304/front-500"
+    },
+    {
+      "id": 900034,
+      "title": "Greatest Hits, Volume I & Volume II",
+      "artist": "Billy Joel",
+      "genre": ["Rock"],
+      "year": "1985",
+      "cover_image": "https://coverartarchive.org/release-group/4a8f66b9-2ebf-3ebf-bd5e-ad19386e76c0/front-500"
+    },
+    {
+      "id": 900035,
+      "title": "Hybrid Theory",
+      "artist": "Linkin Park",
+      "genre": ["Rock"],
+      "year": "2000",
+      "cover_image": "https://coverartarchive.org/release-group/b5b4bb4b-8ba5-3acf-88cb-4cae2699d8da/front-500"
+    },
+    {
+      "id": 900036,
+      "title": "The Marshall Mathers LP",
+      "artist": "Eminem",
+      "genre": ["Hip-Hop"],
+      "year": "2000",
+      "cover_image": "https://coverartarchive.org/release-group/b0fa91c8-0996-38f1-ab84-797f58d7c4eb/front-500"
+    },
+    {
+      "id": 900037,
+      "title": "The Eminem Show",
+      "artist": "Eminem",
+      "genre": ["Hip-Hop"],
+      "year": "2002",
+      "cover_image": "https://coverartarchive.org/release-group/e9585ed4-d148-3711-bbee-55a97b58325a/front-500"
+    },
+    {
+      "id": 900038,
+      "title": "Metallica",
+      "artist": "Metallica",
+      "genre": ["Metal"],
+      "year": "1991",
+      "cover_image": "https://coverartarchive.org/release-group/e8f70201-8899-3f0c-9e07-5d6495bc8046/front-500"
+    },
+    {
+      "id": 900039,
+      "title": "Dookie",
+      "artist": "Green Day",
+      "genre": ["Rock"],
+      "year": "1994",
+      "cover_image": "https://coverartarchive.org/release-group/314cffd4-daa5-3337-85e5-e54165a96113/front-500"
+    },
+    {
+      "id": 900040,
+      "title": "Ten",
+      "artist": "Pearl Jam",
+      "genre": ["Rock"],
+      "year": "1991",
+      "cover_image": "https://coverartarchive.org/release-group/cea5d18a-1924-3cda-bebc-38933834b25d/front-500"
+    },
+    {
+      "id": 900041,
+      "title": "Californication",
+      "artist": "Red Hot Chili Peppers",
+      "genre": ["Rock"],
+      "year": "1999",
+      "cover_image": "https://coverartarchive.org/release-group/ca5dfcc3-83fb-3eee-9061-c27296b77b2c/front-500"
+    },
+    {
+      "id": 900042,
+      "title": "Blood Sugar Sex Magik",
+      "artist": "Red Hot Chili Peppers",
+      "genre": ["Rock"],
+      "year": "1991",
+      "cover_image": "https://coverartarchive.org/release-group/68bee70d-b425-3813-aca7-dd7b912c3d11/front-500"
+    },
+    {
+      "id": 900043,
+      "title": "OK Computer",
+      "artist": "Radiohead",
+      "genre": ["Rock"],
+      "year": "1997",
+      "cover_image": "https://coverartarchive.org/release-group/b1392450-e666-3926-a536-22c65f834433/front-500"
+    },
+    {
+      "id": 900044,
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "genre": ["Rock"],
+      "year": "1976",
+      "cover_image": "https://coverartarchive.org/release-group/836f349a-0434-3e8b-a0bc-261f77a9f99c/front-500"
+    },
+    {
+      "id": 900045,
+      "title": "Hysteria",
+      "artist": "Def Leppard",
+      "genre": ["Rock"],
+      "year": "1987",
+      "cover_image": "https://coverartarchive.org/release-group/12fa3845-7c62-36e5-a8da-8be137155a72/front-500"
+    },
+    {
+      "id": 900046,
+      "title": "Slippery When Wet",
+      "artist": "Bon Jovi",
+      "genre": ["Rock"],
+      "year": "1986",
+      "cover_image": "https://coverartarchive.org/release-group/f07346e6-c889-33b8-83c8-ad987d7b14f6/front-500"
+    },
+    {
+      "id": 900047,
+      "title": "No Jacket Required",
+      "artist": "Phil Collins",
+      "genre": ["Pop"],
+      "year": "1985",
+      "cover_image": "https://coverartarchive.org/release-group/86b4651b-a6ea-3ac2-ba99-dcac079938d2/front-500"
+    },
+    {
+      "id": 900048,
+      "title": "Music Box",
+      "artist": "Mariah Carey",
+      "genre": ["Pop"],
+      "year": "1993",
+      "cover_image": "https://coverartarchive.org/release-group/7625cb89-79a6-3a00-bc38-d44552add611/front-500"
+    },
+    {
+      "id": 900049,
+      "title": "...Baby One More Time",
+      "artist": "Britney Spears",
+      "genre": ["Pop"],
+      "year": "1999",
+      "cover_image": "https://coverartarchive.org/release-group/faeb8741-2ca0-3ca6-8a1a-70bab1e67c82/front-500"
+    },
+    {
+      "id": 900050,
+      "title": "No Strings Attached",
+      "artist": "*NSYNC",
+      "genre": ["Pop"],
+      "year": "2000",
+      "cover_image": "https://coverartarchive.org/release-group/a648d0c2-1438-33d0-87d2-5fbab3c0990a/front-500"
+    },
+    {
+      "id": 900051,
+      "title": "Come Away With Me",
+      "artist": "Norah Jones",
+      "genre": ["Jazz"],
+      "year": "2002",
+      "cover_image": "https://coverartarchive.org/release-group/6ccac9d2-22ed-33de-bd5d-f2aadcacf7f8/front-500"
+    },
+    {
+      "id": 900052,
+      "title": "Confessions",
+      "artist": "Usher",
+      "genre": ["R&B"],
+      "year": "2004",
+      "cover_image": "https://coverartarchive.org/release-group/0ee013ee-5f59-35d5-b6b8-26a0cb3e4372/front-500"
+    },
+    {
+      "id": 900053,
+      "title": "Songs in A Minor",
+      "artist": "Alicia Keys",
+      "genre": ["R&B"],
+      "year": "2001",
+      "cover_image": "https://coverartarchive.org/release-group/5701e04b-efc2-3429-b8af-c6596f1d08cf/front-500"
+    },
+    {
+      "id": 900054,
+      "title": "The Miseducation of Lauryn Hill",
+      "artist": "Lauryn Hill",
+      "genre": ["R&B"],
+      "year": "1998",
+      "cover_image": "https://coverartarchive.org/release-group/8691d12c-abd8-385c-b1eb-d841190124f7/front-500"
+    },
+    {
+      "id": 900055,
+      "title": "Speakerboxxx/The Love Below",
+      "artist": "OutKast",
+      "genre": ["Hip-Hop"],
+      "year": "2003",
+      "cover_image": "https://coverartarchive.org/release-group/fa64febd-61e0-346e-aaa2-04564ed4f0a3/front-500"
+    },
+    {
+      "id": 900056,
+      "title": "1989",
+      "artist": "Taylor Swift",
+      "genre": ["Pop"],
+      "year": "2014",
+      "cover_image": "https://coverartarchive.org/release-group/4d9ec1c2-58ec-48a4-aa0a-916718adead0/front-500"
+    },
+    {
+      "id": 900057,
+      "title": "Fearless",
+      "artist": "Taylor Swift",
+      "genre": ["Country"],
+      "year": "2008",
+      "cover_image": "https://coverartarchive.org/release-group/63eba062-847c-3b73-8b0f-6baf27bba6fa/front-500"
+    },
+    {
+      "id": 900058,
+      "title": "The Fame",
+      "artist": "Lady Gaga",
+      "genre": ["Pop"],
+      "year": "2008",
+      "cover_image": "https://coverartarchive.org/release-group/e5495719-b3ad-3eea-a533-fb70af43c23d/front-500"
+    },
+    {
+      "id": 900059,
+      "title": "÷",
+      "artist": "Ed Sheeran",
+      "genre": ["Pop"],
+      "year": "2017",
+      "cover_image": "https://coverartarchive.org/release-group/e05f9927-e24b-41c5-928d-d0e008a12444/front-500"
+    },
+    {
+      "id": 900060,
+      "title": "Views",
+      "artist": "Drake",
+      "genre": ["Hip-Hop"],
+      "year": "2016",
+      "cover_image": "https://coverartarchive.org/release-group/4aaaa715-df17-43b8-987e-04b54ec4a697/front-500"
+    },
+    {
+      "id": 900061,
+      "title": "Crazy Love",
+      "artist": "Michael Bublé",
+      "genre": ["Jazz"],
+      "year": "2009",
+      "cover_image": "https://coverartarchive.org/release-group/4d5e89be-e9d1-470b-8bcf-e345529d9a76/front-500"
+    },
+    {
+      "id": 900062,
+      "title": "A Rush of Blood to the Head",
+      "artist": "Coldplay",
+      "genre": ["Rock"],
+      "year": "2002",
+      "cover_image": "https://coverartarchive.org/release-group/120c786d-a3b2-3c19-b4ff-2b7b3b4435bf/front-500"
+    },
+    {
+      "id": 900063,
+      "title": "Songs in the Key of Life",
+      "artist": "Stevie Wonder",
+      "genre": ["R&B"],
+      "year": "1976",
+      "cover_image": "https://coverartarchive.org/release-group/ea88b09b-fd34-33cf-a3e5-25a3a2fb4c6f/front-500"
+    },
+    {
+      "id": 900064,
+      "title": "What's Going On",
+      "artist": "Marvin Gaye",
+      "genre": ["R&B"],
+      "year": "1971",
+      "cover_image": "https://coverartarchive.org/release-group/c1fa4d2c-ec62-37d5-b01d-6df7f8fd2c90/front-500"
+    },
+    {
+      "id": 900065,
+      "title": "Bridge Over Troubled Water",
+      "artist": "Simon & Garfunkel",
+      "genre": ["Folk"],
+      "year": "1970",
+      "cover_image": "https://coverartarchive.org/release-group/c39f7f80-d42f-3669-9653-230f8e922083/front-500"
+    },
+    {
+      "id": 900066,
+      "title": "Hot Rocks 1964–1971",
+      "artist": "The Rolling Stones",
+      "genre": ["Rock"],
+      "year": "1971",
+      "cover_image": "https://coverartarchive.org/release-group/6e33402c-62db-3dc9-af86-2c1bef99ce2f/front-500"
+    },
+    {
+      "id": 900067,
+      "title": "Boston",
+      "artist": "Boston",
+      "genre": ["Rock"],
+      "year": "1976",
+      "cover_image": "https://coverartarchive.org/release-group/f0371fc4-3e22-3d8d-8ce3-4af873ea6f1c/front-500"
+    },
+    {
+      "id": 900068,
+      "title": "Escape",
+      "artist": "Journey",
+      "genre": ["Rock"],
+      "year": "1981",
+      "cover_image": "https://coverartarchive.org/release-group/89ed7ed6-4292-3892-b0de-c9c27005c08d/front-500"
+    },
+    {
+      "id": 900069,
+      "title": "4",
+      "artist": "Foreigner",
+      "genre": ["Rock"],
+      "year": "1981",
+      "cover_image": "https://coverartarchive.org/release-group/b29a37cd-e84f-435e-a671-fd7541f65c53/front-500"
+    },
+    {
+      "id": 900070,
+      "title": "1984",
+      "artist": "Van Halen",
+      "genre": ["Rock"],
+      "year": "1984",
+      "cover_image": "https://coverartarchive.org/release-group/5846f0c9-fec3-3b9e-a77c-fbe9a7bdf0e7/front-500"
+    },
+    {
+      "id": 900071,
+      "title": "The Wall",
+      "artist": "Pink Floyd",
+      "genre": ["Rock"],
+      "year": "1979",
+      "cover_image": "https://coverartarchive.org/release-group/f2026101-945b-3d05-9ef4-aa718fc3feef/front-500"
+    },
+    {
+      "id": 900072,
+      "title": "Breakfast in America",
+      "artist": "Supertramp",
+      "genre": ["Rock"],
+      "year": "1979",
+      "cover_image": "https://coverartarchive.org/release-group/d584f7e7-55b4-39a1-87e9-af3b86773132/front-500"
+    },
+    {
+      "id": 900073,
+      "title": "The Stranger",
+      "artist": "Billy Joel",
+      "genre": ["Rock"],
+      "year": "1977",
+      "cover_image": "https://coverartarchive.org/release-group/735bcee6-6be6-3957-af15-d21ba2bd355b/front-500"
+    },
+    {
+      "id": 900074,
+      "title": "No Fences",
+      "artist": "Garth Brooks",
+      "genre": ["Country"],
+      "year": "1990",
+      "cover_image": "https://coverartarchive.org/release-group/d4377787-0d92-3902-997a-feb75f4dee2d/front-500"
+    },
+    {
+      "id": 900075,
+      "title": "Rhythm Nation 1814",
+      "artist": "Janet Jackson",
+      "genre": ["R&B"],
+      "year": "1989",
+      "cover_image": "https://coverartarchive.org/release-group/20aaac17-e4e8-373c-99cc-211321b82832/front-500"
+    },
+    {
+      "id": 900076,
+      "title": "CrazySexyCool",
+      "artist": "TLC",
+      "genre": ["R&B"],
+      "year": "1994",
+      "cover_image": "https://coverartarchive.org/release-group/3d886c06-a4c7-3431-be87-2b2940f07acd/front-500"
+    },
+    {
+      "id": 900077,
+      "title": "Spice",
+      "artist": "Spice Girls",
+      "genre": ["Pop"],
+      "year": "1996",
+      "cover_image": "https://coverartarchive.org/release-group/4180845c-8700-3fda-af8f-0b9f3a932009/front-500"
+    },
+    {
+      "id": 900078,
+      "title": "Cracked Rear View",
+      "artist": "Hootie & The Blowfish",
+      "genre": ["Rock"],
+      "year": "1994",
+      "cover_image": "https://coverartarchive.org/release-group/5c411048-4d5d-3f80-8eaf-ef20a7089404/front-500"
+    },
+    {
+      "id": 900079,
+      "title": "The Chronic",
+      "artist": "Dr. Dre",
+      "genre": ["Hip-Hop"],
+      "year": "1992",
+      "cover_image": "https://coverartarchive.org/release-group/ad444843-7160-33d7-b0c9-fc99f2c14a99/front-500"
+    },
+    {
+      "id": 900080,
+      "title": "All Eyez on Me",
+      "artist": "2Pac",
+      "genre": ["Hip-Hop"],
+      "year": "1996",
+      "cover_image": "https://coverartarchive.org/release-group/e2621417-9236-36b4-9f9e-376c416dc4b0/front-500"
+    },
+    {
+      "id": 900081,
+      "title": "Ready to Die",
+      "artist": "The Notorious B.I.G.",
+      "genre": ["Hip-Hop"],
+      "year": "1994",
+      "cover_image": "https://coverartarchive.org/release-group/5afcfeac-118a-35e6-af0d-35ec9003354d/front-500"
+    },
+    {
+      "id": 900082,
+      "title": "Country Grammar",
+      "artist": "Nelly",
+      "genre": ["Hip-Hop"],
+      "year": "2000",
+      "cover_image": "https://coverartarchive.org/release-group/89789ff3-f783-38ec-8392-7c845d1eeed8/front-500"
+    },
+    {
+      "id": 900083,
+      "title": "Human Clay",
+      "artist": "Creed",
+      "genre": ["Rock"],
+      "year": "1999",
+      "cover_image": "https://coverartarchive.org/release-group/1e3d8943-22c1-39b1-9b7c-32f594e30db8/front-500"
+    },
+    {
+      "id": 900084,
+      "title": "Yourself or Someone Like You",
+      "artist": "Matchbox Twenty",
+      "genre": ["Rock"],
+      "year": "1996",
+      "cover_image": "https://coverartarchive.org/release-group/dbb71f1a-f9cb-3586-ba93-94150398368d/front-500"
+    },
+    {
+      "id": 900085,
+      "title": "Doo-Wops & Hooligans",
+      "artist": "Bruno Mars",
+      "genre": ["Pop"],
+      "year": "2010",
+      "cover_image": "https://coverartarchive.org/release-group/b3d1fbf7-dd1c-4119-a16e-58c2feb5bcb0/front-500"
+    },
+    {
+      "id": 900086,
+      "title": "Can't Slow Down",
+      "artist": "Lionel Richie",
+      "genre": ["R&B"],
+      "year": "1983",
+      "cover_image": "https://coverartarchive.org/release-group/cccdb1a1-333d-30e1-9486-81b8113e608a/front-500"
+    },
+    {
+      "id": 900087,
+      "title": "Synchronicity",
+      "artist": "The Police",
+      "genre": ["Rock"],
+      "year": "1983",
+      "cover_image": "https://coverartarchive.org/release-group/f6df6292-fd40-37c3-bd61-22c53abfe773/front-500"
+    },
+    {
+      "id": 900088,
+      "title": "Licensed to Ill",
+      "artist": "Beastie Boys",
+      "genre": ["Hip-Hop"],
+      "year": "1986",
+      "cover_image": "https://coverartarchive.org/release-group/57f5e7c8-2a6e-34a0-b4cd-0e77695bc36f/front-500"
+    },
+    {
+      "id": 900089,
+      "title": "Back to Black",
+      "artist": "Amy Winehouse",
+      "genre": ["Soul"],
+      "year": "2006",
+      "cover_image": "https://coverartarchive.org/release-group/6eac2e57-ee50-36f8-b0c4-c4c847a2c098/front-500"
+    },
+    {
+      "id": 900090,
+      "title": "When We All Fall Asleep, Where Do We Go?",
+      "artist": "Billie Eilish",
+      "genre": ["Pop"],
+      "year": "2019",
+      "cover_image": "https://coverartarchive.org/release-group/72375978-a9a1-4254-b957-85565c716b7e/front-500"
+    },
+    {
+      "id": 900091,
+      "title": "Fine Line",
+      "artist": "Harry Styles",
+      "genre": ["Pop"],
+      "year": "2019",
+      "cover_image": "https://coverartarchive.org/release-group/b9990da8-7953-4e64-aea5-065ca9cd3cb7/front-500"
+    },
+    {
+      "id": 900092,
+      "title": "After Hours",
+      "artist": "The Weeknd",
+      "genre": ["R&B"],
+      "year": "2020",
+      "cover_image": "https://coverartarchive.org/release-group/78570bea-2a26-467c-a3db-c52723ceb394/front-500"
+    },
+    {
+      "id": 900093,
+      "title": "good kid, m.A.A.d city",
+      "artist": "Kendrick Lamar",
+      "genre": ["Hip-Hop"],
+      "year": "2012",
+      "cover_image": "https://coverartarchive.org/release-group/499c19c8-0dab-4824-884b-6191d145e95b/front-500"
+    },
+    {
+      "id": 900094,
+      "title": "Random Access Memories",
+      "artist": "Daft Punk",
+      "genre": ["Electronic"],
+      "year": "2013",
+      "cover_image": "https://coverartarchive.org/release-group/aa997ea0-2936-40bd-884d-3af8a0e064dc/front-500"
+    },
+    {
+      "id": 900095,
+      "title": "AM",
+      "artist": "Arctic Monkeys",
+      "genre": ["Rock"],
+      "year": "2013",
+      "cover_image": "https://coverartarchive.org/release-group/a348ba2f-f8b3-4686-b928-e63d8d94d543/front-500"
+    },
+    {
+      "id": 900096,
+      "title": "Pet Sounds",
+      "artist": "The Beach Boys",
+      "genre": ["Rock"],
+      "year": "1966",
+      "cover_image": "https://coverartarchive.org/release-group/fdd96703-7b21-365e-bdea-38029fbeb84e/front-500"
+    }
+  ]
+}

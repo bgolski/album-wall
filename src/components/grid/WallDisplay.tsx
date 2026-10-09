@@ -63,6 +63,7 @@ export function WallDisplay({
               key={`grid-${album.id}`}
               album={album}
               exportMode={isExporting}
+              {...(columns >= 4 && !isExporting ? { imageSize: 320 } : {})}
               isPinned={pinnedAlbums.has(String(album.id))}
               onPinToggle={onPinToggle}
               onSelect={onSelect}
