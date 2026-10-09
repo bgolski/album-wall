@@ -3,6 +3,7 @@ import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 import { filterAlbums } from "@/utils/filterAlbums";
+import { TILE_COVER_SIZE } from "@/utils/imageProxy";
 import { PoolSearch } from "./PoolSearch";
 
 interface PoolDisplayProps {
@@ -52,6 +53,7 @@ export function PoolDisplay({ albums, onSelect, moveSourceId, showAlbumLabels }:
               key={`pool-${album.id}`}
               album={album}
               exportMode={false}
+              imageSize={TILE_COVER_SIZE}
               isPinned={false}
               disablePinning={true}
               onSelect={onSelect}

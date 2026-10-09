@@ -1,6 +1,7 @@
 import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
+import { TILE_COVER_SIZE } from "@/utils/imageProxy";
 
 interface WallDisplayProps {
   albums: Album[];
@@ -63,7 +64,7 @@ export function WallDisplay({
               key={`grid-${album.id}`}
               album={album}
               exportMode={isExporting}
-              {...(columns >= 4 && !isExporting ? { imageSize: 320 } : {})}
+              {...(columns >= 4 && !isExporting ? { imageSize: TILE_COVER_SIZE } : {})}
               isPinned={pinnedAlbums.has(String(album.id))}
               onPinToggle={onPinToggle}
               onSelect={onSelect}

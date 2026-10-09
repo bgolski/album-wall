@@ -5,6 +5,12 @@
 
 const IMAGE_PROXY = "https://images.weserv.nl/?url=";
 
+/**
+ * Pixel size requested for covers shown as tiles. Tiles are at most about 170 CSS pixels wide, so
+ * this stays sharp on 2x screens while downloading far less than the original artwork.
+ */
+export const TILE_COVER_SIZE = 320;
+
 // Default embedded placeholder image as base64 - this ensures we never get 404s for images
 export const DEFAULT_PLACEHOLDER_IMAGE =
   "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzIyMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhYWEiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPkFsYnVtIEFydHdvcms8L3RleHQ+PC9zdmc+";

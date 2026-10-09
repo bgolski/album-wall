@@ -64,3 +64,16 @@ describe("PoolDisplay search", () => {
     expect(screen.queryByRole("searchbox")).toBeNull();
   });
 });
+
+describe("PoolDisplay covers", () => {
+  afterEach(cleanup);
+
+  it("requests tile-sized covers instead of the original artwork", () => {
+    renderPool([
+      { id: 9, title: "Cover test", artist: "Someone", cover_image: "https://img.example/a.jpg" },
+    ]);
+    const src = screen.getByRole("img").getAttribute("src") ?? "";
+    expect(src).toContain("images.weserv.nl");
+    expect(src).toContain("&w=320&h=320&fit=cover");
+  });
+});
