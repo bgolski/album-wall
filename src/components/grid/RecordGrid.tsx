@@ -390,8 +390,8 @@ export function RecordGrid({
 
     try {
       await navigator.share({
-        title: `${wallDisplayName(username)}'s Vinyl Wall`,
-        text: `Check out ${wallDisplayName(username)}'s vinyl wall.`,
+        title: `${wallDisplayName(username)}'s Album Wall`,
+        text: `Check out ${wallDisplayName(username)}'s album wall.`,
         url: shareUrl,
       });
     } catch (error) {

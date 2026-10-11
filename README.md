@@ -1,6 +1,6 @@
 # Album Wall
 
-Preview which records look good together on a wall before moving any of them. Album Wall lays a vinyl collection out as an 8 × 4 grid of covers, with the rest of the collection in a pool below. Drag records around, pin the ones you want to keep, shuffle the rest, then save the result as an image or copy a link to share it. (The app's own heading reads "Vinyl Wall".)
+Preview which records look good together on a wall before moving any of them. Album Wall lays a vinyl collection out as an 8 × 4 grid of covers, with the rest of the collection in a pool below. Drag records around, pin the ones you want to keep, shuffle the rest, then save the result as an image or copy a link to share it.
 
 **Live app:** [bradleygolski.com/album-wall](https://bradleygolski.com/album-wall/)
 
@@ -22,7 +22,7 @@ Captured from the static build using `scripts/capture-case-study.ts` (the revisi
 
 | | |
 |---|---|
-| ![First-visit dialog titled "New to Vinyl Wall?" offering "Try the demo" or "I'll use my username"](docs/screenshots/01-fresh-visit.png) | ![The 8 by 4 demo wall of album covers above the pool of remaining records, with sort, shuffle, undo and export controls](docs/screenshots/02-wall-and-pool.png) |
+| ![First-visit dialog titled "New to Album Wall?" offering "Try the demo" or "I'll use my username"](docs/screenshots/01-fresh-visit.png) | ![The 8 by 4 demo wall of album covers above the pool of remaining records, with sort, shuffle, undo and export controls](docs/screenshots/02-wall-and-pool.png) |
 | A fresh visit offers the demo. | The demo's 8 × 4 wall with the record pool below it. |
 | ![The wall after pinning four records and shuffling; the pinned covers carry a pin badge and stayed in their places](docs/screenshots/03-pin-and-shuffle.png) | ![The Export menu open, listing Share or Save Image, phone wallpaper, desktop wallpaper and square print sizes, and Copy Share Link](docs/screenshots/04-export-menu.png) |
 | Four records pinned, then shuffled. | The Export menu with sized image options and a share link. |

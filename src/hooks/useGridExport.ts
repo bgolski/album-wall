@@ -130,7 +130,7 @@ export function useGridExport(username: string, albums: Album[]) {
 
   const userDisplayName = wallDisplayName(username) || "Anonymous";
   const imageFilenameFor = (preset?: ExportPreset) =>
-    `${userDisplayName}_vinyl_wall${preset ? `_${preset.id}` : ""}.png`;
+    `${userDisplayName}_album_wall${preset ? `_${preset.id}` : ""}.png`;
 
   /**
    * Returns true when the current browser can share image files natively.
@@ -227,8 +227,8 @@ export function useGridExport(username: string, albums: Album[]) {
     }
 
     await navigator.share({
-      title: `${userDisplayName}'s Vinyl Wall`,
-      text: `Check out ${userDisplayName}'s vinyl wall.`,
+      title: `${userDisplayName}'s Album Wall`,
+      text: `Check out ${userDisplayName}'s album wall.`,
       files: [imageFile],
     });
 

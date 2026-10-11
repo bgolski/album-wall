@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Vinyl Wall - Your Virtual Record Collection Display",
+  title: "Album Wall - Your Virtual Record Collection Display",
   description:
     "A dynamic, interactive wall display for your Discogs vinyl collection. Create customizable grid layouts, sort by artist or genre, pin favorite albums, and save or share your wall as an image.",
   metadataBase: new URL(process.env.VERCEL_URL || "https://bgolski.github.io"),
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
     icon: `${basePath}/favicon.ico`,
   },
   openGraph: {
-    title: "Vinyl Wall - Your Virtual Record Collection Display",
+    title: "Album Wall - Your Virtual Record Collection Display",
     description:
       "Create a beautiful virtual display of your Discogs vinyl collection with customizable layouts and sharing options.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vinyl Wall - Your Virtual Record Collection Display",
+    title: "Album Wall - Your Virtual Record Collection Display",
     description:
       "Create a beautiful virtual display of your Discogs vinyl collection with customizable layouts and sharing options.",
   },

@@ -1,5 +1,5 @@
-import VinylWallApp from "@/components/VinylWallApp";
+import AlbumWallApp from "@/components/AlbumWallApp";
 
 export default function Home() {
-  return <VinylWallApp />;
+  return <AlbumWallApp />;
 }

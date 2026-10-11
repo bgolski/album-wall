@@ -37,7 +37,7 @@ export function WelcomeDialog({ onTryDemo, onClose }: WelcomeDialogProps) {
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="welcome-title" className="mb-2 text-xl font-bold text-ink">
-          New to Vinyl Wall?
+          New to Album Wall?
         </h2>
         <p className="mb-5 text-ink">
           Enter your Discogs username to turn your collection into a wall. Want a look first? Try a

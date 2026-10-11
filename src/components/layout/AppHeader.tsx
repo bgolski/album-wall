@@ -27,7 +27,7 @@ export function AppHeader({ onTryDemo, demoDisabled = false }: AppHeaderProps) {
           Demo
         </button>
       )}
-      <h1 className="mb-4 text-3xl font-bold">Vinyl Wall</h1>
+      <h1 className="mb-4 text-3xl font-bold">Album Wall</h1>
       <p className="mx-auto max-w-md text-sm text-muted sm:text-base">
         Enter your Discogs username to load your vinyl collection and create a virtual record wall.
       </p>

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import VinylWallApp from "./VinylWallApp";
+import AlbumWallApp from "./AlbumWallApp";
 import { getUserCollection } from "@/utils/discogs";
 import { encodeSharedWallState } from "@/utils/shareState";
 import { Album } from "@/types";
@@ -34,7 +34,7 @@ const pinnedIds = () =>
 
 async function loadByHand(count: number) {
   vi.mocked(getUserCollection).mockResolvedValue(collection(count));
-  render(<VinylWallApp />);
+  render(<AlbumWallApp />);
   fireEvent.change(screen.getByLabelText("Discogs username"), { target: { value: "someone" } });
   fireEvent.click(screen.getByRole("button", { name: "Load Collection" }));
   await waitFor(() => expect(document.querySelector("#grid-container")).not.toBeNull());
@@ -65,7 +65,7 @@ describe("loading a shared wall link", () => {
       pinnedAlbumIds: ["3", "7"],
     })}`;
     vi.mocked(getUserCollection).mockResolvedValue(collection(12));
-    render(<VinylWallApp />);
+    render(<AlbumWallApp />);
 
     await waitFor(() => expect(wallIds()).toEqual([5, 3, 9, 1, 12, 7]));
     expect(pinnedIds().sort((a, b) => a - b)).toEqual([3, 7]);
@@ -87,7 +87,7 @@ describe("loading a shared wall link", () => {
       pinnedAlbumIds: [],
     })}`;
     vi.mocked(getUserCollection).mockResolvedValue(collection(5));
-    render(<VinylWallApp />);
+    render(<AlbumWallApp />);
 
     await waitFor(() => expect(wallIds()).toEqual([2, 1, 3]));
     expect(poolIds()).toEqual([4, 5]);

@@ -8,6 +8,6 @@ test("saving the wall as an image downloads a PNG", async ({ page }) => {
   const download = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: "Share or Save Image" }).click();
 
-  expect((await download).suggestedFilename()).toBe("someone_vinyl_wall.png");
+  expect((await download).suggestedFilename()).toBe("someone_album_wall.png");
   await expect(page.getByText("Image saved.")).toBeVisible();
 });

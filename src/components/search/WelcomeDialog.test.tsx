@@ -7,7 +7,7 @@ afterEach(cleanup);
 describe("WelcomeDialog", () => {
   it("offers the demo and the username path, and moves focus into the dialog", () => {
     render(<WelcomeDialog onTryDemo={vi.fn()} onClose={vi.fn()} />);
-    const dialog = screen.getByRole("dialog", { name: "New to Vinyl Wall?" });
+    const dialog = screen.getByRole("dialog", { name: "New to Album Wall?" });
     expect(dialog.contains(document.activeElement)).toBe(true);
     expect(screen.getByRole("button", { name: "Try the demo" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "I'll use my username" })).toBeTruthy();

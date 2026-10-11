@@ -22,7 +22,7 @@ test("a first-time visitor is offered the demo, and only once", async ({ page })
   const discogsRequests = watchDiscogs(page);
 
   await page.goto("./");
-  const dialog = page.getByRole("dialog", { name: "New to Vinyl Wall?" });
+  const dialog = page.getByRole("dialog", { name: "New to Album Wall?" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Try the demo" }).click();
   await expect(dialog).toBeHidden();

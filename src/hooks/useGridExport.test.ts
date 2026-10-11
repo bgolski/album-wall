@@ -158,7 +158,7 @@ describe("useGridExport", () => {
 
     const anchorEl = createSpy.mock.results[0]!.value as HTMLAnchorElement;
     expect(anchorEl.tagName).toBe("A");
-    expect(anchorEl.getAttribute("download")).toBe("testuser_vinyl_wall.png");
+    expect(anchorEl.getAttribute("download")).toBe("testuser_album_wall.png");
   });
 
   it("uses native share when supported", async () => {
@@ -210,10 +210,10 @@ describe("useGridExport", () => {
 
     expect(shareSpy).toHaveBeenCalledTimes(2);
     const [shared] = shareSpy.mock.calls[1] as unknown as [{ files: File[] }];
-    expect(shared.files[0]!.name).toBe("testuser_vinyl_wall.png");
+    expect(shared.files[0]!.name).toBe("testuser_album_wall.png");
   });
 
-  it("names the demo wall's image Demo_vinyl_wall.png, not after its reserved username", async () => {
+  it("names the demo wall's image Demo_album_wall.png, not after its reserved username", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() => useGridExport("~demo", albums));
     act(() => {
@@ -230,10 +230,10 @@ describe("useGridExport", () => {
     });
 
     const anchorEl = createSpy.mock.results[0]!.value as HTMLAnchorElement;
-    expect(anchorEl.getAttribute("download")).toBe("Demo_vinyl_wall.png");
+    expect(anchorEl.getAttribute("download")).toBe("Demo_album_wall.png");
   });
 
-  it("uses Anonymous_vinyl_wall.png filename when username is empty", async () => {
+  it("uses Anonymous_album_wall.png filename when username is empty", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() => useGridExport("", albums));
     act(() => {
@@ -251,7 +251,7 @@ describe("useGridExport", () => {
 
     const anchorEl = createSpy.mock.results[0]!.value as HTMLAnchorElement;
     expect(anchorEl.tagName).toBe("A");
-    expect(anchorEl.getAttribute("download")).toBe("Anonymous_vinyl_wall.png");
+    expect(anchorEl.getAttribute("download")).toBe("Anonymous_album_wall.png");
   });
 
   it("handles AbortError from share as cancelation", async () => {
@@ -358,7 +358,7 @@ describe("useGridExport sized images", () => {
     const anchor = createSpy.mock.results
       .map((entry) => entry.value as HTMLElement)
       .find((element) => element.tagName === "A") as HTMLAnchorElement;
-    expect(anchor.getAttribute("download")).toBe("testuser_vinyl_wall_square.png");
+    expect(anchor.getAttribute("download")).toBe("testuser_album_wall_square.png");
     expect(result.current.status?.message).toBe("Image saved.");
   });
 });

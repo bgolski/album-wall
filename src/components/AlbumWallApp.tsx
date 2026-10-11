@@ -10,7 +10,7 @@ import { useWelcome } from "@/hooks/useWelcome";
 /**
  * Top-level client component that wires collection state to the search and display flows.
  */
-export default function VinylWallApp() {
+export default function AlbumWallApp() {
   const {
     albums,
     username,
