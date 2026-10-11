@@ -1,132 +1,82 @@
-# Record Wall Visualizer
+# Album Wall
 
-A web application that lets you visualize your Discogs record collection as a wall display. Arrange your vinyl collection in a virtual wall, sort by artist or genre, and share or save the result as an image.
+Preview which records look good together on a wall before moving any of them. Album Wall lays a vinyl collection out as an 8 × 4 grid of covers, with the rest of the collection in a pool below. Drag records around, pin the ones you want to keep, shuffle the rest, then save the result as an image or copy a link to share it. (The app's own heading reads "Vinyl Wall".)
 
-## Features
+**Live app:** [bradleygolski.com/album-wall](https://bradleygolski.com/album-wall/)
 
-- Load your Discogs vinyl collection, or try the built-in demo wall without an account
-- Arrange records in an 8x4 grid wall display
-- Drag and drop records between the wall and the pool
-- Sort records by artist or genre
-- Save your wall display as an image (without album labels)
+I collect vinyl and hang part of the collection on a wall, swapping records every so often like an art installation. I built Album Wall to see which covers look good, or clash, next to each other, and to plan a wall on screen before hanging anything. I wrote it mainly for myself and kept it usable by other collectors. It can load a public Discogs collection by username, or open a demo wall of 96 well-known albums with no account.
 
-## Demo wall
+## What it does
 
-Visitors without a Discogs account can try a demo wall of 96 well-known albums. First-time visitors
-are offered it in a welcome dialog; after that it stays one click away in the page header. The
-albums are listed in `public/demo/collection.json`, so the demo never contacts Discogs or the
-proxy and does not change the remembered username. Cover art is loaded from the
-[Cover Art Archive](https://coverartarchive.org/) through the same image proxy as real
-collections, and any cover that fails to load falls back to a placeholder. Shuffling, pinning,
-rearranging, saving the wall as an image and copying a share link all work as they do for a real
-collection, and a demo share link reopens the same arrangement.
+- **Try it without an account.** First-time visitors are offered a demo wall of 96 well-known albums, with covers loaded from the Cover Art Archive. The demo link stays in the header.
+- **Load a Discogs collection** by username.
+- **Rearrange by dragging** records between the wall and the pool, or tap a record to move or swap it.
+- **Pin** records so that shuffling and swapping leave them in place. **Shuffle** only moves unpinned records, and **Undo** steps back.
+- **Sort** by artist or genre, change the grid size, and hide the labels.
+- **Search** the pool.
+- **Save the wall as an image** at a phone-wallpaper, desktop-wallpaper or square-print size, or copy a share link. The wall is remembered in the browser between visits.
 
-The demo is saved and shared under the reserved name `~demo`. Discogs usernames cannot contain a
-tilde, so the demo can never overwrite or open a real account's saved wall. If the demo file is
-missing or invalid the demo is not offered and loading by username is unaffected.
+## Screenshots
 
-## Tech Stack
+Captured from the static build using `scripts/capture-case-study.ts` (the revision and route are recorded in [`docs/screenshots/capture.json`](docs/screenshots/capture.json)). The wall shows the demo collection.
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- DND Kit for drag and drop
-- Discogs API integration
-- html2canvas for image export
+| | |
+|---|---|
+| ![First-visit dialog titled "New to Vinyl Wall?" offering "Try the demo" or "I'll use my username"](docs/screenshots/01-fresh-visit.png) | ![The 8 by 4 demo wall of album covers above the pool of remaining records, with sort, shuffle, undo and export controls](docs/screenshots/02-wall-and-pool.png) |
+| A fresh visit offers the demo. | The demo's 8 × 4 wall with the record pool below it. |
+| ![The wall after pinning four records and shuffling; the pinned covers carry a pin badge and stayed in their places](docs/screenshots/03-pin-and-shuffle.png) | ![The Export menu open, listing Share or Save Image, phone wallpaper, desktop wallpaper and square print sizes, and Copy Share Link](docs/screenshots/04-export-menu.png) |
+| Four records pinned, then shuffled. | The Export menu with sized image options and a share link. |
+
+## How it is built
+
+- **Frontend:** a Next.js, React and TypeScript app exported as static files and hosted on GitHub Pages. Tailwind CSS handles styling, [dnd-kit](https://dndkit.com/) the drag and drop, and html2canvas the image export.
+- **Discogs proxy:** the browser cannot call the Discogs API with credentials, so a small AWS Lambda behind a Function URL fetches collections. The Discogs credentials live in AWS SSM Parameter Store and never reach the client. The Lambda runs with reserved concurrency of 5. The stack is defined with the AWS CDK in [`infra/`](infra/README.md).
+- **Deployment:** every push to `main` runs a GitHub Actions workflow that deploys the CDK stack, builds the static site with the proxy URL it produces, checks the build output and publishes to GitHub Pages. AWS access uses GitHub OIDC, so there is no stored access key.
+- **Demo data:** a JSON list of 96 albums in `public/demo/collection.json`. Only the cover images load from outside the app, from the Cover Art Archive.
+- **Cover loading:** a tile fetches its cover only once it is within about a screen of the viewport. The browser's own lazy loading looks several screens ahead, which on a phone requested 82 of the demo's 96 covers before any scrolling; with this it requests 16. Saving an image loads every cover first.
+
+## Quality checks
+
+- 302 unit tests in 40 files pass (`npm test`), as do type checking and linting, and the 15 browser tests pass (`npm run test:a11y` runs the accessibility ones). Playwright and axe check accessibility in light and dark mode.
+- Lighthouse 12.6.1 (the repository's `lighthouserc.json`, the mobile profile with its default throttling), median of 3 runs against the static build served locally, measured at revision `0bf3fcd` (before the cover-loading change, which does not affect this page): performance 81, accessibility 100, best practices 100, SEO 100. First contentful paint 0.9 s, largest contentful paint 5.1 s, total blocking time 8 ms and layout shift 0. The audit loads the page as a first-time visitor sees it, so no covers are part of it: the largest paint is the welcome dialog's text, which appears once the JavaScript has run. The page transferred 731 KB, of which 582 KB was JavaScript. These figures are from a local server that does not compress responses, so a compressed deployment will transfer less. They are not field data from the live site.
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
 
-# Set environment variables
-echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=your_lambda_function_url" > .env.local
-
-# Run development server
+# Development server at http://localhost:3000
 npm run dev
 ```
 
-## Deployment Options
-
-This application supports two deployment modes:
-
-### 1. Static Export (for GitHub Pages, Netlify, etc.)
-
-Static export generates HTML, CSS, and JavaScript files without requiring a Node.js server.
+For a static build, set the proxy URL and base path. `npm run check:env` explains anything missing:
 
 ```bash
-# Build for static deployment
+NEXT_PUBLIC_DISCOGS_PROXY_URL=https://your-function-url.example/ \
+NEXT_PUBLIC_BASE_PATH=/album-wall \
 npm run build:static
 
-# The static files will be in the 'out' directory
-# You can serve them locally with:
-npm run start
+# Serve out/ under its base path at http://localhost:3100/album-wall/
+NEXT_PUBLIC_BASE_PATH=/album-wall node scripts/serve-static.ts
 ```
 
-### 2. Server-Side Rendering (for Vercel, etc.)
-
-SSR mode enables server-side rendering for enhanced performance and SEO.
+Checks:
 
 ```bash
-# Build for server-side rendering
-npm run build:ssr
-
-# Run the server
-npm run start:next
+npm test               # unit tests
+npm run type-check
+npm run lint
+npm run test:a11y      # Playwright + axe against the static build
 ```
 
-## Environment Variables
+To regenerate the screenshots, build and serve the static site as above, then run `node scripts/capture-case-study.ts` (it uses Playwright's Chromium; install it with `npx playwright install chromium`).
 
-- `NEXT_PUBLIC_DISCOGS_PROXY_URL`: Public AWS Lambda Function URL used by the frontend to load Discogs collections through the proxy
-- `NEXT_PUBLIC_BASE_PATH`: Base path for GitHub Pages deployment (set automatically in CI/CD)
-- `NEXT_STATIC_EXPORT`: Set to "true" for static export or "false" for server-side rendering
+### Environment variables
 
-## CI/CD Deployment
+- `NEXT_PUBLIC_DISCOGS_PROXY_URL`: public HTTPS URL of the Discogs proxy. Never put Discogs credentials in a `NEXT_PUBLIC_*` variable.
+- `NEXT_PUBLIC_BASE_PATH`: base path for GitHub Pages, such as `/album-wall` (set in CI).
+- `NEXT_STATIC_EXPORT`: `true` for a static export, `false` for server rendering (`npm run build:ssr`, `npm run start:next`).
 
-This application is deployed to GitHub Pages at [bradleygolski.com/album-wall](https://bradleygolski.com/album-wall/). On every push to `main`, GitHub Actions deploys the AWS stack, builds the static site, and publishes it with `actions/deploy-pages`. No personal access token is needed.
+## License
 
-### AWS Discogs Proxy
-
-The Discogs proxy infrastructure lives under [infra/README.md](infra/README.md).
-
-GitHub Actions deploys the AWS CDK stack by assuming an AWS role through GitHub OIDC. The required repository configuration is:
-
-- repository variable `AWS_DEPLOY_ROLE_ARN`
-- repository secret `DISCOGS_PROXY_URL` for PR validation builds
-- Settings → Pages → Source set to **GitHub Actions**
-
-The production deploy workflow runs `cd infra && npx cdk deploy --require-approval never`, reads the `DiscogsProxyFunctionUrl` CloudFormation output, and uses that live URL when building the GitHub Pages site.
-
-## Running Locally
-
-```bash
-# Development mode
-npm run dev
-
-# Production mode (static)
-npm run build:static
-npm run start
-
-# Production mode (SSR)
-npm run build:ssr
-npm run start:next
-```
-
-Open [http://localhost:3000](http://localhost:3000) (dev) or [http://localhost:3001](http://localhost:3001) (production) with your browser to see the result.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+GPL-3.0. See [LICENSE](LICENSE).
