@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Album } from "@/types";
 import Image from "next/image";
 import { useAlbumImage } from "@/hooks/useAlbumImage";
+import { useNearViewport } from "@/hooks/useNearViewport";
 import { PinButton } from "./PinButton";
 import { AlbumLabels } from "./AlbumLabels";
 import { AlbumBorder } from "./AlbumBorder";
@@ -45,6 +46,9 @@ export function SortableRecord({
     exportMode,
     imageSize
   );
+
+  // Covers load as their tile nears the screen, not all at once for a large collection.
+  const showImage = useNearViewport(imgRef, exportMode);
 
   const style = isPinned
     ? {}
@@ -94,19 +98,25 @@ export function SortableRecord({
       onClick={handleAlbumClick}
     >
       <div className="relative w-full h-full">
-        <div ref={imgRef} className="w-full h-full relative">
-          <Image
-            src={imageSource}
-            alt={`${album.title || "Album"}`}
-            fill
-            sizes="(max-width: 768px) 100vw, 200px"
-            className="object-cover rounded-tile shadow-lg"
-            crossOrigin={exportMode ? "anonymous" : undefined}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            style={{ backgroundColor: "#333" }}
-            unoptimized
-          />
+        <div
+          ref={imgRef}
+          className="w-full h-full relative rounded-tile"
+          style={showImage ? undefined : { backgroundColor: "#333" }}
+        >
+          {showImage && (
+            <Image
+              src={imageSource}
+              alt={`${album.title || "Album"}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 200px"
+              className="object-cover rounded-tile shadow-lg"
+              crossOrigin={exportMode ? "anonymous" : undefined}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              style={{ backgroundColor: "#333" }}
+              unoptimized
+            />
+          )}
           <AlbumBorder isPinned={isPinned} />
           <PinButton
             isPinned={isPinned}
