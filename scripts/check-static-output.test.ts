@@ -7,7 +7,8 @@ import { findOutputProblems } from "./check-static-output";
 
 const goodHtml =
   '<link rel="stylesheet" href="/album-wall/_next/static/css/a.css"/>' +
-  '<script src="/album-wall/_next/static/chunks/b.js"></script><a href="/album-wall/">home</a>';
+  '<script src="/album-wall/_next/static/chunks/b.js"></script><a href="/album-wall/">home</a>' +
+  '<meta property="og:image" content="https://bradleygolski.com/album-wall/og-image.jpg"/>';
 
 let dir: string;
 
@@ -19,9 +20,10 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function build(html: string, with404 = true) {
+function build(html: string, with404 = true, withImage = true) {
   writeFileSync(join(dir, "index.html"), html);
   if (with404) writeFileSync(join(dir, "404.html"), "not found");
+  if (withImage) writeFileSync(join(dir, "og-image.jpg"), "image");
 }
 
 describe("findOutputProblems", () => {
@@ -61,6 +63,27 @@ describe("findOutputProblems", () => {
   it("ignores external and protocol-relative links", () => {
     build(goodHtml + '<a href="https://example.com/x">x</a><a href="//cdn.test/y.js">y</a>');
     expect(findOutputProblems(dir, "/album-wall")).toEqual([]);
+  });
+
+  it("reports a missing link preview image tag", () => {
+    build(goodHtml.replace(/<meta[^>]*>/, ""));
+    expect(findOutputProblems(dir, "/album-wall")).toEqual([
+      "index.html has no og:image preview image.",
+    ]);
+  });
+
+  it("reports a preview image that is not an absolute URL", () => {
+    build(goodHtml.replace("https://bradleygolski.com", ""));
+    expect(findOutputProblems(dir, "/album-wall")).toEqual([
+      "og:image /album-wall/og-image.jpg is not an absolute https URL.",
+    ]);
+  });
+
+  it("reports a preview image the build does not contain", () => {
+    build(goodHtml, true, false);
+    expect(findOutputProblems(dir, "/album-wall")).toEqual([
+      "og:image https://bradleygolski.com/album-wall/og-image.jpg does not match a file in the build under /album-wall.",
+    ]);
   });
 
   it("only checks the files when there is no base path", () => {

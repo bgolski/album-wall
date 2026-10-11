@@ -15,6 +15,7 @@ I collect vinyl and hang part of the collection on a wall, swapping records ever
 - **Sort** by artist or genre, change the grid size, and hide the labels.
 - **Search** the pool.
 - **Save the wall as an image** at a phone-wallpaper, desktop-wallpaper or square-print size, or copy a share link. The wall is remembered in the browser between visits.
+- **Share a link.** A link to the app unfurls with a preview image. A link to a particular wall shows the same image, because the wall is stored in the part of the address after the `#`, which is never sent to a server; to share a specific wall as a picture, save it as an image.
 
 ## Screenshots
 
@@ -69,7 +70,7 @@ npm run lint
 npm run test:a11y      # Playwright + axe against the static build
 ```
 
-To regenerate the screenshots, build and serve the static site as above, then run `node scripts/capture-case-study.ts` (it uses Playwright's Chromium; install it with `npx playwright install chromium`).
+To regenerate the screenshots, build and serve the static site as above, then run `node scripts/capture-case-study.ts` (`--og` makes only the link preview image, `public/og-image.jpg`; it uses Playwright's Chromium; install it with `npx playwright install chromium`).
 
 ### Environment variables
 

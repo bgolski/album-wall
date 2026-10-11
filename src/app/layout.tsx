@@ -6,6 +6,16 @@ import Footer from "@/components/layout/Footer";
 
 const basePath = getBasePath();
 
+// The site is served from a custom domain; preview images need absolute URLs on it. A shared wall
+// lives in the URL fragment, which never reaches a server, so every link shows this one image.
+const SITE_URL = "https://bradleygolski.com";
+const PREVIEW_IMAGE = {
+  url: `${basePath}/og-image.jpg`,
+  width: 1200,
+  height: 630,
+  alt: "Album Wall showing an 8 by 4 wall of album covers above the controls for sorting, shuffling and saving the wall.",
+};
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -35,7 +45,8 @@ export const metadata: Metadata = {
   title: "Album Wall - Your Virtual Record Collection Display",
   description:
     "A dynamic, interactive wall display for your Discogs vinyl collection. Create customizable grid layouts, sort by artist or genre, pin favorite albums, and save or share your wall as an image.",
-  metadataBase: new URL(process.env.VERCEL_URL || "https://bgolski.github.io"),
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: `${basePath}/` },
   icons: {
     icon: `${basePath}/favicon.ico`,
   },
@@ -44,12 +55,16 @@ export const metadata: Metadata = {
     description:
       "Create a beautiful virtual display of your Discogs vinyl collection with customizable layouts and sharing options.",
     type: "website",
+    url: `${basePath}/`,
+    siteName: "Album Wall",
+    images: [PREVIEW_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "Album Wall - Your Virtual Record Collection Display",
     description:
       "Create a beautiful virtual display of your Discogs vinyl collection with customizable layouts and sharing options.",
+    images: [PREVIEW_IMAGE],
   },
   robots: {
     index: true,
