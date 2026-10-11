@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
+import { gzipSync } from "node:zlib";
 
 // Serves the static export (out/) under its base path, the way GitHub Pages does, so the
 // accessibility and performance checks see the same URLs as visitors. Not used in production.
@@ -20,6 +21,8 @@ const types: Record<string, string> = {
   ".woff2": "font/woff2",
   ".webmanifest": "application/manifest+json",
 };
+
+const compressible = new Set([".html", ".js", ".css", ".json", ".txt", ".svg", ".webmanifest"]);
 
 async function findFile(relativePath: string): Promise<string | null> {
   const clean = normalize(decodeURIComponent(relativePath)).replace(/^(\.\.[/\\])+/, "");
@@ -52,6 +55,22 @@ createServer(async (request, response) => {
     return;
   }
 
-  response.writeHead(200, { "Content-Type": types[extname(file)] ?? "application/octet-stream" });
-  response.end(await readFile(file));
+  const type = types[extname(file)] ?? "application/octet-stream";
+  const body = await readFile(file);
+  // GitHub Pages compresses text responses, so the performance checks do too.
+  if (
+    compressible.has(extname(file)) &&
+    /\bgzip\b/.test(request.headers["accept-encoding"] ?? "")
+  ) {
+    response.writeHead(200, {
+      "Content-Type": type,
+      "Content-Encoding": "gzip",
+      Vary: "Accept-Encoding",
+    });
+    response.end(gzipSync(body));
+    return;
+  }
+
+  response.writeHead(200, { "Content-Type": type });
+  response.end(body);
 }).listen(port, () => console.log(`Serving out/ at http://localhost:${port}${basePath}/`));
