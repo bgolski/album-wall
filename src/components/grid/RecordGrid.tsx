@@ -19,14 +19,22 @@ import { Album, SharedWallState } from "@/types";
 import { useGridDimensions } from "@/hooks/useGridDimensions";
 import { useAlbumPinning } from "@/hooks/useAlbumPinning";
 import { useAlbumSorting } from "@/hooks/useAlbumSorting";
+import { useCoverColors } from "@/hooks/useCoverColors";
 import { useGridExport } from "@/hooks/useGridExport";
 import { useAlbumShuffle } from "@/hooks/useAlbumShuffle";
 import { swapAlbums } from "@/utils/dragAndDropHelpers";
-import { buildSharedWallState, buildSharedWallUrl } from "@/utils/shareState";
+import {
+  buildSharedWallState,
+  buildSharedWallUrl,
+  orderAlbumsBySharedWall,
+} from "@/utils/shareState";
 import { saveWall } from "@/utils/savedWall";
+import { copyLink } from "@/utils/copyText";
 import { EXPORT_PRESETS } from "@/utils/exportFrame";
 import { GridControls } from "./GridControls";
+import { CoverSourceNotice } from "./CoverSourceNotice";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
+import { LayoutsPanel } from "../layouts/LayoutsPanel";
 import { ExportDropdown } from "./ExportDropdown";
 import { WallDisplay } from "./WallDisplay";
 import { PoolDisplay } from "./PoolDisplay";
@@ -106,12 +114,40 @@ export function RecordGrid({
     DEFAULT_ROWS,
     DEFAULT_COLUMNS,
   } = dimensions;
-  const { pinnedAlbums, togglePinAlbum, togglePinAll, removePinsForAlbums, areAllPinned } = pinning;
+  const {
+    pinnedAlbums,
+    togglePinAlbum,
+    togglePinAll,
+    removePinsForAlbums,
+    replacePinnedAlbums,
+    areAllPinned,
+  } = pinning;
+  const [showLayouts, setShowLayouts] = useState(false);
 
   // The wall and the pool are the two parts of the one ordered list the parent owns, so they
   // follow the grid size and every reorder without any state of their own.
   const displayedAlbums = useMemo(() => albums.slice(0, gridSize), [albums, gridSize]);
   const poolItems = useMemo(() => albums.slice(gridSize), [albums, gridSize]);
+
+  // Cover colors are only measured once Sort by Color is chosen, and only for the wall, which is
+  // what the sort orders.
+  const colorSortActive = sorting.sortOption === "color";
+  const { colors: coverColors, pending: colorsPending } = useCoverColors(
+    displayedAlbums,
+    colorSortActive
+  );
+  const unreadableCovers = displayedAlbums.filter(
+    (album) => coverColors[String(album.id)] === null
+  ).length;
+  const sortStatus = !colorSortActive
+    ? null
+    : colorsPending > 0
+      ? `Reading cover colors... ${colorsPending} left`
+      : unreadableCovers > 0
+        ? `${unreadableCovers} ${unreadableCovers === 1 ? "cover" : "covers"} had no readable color and ${
+            unreadableCovers === 1 ? "was" : "were"
+          } placed last.`
+        : null;
   const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const exportMenuId = useId();
@@ -126,7 +162,8 @@ export function RecordGrid({
    */
   const handleSortChange = (option: typeof sorting.sortOption) => {
     sorting.handleSortChange(option);
-    if (option === "none") return;
+    // The color order is worked out when the wall is drawn, once the colors are known.
+    if (option === "none" || option === "color") return;
 
     onAlbumsReorder([
       ...sorting.sortAlbums(displayedAlbums, pinnedAlbums),
@@ -157,6 +194,19 @@ export function RecordGrid({
     if (newRows < 1 || newColumns < 1) return;
     unpinAlbumsBeyond(newRows * newColumns);
     updateGridDimensions(newRows, newColumns);
+  };
+
+  /**
+   * Puts a saved wall on the wall: its size, its pins and its albums, in order. Albums it names
+   * that are no longer in the collection are skipped, and the next albums fill their places.
+   *
+   * @param wall Saved wall to show.
+   */
+  const applyWall = (wall: SharedWallState) => {
+    sorting.handleSortChange("none");
+    updateGridDimensions(wall.rows, wall.columns);
+    replacePinnedAlbums(wall.pinnedAlbumIds);
+    onAlbumsReorder(orderAlbumsBySharedWall(albums, wall));
   };
 
   /**
@@ -274,9 +324,10 @@ export function RecordGrid({
    * @returns Albums to render in the wall grid.
    */
   const getSortedDisplayedAlbums = () => {
-    return sorting.sortOption === "none"
-      ? displayedAlbums
-      : sorting.sortAlbums(displayedAlbums, pinnedAlbums);
+    if (sorting.sortOption === "none") return displayedAlbums;
+    // Until every color is known the wall keeps its order, then it changes once.
+    if (colorSortActive && colorsPending > 0) return displayedAlbums;
+    return sorting.sortAlbums(displayedAlbums, pinnedAlbums, coverColors);
   };
 
   const currentWallAlbums = getSortedDisplayedAlbums();
@@ -355,26 +406,11 @@ export function RecordGrid({
       return;
     }
 
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = shareUrl;
-        textArea.setAttribute("readonly", "");
-        textArea.style.position = "absolute";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
-
-      exportHooks.setStatus({ message: "Share link copied.", tone: "info" });
-    } catch (error) {
-      console.error("Error copying share link:", error);
-      exportHooks.setStatus({ message: "Unable to copy link.", tone: "error" });
-    }
+    const outcome = await copyLink(shareUrl);
+    exportHooks.setStatus({
+      message: outcome === "copied" ? "Share link copied." : "Copy the share link from the box.",
+      tone: "info",
+    });
   };
 
   /**
@@ -461,12 +497,16 @@ export function RecordGrid({
     <div className="flex flex-col gap-8">
       {/* Control Bar */}
       <div className="relative">
+        <CoverSourceNotice />
         <GridControls
           sortOption={sorting.sortOption}
           areAllPinned={areAllPinned(displayedAlbums)}
           showAlbumLabels={showAlbumLabels ?? false}
           onSortChange={handleSortChange}
+          sortStatus={sortStatus}
           onToggleDimensionsConfig={toggleConfig}
+          onToggleLayouts={() => setShowLayouts((open) => !open)}
+          showLayouts={showLayouts}
           onTogglePinAll={() => togglePinAll(displayedAlbums)}
           onToggleAlbumLabels={handleToggleAlbumLabels}
           onShuffle={handleShuffle}
@@ -504,6 +544,14 @@ export function RecordGrid({
           defaultColumns={DEFAULT_COLUMNS}
           onDimensionsChange={handleDimensionsChange}
           onReset={handleResetDimensions}
+        />
+
+        <LayoutsPanel
+          isVisible={showLayouts}
+          collectionName={username}
+          currentWall={currentWallState}
+          albums={albums}
+          onApply={applyWall}
         />
       </div>
 
@@ -568,7 +616,6 @@ export function RecordGrid({
             rows={rows}
             gridSize={gridSize}
             pinnedCount={pinnedAlbums.size}
-            isExporting={exportHooks.isExporting}
             pinnedAlbums={pinnedAlbums}
             onPinToggle={togglePinAlbum}
             onSelect={handleSelectAlbum}

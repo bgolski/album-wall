@@ -12,9 +12,11 @@ I collect vinyl and hang part of the collection on a wall, swapping records ever
 - **Load a Discogs collection** by username.
 - **Rearrange by dragging** records between the wall and the pool, or tap a record to move or swap it.
 - **Pin** records so that shuffling and swapping leave them in place. **Shuffle** only moves unpinned records, and **Undo** steps back.
-- **Sort** by artist or genre, change the grid size, and hide the labels.
+- **Sort** by artist, genre or cover color (colors are measured in your browser from tiny copies of the covers, only when you ask), change the grid size, and hide the labels.
 - **Search** the pool.
+- **Keep layouts.** Save the wall under a name, put a saved wall back, and compare the wall with a saved one: a small diagram of the wall shows where each cover goes, with the steps in an order you can follow at the real wall. Layouts are kept in your browser; save a backup file to keep a copy or move them to another device.
 - **Save the wall as an image** at a phone-wallpaper, desktop-wallpaper or square-print size, or copy a share link. The wall is remembered in the browser between visits.
+- **Keep working when the image service is down.** Covers load from their own hosts instead, with a note saying so; covers whose host does not allow it are left out of saved images, and the message says how many.
 - **Share a link.** A link to the app unfurls with a preview image. A link to a particular wall shows the same image, because the wall is stored in the part of the address after the `#`, which is never sent to a server; to share a specific wall as a picture, save it as an image.
 
 ## Screenshots

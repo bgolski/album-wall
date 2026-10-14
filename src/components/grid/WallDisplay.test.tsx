@@ -18,7 +18,7 @@ afterEach(cleanup);
 
 const albums: Album[] = [{ id: 1, title: "Test record", artist: "Test artist" }];
 
-function wall(columns: number, isExporting = false) {
+function wall(columns: number) {
   return render(
     <WallDisplay
       albums={albums}
@@ -26,7 +26,6 @@ function wall(columns: number, isExporting = false) {
       rows={1}
       gridSize={columns}
       pinnedCount={0}
-      isExporting={isExporting}
       pinnedAlbums={new Set()}
       onPinToggle={vi.fn()}
       onSelect={vi.fn()}
@@ -45,11 +44,6 @@ describe("WallDisplay cover sizing", () => {
 
   it("keeps full-size covers below four columns", () => {
     wall(3);
-    expect(screen.getByTestId("record").hasAttribute("data-image-size")).toBe(false);
-  });
-
-  it("keeps full-size covers during export", () => {
-    wall(5, true);
     expect(screen.getByTestId("record").hasAttribute("data-image-size")).toBe(false);
   });
 });

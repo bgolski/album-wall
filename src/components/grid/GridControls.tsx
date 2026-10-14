@@ -6,7 +6,12 @@ interface GridControlsProps {
   areAllPinned: boolean;
   showAlbumLabels: boolean;
   onSortChange: (option: SortOption) => void;
+  /** A short note about the active sort, such as colors still being read. */
+  sortStatus?: string | null | undefined;
   onToggleDimensionsConfig: () => void;
+  /** Opens and closes the saved layouts. */
+  onToggleLayouts?: (() => void) | undefined;
+  showLayouts?: boolean | undefined;
   onTogglePinAll: () => void;
   onToggleAlbumLabels: () => void;
   onShuffle: () => void;
@@ -23,6 +28,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "none", label: "Custom Order" },
   { value: "artist", label: "Sort by Artist" },
   { value: "genre", label: "Sort by Genre" },
+  { value: "color", label: "Sort by Color" },
 ];
 
 /**
@@ -33,7 +39,10 @@ export function GridControls({
   areAllPinned,
   showAlbumLabels,
   onSortChange,
+  sortStatus = null,
   onToggleDimensionsConfig,
+  onToggleLayouts,
+  showLayouts = false,
   onTogglePinAll,
   onToggleAlbumLabels,
   onShuffle,
@@ -50,15 +59,15 @@ export function GridControls({
 
   return (
     <div className="bg-panel p-4 rounded-panel shadow-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-3 md:flex-1">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <h2 id="sort-records-heading" className="text-base font-semibold text-ink md:text-lg">
             Sort Records
           </h2>
           <div
             role="group"
             aria-labelledby="sort-records-heading"
-            className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:flex md:flex-wrap md:gap-4"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-4 md:flex md:flex-wrap md:gap-4"
           >
             {SORT_OPTIONS.map((option) => (
               <button
@@ -76,9 +85,14 @@ export function GridControls({
               </button>
             ))}
           </div>
+          {sortStatus && (
+            <p role="status" className="text-sm text-muted">
+              {sortStatus}
+            </p>
+          )}
         </div>
 
-        <div className="flex flex-wrap gap-2 md:items-center md:justify-end md:gap-3">
+        <div className="flex flex-wrap gap-2 md:items-center md:gap-3">
           <button
             onClick={onToggleDimensionsConfig}
             className={`${actionButtonClass} bg-raised text-ink hover:bg-line`}
@@ -87,6 +101,17 @@ export function GridControls({
           >
             {showDimensionsConfig ? "Hide Grid Config" : "Configure Grid"}
           </button>
+
+          {onToggleLayouts && (
+            <button
+              onClick={onToggleLayouts}
+              className={`${actionButtonClass} bg-raised text-ink hover:bg-line`}
+              aria-expanded={showLayouts}
+              type="button"
+            >
+              {showLayouts ? "Hide Layouts" : "Layouts"}
+            </button>
+          )}
 
           <button
             onClick={onTogglePinAll}

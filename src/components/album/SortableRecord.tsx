@@ -41,7 +41,7 @@ export function SortableRecord({
     disabled: isPinned,
   });
 
-  const { imageSource, imgRef, handleImageError, handleImageLoad } = useAlbumImage(
+  const { imageSource, coverMissing, imgRef, handleImageError, handleImageLoad } = useAlbumImage(
     album,
     exportMode,
     imageSize
@@ -95,6 +95,7 @@ export function SortableRecord({
       } ${isMoveSource ? "ring-4 ring-accent-2 rounded-tile" : ""}`}
       data-album-id={album.id}
       data-pinned={isPinned ? "true" : "false"}
+      data-cover-missing={coverMissing ? "true" : undefined}
       onClick={handleAlbumClick}
     >
       <div className="relative w-full h-full">

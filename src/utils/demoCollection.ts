@@ -1,4 +1,6 @@
 import { Album } from "../types";
+import { isCoverColor } from "./colorBasics";
+import { unpackProfile } from "./colorCache";
 
 /**
  * Parse a demo collection envelope received from the demo fixture.
@@ -53,6 +55,12 @@ export function parseDemoCollection(value: unknown): Album[] | null {
         title,
         artist,
       } as Album;
+      // A precomputed cover color is kept only when it is a usable color.
+      if (!isCoverColor(album.color)) delete album.color;
+      // A precomputed cover profile is stored packed; keep it only when it unpacks to a usable one.
+      const profile = unpackProfile(rec.profile);
+      if (profile) album.profile = profile;
+      else delete album.profile;
       result.push(album);
     }
   }

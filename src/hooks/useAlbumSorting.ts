@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Album } from "@/types";
+import type { CoverColor } from "@/utils/colorBasics";
+import { sortAlbumsByColor } from "@/utils/sortByColor";
 
-export type SortOption = "none" | "artist" | "genre";
+export type SortOption = "none" | "artist" | "genre" | "color";
 
 /**
  * Derives the comparison key for an album under a given sort option.
  *
  * For "artist" returns `album.artist` or the empty string.
  * For "genre" returns the genre string, or the first entry of a genre array, or ""
- * when genre is missing or the array is empty.
+ * when genre is missing or the array is empty. Color has no text key (it is ordered from the
+ * covers' measured colors), so it returns "".
  *
  * @param album Album whose sort key to derive.
  * @param option Active sort option.
@@ -41,14 +44,21 @@ export function useAlbumSorting() {
   /**
    * Sorts albums by the active sort option while preserving pinned album positions.
    *
-   * Unpinned albums are sorted once using {@link getSortKey}; pinned albums stay at their
-   * original indices while sorted unpinned albums fill the remaining slots in order.
+   * Unpinned albums are sorted once using {@link getSortKey} (or, for color, by their measured
+   * colors); pinned albums stay at their original indices while sorted unpinned albums fill the
+   * remaining slots in order.
    *
    * @param albumsToSort Albums to sort.
    * @param pinnedAlbums Set of pinned album ids that must remain fixed in place.
+   * @param colors Measured cover colors by album id, used by the color sort; an album with none
+   *               is placed last.
    * @returns Albums sorted according to the active sort option.
    */
-  const sortAlbums = (albumsToSort: Album[], pinnedAlbums: Set<string>) => {
+  const sortAlbums = (
+    albumsToSort: Album[],
+    pinnedAlbums: Set<string>,
+    colors: Record<string, CoverColor | null> = {}
+  ) => {
     if (sortOption === "none") return albumsToSort;
 
     // Collect pinned album positions
@@ -61,9 +71,12 @@ export function useAlbumSorting() {
 
     // Sort unpinned albums using a single shared comparison path
     const unpinnedAlbums = albumsToSort.filter((album) => !pinnedAlbums.has(String(album.id)));
-    const sortedUnpinned = [...unpinnedAlbums].sort((a, b) =>
-      getSortKey(a, sortOption).localeCompare(getSortKey(b, sortOption))
-    );
+    const sortedUnpinned =
+      sortOption === "color"
+        ? sortAlbumsByColor(unpinnedAlbums, colors, (album) => String(album.id))
+        : [...unpinnedAlbums].sort((a, b) =>
+            getSortKey(a, sortOption).localeCompare(getSortKey(b, sortOption))
+          );
 
     // When nothing is pinned the result is just the plain sorted list
     if (pinnedIndices.size === 0) {

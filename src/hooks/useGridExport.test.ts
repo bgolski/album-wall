@@ -1,12 +1,15 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useGridExport } from "./useGridExport";
-import html2canvas from "html2canvas-pro";
+import { drawWall } from "@/utils/drawWall";
 
-// Mock html2canvas module
-vi.mock("html2canvas-pro", () => ({
-  default: vi.fn(),
+vi.mock("@/utils/drawWall", () => ({
+  drawWall: vi.fn(),
 }));
+
+const wallMock = vi.mocked(drawWall);
+const resolveCanvas = (canvas: unknown, left = 0) =>
+  wallMock.mockResolvedValue({ canvas: canvas as HTMLCanvasElement, left });
 
 const mockCanvasToBlob = (blob: Blob) => {
   return { toBlob: (_cb: (b: Blob | null) => void) => _cb(blob) };
@@ -115,15 +118,14 @@ describe("useGridExport", () => {
     expect(result.current.isExporting).toBe(false);
   });
 
-  it("hides labels, restores display, and downloads when share not available", async () => {
+  it("downloads when share is not available", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() => useGridExport(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click");
 
@@ -131,13 +133,25 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    const labels = grid.querySelectorAll<HTMLElement>(".album-labels");
-    labels.forEach((label) => {
-      expect(label.style.display).toBe("flex");
-    });
-
     expect(clickSpy).toHaveBeenCalled();
     expect(result.current.status?.message).toBe("Image saved.");
+  });
+
+  it("says how many covers could not be included", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport(username, albums));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    resolveCanvas(mockCanvasToBlob(new Blob(["png"], { type: "image/png" })), 3);
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+
+    await act(async () => {
+      await result.current.shareOrSaveImage();
+    });
+
+    expect(result.current.status?.message).toBe("Image saved. 3 covers could not be included.");
+    expect(wallMock.mock.calls.at(-1)![0].albums).toBe(albums);
   });
 
   it("passes correct filename to downloadBlob", async () => {
@@ -147,8 +161,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
     const createSpy = vi.spyOn(document, "createElement");
 
@@ -168,8 +181,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     const shareSpy = vi.spyOn(window.navigator, "share").mockResolvedValue();
     vi.spyOn(window.navigator, "canShare").mockReturnValue(true);
 
@@ -188,8 +200,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     const shareSpy = vi
       .spyOn(window.navigator, "share")
       .mockRejectedValueOnce(new DOMException("needs a tap", "NotAllowedError"))
@@ -220,8 +231,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
     const createSpy = vi.spyOn(document, "createElement");
 
@@ -240,8 +250,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
     const createSpy = vi.spyOn(document, "createElement");
 
@@ -261,8 +270,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const blob = new Blob(["png"], { type: "image/png" });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockResolvedValue(mockCanvasToBlob(blob));
+    resolveCanvas(mockCanvasToBlob(blob));
     const abortErr = new DOMException("", "AbortError");
     vi.spyOn(window.navigator, "share").mockRejectedValue(abortErr);
     vi.spyOn(window.navigator, "canShare").mockReturnValue(true);
@@ -282,8 +290,7 @@ describe("useGridExport", () => {
       result.current.gridRef.current = grid;
     });
     const error = new Error("boom");
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockRejectedValue(error);
+    wallMock.mockRejectedValue(error);
 
     await act(async () => {
       await result.current.shareOrSaveImage();
@@ -324,7 +331,7 @@ describe("useGridExport sized images", () => {
       result.current.gridRef.current = grid;
     });
     const captured = { width: 800, height: 600 };
-    vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(captured);
+    resolveCanvas(captured);
     const context = { fillStyle: "", fillRect: vi.fn(), drawImage: vi.fn() };
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
       context as unknown as CanvasRenderingContext2D
@@ -372,9 +379,8 @@ describe("useGridExport capture size", () => {
     act(() => {
       result.current.gridRef.current = grid;
     });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockReset();
-    html2canvasMock.mockResolvedValue({ width: 10, height: 10 });
+    wallMock.mockReset();
+    resolveCanvas({ width: 10, height: 10 });
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       fillRect: vi.fn(),
       drawImage: vi.fn(),
@@ -391,7 +397,7 @@ describe("useGridExport capture size", () => {
         height: size,
       });
     });
-    return (html2canvasMock.mock.calls[0]![1] as { scale: number }).scale;
+    return wallMock.mock.calls[0]![0].scale;
   }
 
   it("captures a narrow phone wall at the size it is printed instead of stretching it", async () => {
@@ -421,9 +427,8 @@ describe("useGridExport image size at the screen's own size", () => {
     act(() => {
       result.current.gridRef.current = grid;
     });
-    const html2canvasMock = vi.mocked(html2canvas as unknown as ReturnType<typeof vi.fn>);
-    html2canvasMock.mockReset();
-    html2canvasMock.mockResolvedValue({
+    wallMock.mockReset();
+    resolveCanvas({
       width: 10,
       height: 10,
       toBlob: (callback: BlobCallback) => callback(new Blob(["png"], { type: "image/png" })),
@@ -432,7 +437,7 @@ describe("useGridExport image size at the screen's own size", () => {
     await act(async () => {
       await result.current.shareOrSaveImage();
     });
-    return (html2canvasMock.mock.calls[0]![1] as { scale: number }).scale;
+    return wallMock.mock.calls[0]![0].scale;
   }
 
   it("keeps a saved wall to about a million pixels on a high-density computer screen", async () => {

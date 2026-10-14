@@ -51,6 +51,41 @@ describe("parseDemoCollection", () => {
     expect(result).toEqual([valid, { ...album, id: 4, title: "Second" }]);
   });
 
+  it("keeps a usable precomputed cover color and drops a damaged one", () => {
+    const color = { l: 0.5, a: 0.1, b: -0.1 };
+    const result = parseDemoCollection({
+      v: 1,
+      albums: [
+        { ...album, id: 1, color },
+        { ...album, id: 2, color: { l: "bright" } },
+        { ...album, id: 3 },
+      ],
+    });
+    expect(result![0]!.color).toEqual(color);
+    expect(result![1]).not.toHaveProperty("color");
+    expect(result![2]).not.toHaveProperty("color");
+  });
+
+  it("keeps a usable precomputed cover profile and drops a damaged one", () => {
+    const color = { l: 0.5, a: 0.1, b: -0.1 };
+    const profile = { color, palette: [{ color, share: 1 }], regions: Array(9).fill(color) };
+    const packed = {
+      c: [0.5, 0.1, -0.1],
+      p: [[0.5, 0.1, -0.1, 1]],
+      r: Array(9).fill([0.5, 0.1, -0.1]),
+    };
+    const result = parseDemoCollection({
+      v: 1,
+      albums: [
+        { ...album, id: 1, color, profile: packed },
+        { ...album, id: 2, color, profile: { c: [0.5] } },
+      ],
+    });
+    expect(result![0]!.profile).toEqual(profile);
+    expect(result![1]).not.toHaveProperty("profile");
+    expect(result![1]!.color).toEqual(color);
+  });
+
   it("returns null when no usable albums survive", () => {
     expect(parseDemoCollection({ v: 1, albums: [null, {}, { ...album, id: NaN }] })).toBeNull();
   });

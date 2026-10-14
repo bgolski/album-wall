@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { wallDisplayName } from "@/utils/demoCollection";
-import { Album, Html2CanvasOptions } from "@/types";
+import { Album } from "@/types";
 import { fitIntoFrame, type ExportPreset } from "@/utils/exportFrame";
+import { drawWall } from "@/utils/drawWall";
+import { DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 
 const EXPORT_TIMEOUT_MS = 20000;
 const STATUS_VISIBLE_MS = 4000;
@@ -147,10 +149,10 @@ export function useGridExport(username: string, albums: Album[]) {
   };
 
   /**
-   * Captures the current wall grid into a PNG blob while preserving existing label visibility.
+   * Draws the current wall into a PNG blob.
    *
    * @param preset Output size; without one the image is the wall at the screen's density.
-   * @returns A PNG blob for the current wall grid.
+   * @returns A PNG blob for the current wall grid, and how many covers had to be left out.
    */
   const captureGridImageBlob = async (preset?: ExportPreset) => {
     if (!gridRef.current) {
@@ -174,45 +176,22 @@ export function useGridExport(username: string, albums: Album[]) {
         )
       : getExportScale(gridWidth, gridHeight);
 
-    const labels = Array.from(gridRef.current.querySelectorAll<HTMLElement>(".album-labels"));
-    const previousDisplayValues = labels.map((label) => label.style.display);
+    const { canvas, left } = await withTimeout(
+      drawWall({ grid, albums, scale, background, placeholder: DEFAULT_PLACEHOLDER_IMAGE }),
+      EXPORT_TIMEOUT_MS
+    );
+    const output = preset ? drawInFrame(canvas, preset, padding, background) : canvas;
+    const imageBlob = await new Promise<Blob>((resolve, reject) => {
+      output.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("Failed to generate image blob"));
+          return;
+        }
 
-    try {
-      labels.forEach((label) => {
-        label.style.display = "none";
-      });
-
-      const { default: html2canvas } = await import("html2canvas-pro");
-
-      const canvas = await withTimeout(
-        Promise.resolve(
-          html2canvas(grid, {
-            backgroundColor: background,
-            scale,
-            logging: false,
-            allowTaint: true,
-            useCORS: true,
-          } as Html2CanvasOptions)
-        ),
-        EXPORT_TIMEOUT_MS
-      );
-
-      const output = preset ? drawInFrame(canvas, preset, padding, background) : canvas;
-      return await new Promise<Blob>((resolve, reject) => {
-        output.toBlob((blob) => {
-          if (!blob) {
-            reject(new Error("Failed to generate image blob"));
-            return;
-          }
-
-          resolve(blob);
-        }, "image/png");
-      });
-    } finally {
-      labels.forEach((label, index) => {
-        label.style.display = previousDisplayValues[index] ?? "";
-      });
-    }
+        resolve(blob);
+      }, "image/png");
+    });
+    return { imageBlob, coversLeftOut: left };
   };
 
   /**
@@ -253,11 +232,18 @@ export function useGridExport(username: string, albums: Album[]) {
 
     try {
       setIsExporting(true);
-      const imageBlob = await captureGridImageBlob(preset);
+      const { imageBlob, coversLeftOut: missing } = await captureGridImageBlob(preset);
       const imageFile = new File([imageBlob], imageFilename, { type: "image/png" });
+      const savedMessage =
+        missing > 0
+          ? `Image saved. ${missing} ${missing === 1 ? "cover" : "covers"} could not be included.`
+          : "Image saved.";
 
       try {
-        if (await tryNativeImageShare(imageFile)) return;
+        if (await tryNativeImageShare(imageFile)) {
+          if (missing > 0) setStatusMessage(savedMessage.replace("Image saved", "Image shared"));
+          return;
+        }
       } catch (error) {
         // Safari only opens the share sheet right after a tap, and capturing the wall takes a
         // while. Offer a button so the share happens from a fresh tap instead of failing.
@@ -284,7 +270,7 @@ export function useGridExport(username: string, albums: Album[]) {
       }
 
       downloadBlob(imageBlob, imageFilename);
-      setStatusMessage("Image saved.");
+      setStatusMessage(savedMessage);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setStatusMessage("Save canceled.");

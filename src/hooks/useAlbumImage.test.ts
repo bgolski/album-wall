@@ -10,8 +10,10 @@ vi.mock("@/utils/imageProxy", () => ({
 }));
 
 import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
+import { coverSource, reportCoverLoad, resetCoverSource } from "@/utils/coverSource";
 
 afterEach(() => {
+  act(() => resetCoverSource());
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -59,12 +61,15 @@ describe("useAlbumImage hook", () => {
     expect(result.current.imageSource).toBe("proxied2.png");
   });
 
-  it("handleImageError sets error flag and placeholder", () => {
+  it("tries the cover's own address when the proxied copy fails, then the placeholder", () => {
+    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
     const { result } = renderHook(() => useAlbumImage(albumWithCover, false));
-    act(() => {
-      result.current.handleImageError();
-    });
+    act(() => result.current.handleImageError());
+    expect(result.current.imageError).toBe(false);
+    expect(result.current.imageSource).toBe(albumWithCover.cover_image);
+    act(() => result.current.handleImageError());
     expect(result.current.imageError).toBe(true);
+    expect(result.current.coverMissing).toBe(true);
     expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
   });
 
@@ -84,6 +89,48 @@ describe("useAlbumImage hook", () => {
     });
     // In jsdom the conversion may not produce a data URL, so accept either
     expect(result.current.imageSource).toMatch(/^(data:image\/png|proxied\.png)$/);
+  });
+
+  it("shows the converted copy only while exporting", () => {
+    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: () => {},
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;copy");
+    const { result, rerender } = renderHook(
+      ({ exporting }) => useAlbumImage(albumWithCover, exporting),
+      { initialProps: { exporting: true } }
+    );
+    const div = document.createElement("div");
+    const img = document.createElement("img");
+    img.setAttribute("src", "proxied.png");
+    div.appendChild(img);
+    act(() => {
+      result.current.imgRef.current = div;
+    });
+    act(() => result.current.handleImageLoad());
+    expect(result.current.imageSource).toBe("data:image/png;copy");
+
+    rerender({ exporting: false });
+    expect(result.current.imageSource).toBe("proxied.png");
+  });
+
+  it("ignores the placeholder standing in for a cover while an image is saved", () => {
+    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: () => {},
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;copy");
+    const { result } = renderHook(() => useAlbumImage(albumWithCover, true));
+    const div = document.createElement("div");
+    const img = document.createElement("img");
+    img.setAttribute("src", DEFAULT_PLACEHOLDER_IMAGE);
+    div.appendChild(img);
+    act(() => {
+      result.current.imgRef.current = div;
+    });
+    act(() => result.current.handleImageLoad());
+    expect(result.current.imageSource).toBe("proxied.png");
   });
 
   it("handleImageLoad does nothing when exportMode is false", () => {
@@ -124,6 +171,7 @@ describe("useAlbumImage with a changing album", () => {
     expect(result.current.imageSource).toBe("proxied:http://example.com/cover.jpg");
 
     act(() => result.current.handleImageError());
+    act(() => result.current.handleImageError());
     expect(result.current.imageError).toBe(true);
     expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
 
@@ -139,10 +187,47 @@ describe("useAlbumImage with a changing album", () => {
       initialProps: { album: bare },
     });
     expect(result.current.imageError).toBe(true);
+    expect(result.current.coverMissing).toBe(false);
     expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
 
     rerender({ album: albumWithCover });
     expect(result.current.imageError).toBe(false);
     expect(result.current.imageSource).toBe("proxied:http://example.com/cover.jpg");
+  });
+});
+
+describe("useAlbumImage when the image proxy is down", () => {
+  it("gives up on the proxy for new covers after four tiles fail through it", () => {
+    vi.mocked(getProxiedImageUrl).mockImplementation((url: string) => `proxied:${url}`);
+    const tiles = [1, 2, 3, 4].map((id) =>
+      renderHook(() =>
+        useAlbumImage({ ...albumWithCover, id, cover_image: `http://example.com/${id}.jpg` }, false)
+      )
+    );
+    expect(coverSource()).toBe("proxy");
+    tiles.forEach(({ result }) => act(() => result.current.handleImageError()));
+    expect(coverSource()).toBe("direct");
+    // Each failed tile has already moved on to its cover's own address.
+    expect(tiles[0]!.result.current.imageSource).toBe("http://example.com/1.jpg");
+  });
+
+  it("goes straight to the cover's own address once the page has given up on the proxy", () => {
+    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
+    act(() => {
+      for (let i = 0; i < 4; i += 1) reportCoverLoad("proxy", false);
+    });
+    const { result } = renderHook(() => useAlbumImage(albumWithCover, false));
+    expect(result.current.imageSource).toBe(albumWithCover.cover_image);
+  });
+
+  it("keeps a cover that already loaded when the page switches", () => {
+    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
+    const { result } = renderHook(() => useAlbumImage(albumWithCover, false));
+    act(() => result.current.handleImageLoad());
+    act(() => {
+      for (let i = 0; i < 4; i += 1) reportCoverLoad("proxy", false);
+    });
+    expect(coverSource()).toBe("direct");
+    expect(result.current.imageSource).toBe("proxied.png");
   });
 });

@@ -25,6 +25,33 @@ function renderControls(overrides: Partial<Props> = {}) {
   return { props, ...render(<GridControls {...props} />) };
 }
 
+describe("GridControls color sort", () => {
+  afterEach(cleanup);
+
+  it("offers Sort by Color and reports the choice", () => {
+    const { props } = renderControls();
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Color" }));
+    expect(props.onSortChange).toHaveBeenCalledWith("color");
+  });
+
+  it("marks Sort by Color as pressed when it is the active sort", () => {
+    renderControls({ sortOption: "color" });
+    expect(screen.getByRole("button", { name: "Sort by Color" }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: "Custom Order" }).getAttribute("aria-pressed")).toBe(
+      "false"
+    );
+  });
+
+  it("shows the sort status in a live region, and nothing when there is none", () => {
+    const { rerender, props } = renderControls({ sortStatus: "Reading cover colors... 5 left" });
+    expect(screen.getByRole("status").textContent).toBe("Reading cover colors... 5 left");
+    rerender(<GridControls {...props} sortStatus={null} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -38,13 +65,14 @@ describe("GridControls", () => {
       within(group)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["Custom Order", "Sort by Artist", "Sort by Genre"]);
+    ).toEqual(["Custom Order", "Sort by Artist", "Sort by Genre", "Sort by Color"]);
   });
 
   it.each([
     ["none", "Custom Order"],
     ["artist", "Sort by Artist"],
     ["genre", "Sort by Genre"],
+    ["color", "Sort by Color"],
   ] as const)("marks the %s sort as pressed and the others as not pressed", (option, label) => {
     renderControls({ sortOption: option });
     const group = screen.getByRole("group", { name: "Sort Records" });

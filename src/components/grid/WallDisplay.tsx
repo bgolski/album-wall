@@ -9,7 +9,6 @@ interface WallDisplayProps {
   rows: number;
   gridSize: number;
   pinnedCount: number;
-  isExporting: boolean;
   pinnedAlbums: Set<string>;
   onPinToggle: (albumId: string) => void;
   onSelect: (album: Album) => void;
@@ -27,7 +26,6 @@ export function WallDisplay({
   rows,
   gridSize,
   pinnedCount,
-  isExporting,
   pinnedAlbums,
   onPinToggle,
   onSelect,
@@ -63,8 +61,7 @@ export function WallDisplay({
             <SortableRecord
               key={`grid-${album.id}`}
               album={album}
-              exportMode={isExporting}
-              {...(columns >= 4 && !isExporting ? { imageSize: TILE_COVER_SIZE } : {})}
+              {...(columns >= 4 ? { imageSize: TILE_COVER_SIZE } : {})}
               isPinned={pinnedAlbums.has(String(album.id))}
               onPinToggle={onPinToggle}
               onSelect={onSelect}

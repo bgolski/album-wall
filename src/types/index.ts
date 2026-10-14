@@ -1,3 +1,6 @@
+import type { CoverColor } from "@/utils/colorBasics";
+import type { CoverProfile } from "@/utils/coverProfile";
+
 export interface Album {
   id: number;
   title: string;
@@ -8,6 +11,10 @@ export interface Album {
   genre?: string[];
   year?: string;
   error?: boolean;
+  /** The cover's color when it is already known, such as the demo's precomputed colors. */
+  color?: CoverColor;
+  /** The cover's measured profile when it is already known, such as the demo's precomputed ones. */
+  profile?: CoverProfile;
 }
 
 export interface DiscogsRelease {
@@ -42,14 +49,4 @@ export interface SharedWallState {
   columns: number;
   wallAlbumIds: string[];
   pinnedAlbumIds: string[];
-}
-
-// HTML2Canvas options interface for type casting
-export interface Html2CanvasOptions {
-  backgroundColor?: string;
-  scale?: number;
-  logging?: boolean;
-  allowTaint?: boolean;
-  useCORS?: boolean;
-  background?: string;
 }
