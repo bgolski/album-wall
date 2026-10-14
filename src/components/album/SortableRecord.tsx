@@ -11,7 +11,6 @@ import { AlbumBorder } from "./AlbumBorder";
 
 interface SortableRecordProps {
   album: Album;
-  exportMode?: boolean;
   imageSize?: number;
   isPinned?: boolean;
   onPinToggle?: (albumId: string) => void;
@@ -22,11 +21,10 @@ interface SortableRecordProps {
 }
 
 /**
- * Renders a draggable album tile with optional pinning controls and export-safe image behavior.
+ * Renders a draggable album tile with optional pinning controls.
  */
 export function SortableRecord({
   album,
-  exportMode = false,
   imageSize,
   isPinned = false,
   onPinToggle,
@@ -43,12 +41,11 @@ export function SortableRecord({
 
   const { imageSource, coverMissing, imgRef, handleImageError, handleImageLoad } = useAlbumImage(
     album,
-    exportMode,
     imageSize
   );
 
   // Covers load as their tile nears the screen, not all at once for a large collection.
-  const showImage = useNearViewport(imgRef, exportMode);
+  const showImage = useNearViewport(imgRef);
 
   const style = isPinned
     ? {}
@@ -111,7 +108,6 @@ export function SortableRecord({
               fill
               sizes="(max-width: 768px) 100vw, 200px"
               className="object-cover rounded-tile shadow-lg"
-              crossOrigin={exportMode ? "anonymous" : undefined}
               onLoad={handleImageLoad}
               onError={handleImageError}
               style={{ backgroundColor: "#333" }}
@@ -123,10 +119,9 @@ export function SortableRecord({
             isPinned={isPinned}
             title={album.title || "album"}
             disabled={disablePinning || !onPinToggle}
-            hidden={exportMode}
             onToggle={() => onPinToggle?.(String(album.id))}
           />
-          {!isPinned && !exportMode && (
+          {!isPinned && (
             <button
               type="button"
               aria-label={`Drag ${album.title || "album"}`}

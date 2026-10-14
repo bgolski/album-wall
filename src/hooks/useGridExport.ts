@@ -10,20 +10,16 @@ const STATUS_VISIBLE_MS = 4000;
 const ACTION_VISIBLE_MS = 15000;
 // Largest canvas side to capture; browsers on phones refuse much bigger canvases.
 const MAX_CAPTURE_SIDE = 4096;
-// Most pixels in an image saved at the screen's own size. A full-size wall comes to roughly two
-// megabytes as a PNG, which is easy to share; the wallpaper and print sizes are deliberately larger.
-const MAX_EXPORT_PIXELS = 1_300_000;
+// Pixels in an image saved at the screen's own size, on any device: an 8 x 4 wall comes to about
+// 2450 x 1225, roughly 290 pixels per cover, so a phone saves as sharp an image as a computer.
+const EXPORT_PIXELS = 3_000_000;
 
 export interface ExportStatus {
   message: string;
   tone: "info" | "error";
   action?: { label: string; run: () => void };
-}
-
-function isTouchDevice() {
-  return (
-    typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0)
-  );
+  /** Work is under way: the message stays up, with a spinner, until it is replaced or cleared. */
+  busy?: boolean;
 }
 
 /**
@@ -37,22 +33,22 @@ function getPanelColor(grid: HTMLElement) {
 }
 
 /**
- * How much to enlarge the wall when saving it at the screen's own size: twice the screen's pixel
- * density on a computer and the density itself on a touch device, but never so much that the image
- * passes the pixel budget.
+ * How much to enlarge the wall when saving it at the screen's own size. The image is sized by a
+ * pixel budget rather than the screen, because a phone shows the wall only a few hundred pixels
+ * wide and saving it at that size leaves each cover tiny.
  *
  * @param gridWidth Width of the wall on screen, in CSS pixels.
  * @param gridHeight Height of the wall on screen, in CSS pixels.
  * @returns The scale to capture at.
  */
 function getExportScale(gridWidth: number, gridHeight: number) {
-  const wanted =
-    typeof window === "undefined"
-      ? 2
-      : isTouchDevice()
-        ? Math.min(window.devicePixelRatio, 2)
-        : window.devicePixelRatio * 2;
-  return Math.min(wanted, Math.sqrt(MAX_EXPORT_PIXELS / (gridWidth * gridHeight)));
+  return Math.max(
+    1,
+    Math.min(
+      Math.sqrt(EXPORT_PIXELS / (gridWidth * gridHeight)),
+      MAX_CAPTURE_SIDE / Math.max(gridWidth, gridHeight)
+    )
+  );
 }
 
 /**
@@ -121,7 +117,7 @@ export function useGridExport(username: string, albums: Album[]) {
 
   // A toast goes away on its own; one that offers an action stays longer so it can be used.
   useEffect(() => {
-    if (!status) return;
+    if (!status || status.busy) return;
     const timer = window.setTimeout(
       () => setStatus(null),
       status.action ? ACTION_VISIBLE_MS : STATUS_VISIBLE_MS
@@ -232,6 +228,7 @@ export function useGridExport(username: string, albums: Album[]) {
 
     try {
       setIsExporting(true);
+      setStatus({ message: "Preparing image...", tone: "info", busy: true });
       const { imageBlob, coversLeftOut: missing } = await captureGridImageBlob(preset);
       const imageFile = new File([imageBlob], imageFilename, { type: "image/png" });
       const savedMessage =
@@ -281,6 +278,8 @@ export function useGridExport(username: string, albums: Album[]) {
       setStatus({ message: "Failed to export image. Please try again.", tone: "error" });
     } finally {
       setIsExporting(false);
+      // A share that needed no message leaves the progress notice up; clear it.
+      setStatus((current) => (current?.busy ? null : current));
     }
   };
 

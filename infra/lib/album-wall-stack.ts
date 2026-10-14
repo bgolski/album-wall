@@ -2,6 +2,15 @@ import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as budgets from "aws-cdk-lib/aws-budgets";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 
 const DISCOGS_TOKEN_PARAMETER_NAME = "/album-wall/discogs-token";
@@ -14,6 +23,18 @@ const ALLOWED_FRONTEND_ORIGINS = [
   "http://localhost:3001",
 ];
 const APPLICATION_TAG_VALUE = "album-wall";
+// Where cost and usage alerts go; kept in Parameter Store, like the Discogs secrets, so the
+// address is not in the repository.
+const ALERT_EMAIL_PARAMETER_NAME = "/album-wall/alert-email";
+// Hosting must stay free: alert on the first cent spent, and when the month is forecast to pass $1.
+const MONTHLY_BUDGET_USD = 1;
+// Far below Lambda's free allowance (1M requests a month), so unusual traffic is noticed early.
+const DAILY_INVOCATION_ALARM = 100_000;
+const HOURLY_ERROR_ALARM = 50;
+// Short share links: the CloudFront domain is written here after the distribution is made and read
+// by name at run time, so the functions do not depend on the distribution that points at them.
+const SHARE_DOMAIN_PARAMETER_NAME = "/album-wall/share-domain";
+const LIVE_APP_URL = "https://bradleygolski.com/album-wall/";
 
 /**
  * Root infrastructure stack for album-wall AWS resources.
@@ -80,6 +101,10 @@ export class AlbumWallStack extends cdk.Stack {
       },
     });
 
+    const sharePageFunction = this.addShortLinks(discogsProxyFunction);
+
+    this.addCostGuardrails(discogsProxyFunction, sharePageFunction);
+
     new cdk.CfnOutput(this, "DiscogsProxyFunctionUrl", {
       value: functionUrl.url,
       description: "Public Lambda Function URL for the Discogs proxy.",
@@ -99,5 +124,203 @@ export class AlbumWallStack extends cdk.Stack {
       value: DISCOGS_CONSUMER_SECRET_PARAMETER_NAME,
       description: "SSM parameter path that stores the Discogs consumer secret.",
     });
+  }
+
+  /**
+   * Short share links that show the wall in message previews, inside the always-free allowances:
+   * a DynamoDB table with provisioned capacity (on-demand is not free) whose items expire after a
+   * year, a function that serves the link page and draws the wall's picture, and CloudFront in
+   * front of it (default domain, pictures cached for a year).
+   *
+   * @param proxy The Discogs proxy, which stores shared walls (`POST /share`).
+   * @returns The share page function, for alarms.
+   */
+  private addShortLinks(proxy: lambdaNodejs.NodejsFunction) {
+    const table = new dynamodb.Table(this, "SharedWallsTable", {
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PROVISIONED,
+      readCapacity: 2,
+      writeCapacity: 2,
+      timeToLiveAttribute: "expires",
+    });
+
+    const sharePage = new lambdaNodejs.NodejsFunction(this, "SharePageFunction", {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      entry: "lambda/share-page/index.ts",
+      handler: "handler",
+      description: "Short share links for album-wall: link page and wall picture.",
+      timeout: cdk.Duration.seconds(20),
+      memorySize: 1024,
+      reservedConcurrentExecutions: 3,
+      environment: {
+        SHARE_TABLE_NAME: table.tableName,
+        SHARE_DOMAIN_PARAMETER_NAME,
+        DEFAULT_APP_URL: LIVE_APP_URL,
+      },
+      bundling: {
+        target: "node22",
+        // sharp has native parts: install the Linux ARM build whatever machine deploys.
+        nodeModules: ["sharp"],
+        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
+      },
+    });
+    table.grantReadData(sharePage);
+    table.grantWriteData(proxy);
+    proxy.addEnvironment("SHARE_TABLE_NAME", table.tableName);
+    proxy.addEnvironment("SHARE_DOMAIN_PARAMETER_NAME", SHARE_DOMAIN_PARAMETER_NAME);
+
+    const readShareDomain = new iam.PolicyStatement({
+      actions: ["ssm:GetParameter"],
+      resources: [
+        cdk.Stack.of(this).formatArn({
+          service: "ssm",
+          resource: "parameter",
+          resourceName: SHARE_DOMAIN_PARAMETER_NAME.slice(1),
+        }),
+      ],
+    });
+    sharePage.addToRolePolicy(readShareDomain);
+    proxy.addToRolePolicy(readShareDomain);
+
+    const origin = new origins.FunctionUrlOrigin(
+      sharePage.addFunctionUrl({ authType: lambda.FunctionUrlAuthType.NONE })
+    );
+    const distribution = new cloudfront.Distribution(this, "ShareDistribution", {
+      comment: "Album Wall short share links",
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
+      defaultBehavior: {
+        origin,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+        // The page depends on who asks (a preview fetcher or a person), so it is not cached.
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+      },
+      additionalBehaviors: {
+        "/w/*.jpg": {
+          origin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
+      },
+    });
+
+    new ssm.StringParameter(this, "ShareDomainParameter", {
+      parameterName: SHARE_DOMAIN_PARAMETER_NAME,
+      stringValue: distribution.distributionDomainName,
+      description: "CloudFront domain of album-wall short share links.",
+    });
+
+    new cdk.CfnOutput(this, "ShareLinkDomain", {
+      value: distribution.distributionDomainName,
+      description: "Domain of short share links (https://<domain>/w/<id>).",
+    });
+
+    return sharePage;
+  }
+
+  /**
+   * Keeps hosting free, or makes any cost visible at once: a $1 monthly budget for the whole
+   * account that emails on the first cent spent and when the month is forecast to pass $1, and
+   * alarms on the Discogs proxy for unusual traffic, errors and throttling (its reserved
+   * concurrency throttles abuse instead of billing it).
+   *
+   * @param proxy The Discogs proxy function.
+   * @param sharePage The short link page function, watched the same way.
+   */
+  private addCostGuardrails(proxy: lambda.IFunction, sharePage: lambda.IFunction) {
+    // A dynamic reference is resolved by CloudFormation during the deploy (with its execution
+    // role), unlike a template parameter, which the CDK deploy role would have to read itself.
+    const alertEmail = new cdk.CfnDynamicReference(
+      cdk.CfnDynamicReferenceService.SSM,
+      ALERT_EMAIL_PARAMETER_NAME
+    ).toString();
+
+    const alerts = new sns.Topic(this, "AlertsTopic", { displayName: "Album Wall alerts" });
+    alerts.addSubscription(new subscriptions.EmailSubscription(alertEmail));
+
+    new budgets.CfnBudget(this, "MonthlyBudget", {
+      budget: {
+        budgetName: "album-wall-monthly",
+        budgetType: "COST",
+        timeUnit: "MONTHLY",
+        budgetLimit: { amount: MONTHLY_BUDGET_USD, unit: "USD" },
+      },
+      notificationsWithSubscribers: [
+        {
+          // 1% of $1: anything at all is spent.
+          notification: {
+            notificationType: "ACTUAL",
+            comparisonOperator: "GREATER_THAN",
+            threshold: 1,
+            thresholdType: "PERCENTAGE",
+          },
+          subscribers: [{ subscriptionType: "EMAIL", address: alertEmail }],
+        },
+        {
+          notification: {
+            notificationType: "FORECASTED",
+            comparisonOperator: "GREATER_THAN",
+            threshold: 100,
+            thresholdType: "PERCENTAGE",
+          },
+          subscribers: [{ subscriptionType: "EMAIL", address: alertEmail }],
+        },
+      ],
+    });
+
+    const alarm = (
+      id: string,
+      metric: cloudwatch.IMetric,
+      threshold: number,
+      description: string
+    ) =>
+      new cloudwatch.Alarm(this, id, {
+        metric,
+        threshold,
+        evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+        alarmDescription: description,
+      }).addAlarmAction(new cloudwatchActions.SnsAction(alerts));
+
+    alarm(
+      "ProxyInvocationsAlarm",
+      proxy.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
+      DAILY_INVOCATION_ALARM,
+      "The Discogs proxy ran far more often than usual in a day."
+    );
+    alarm(
+      "ProxyErrorsAlarm",
+      proxy.metricErrors({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      HOURLY_ERROR_ALARM,
+      "The Discogs proxy failed many times in an hour."
+    );
+    alarm(
+      "ProxyThrottlesAlarm",
+      proxy.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      0,
+      "The Discogs proxy hit its concurrency cap, which may mean abuse."
+    );
+    alarm(
+      "SharePageInvocationsAlarm",
+      sharePage.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
+      DAILY_INVOCATION_ALARM,
+      "Short share links were opened far more often than usual in a day."
+    );
+    alarm(
+      "SharePageErrorsAlarm",
+      sharePage.metricErrors({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      HOURLY_ERROR_ALARM,
+      "The short link page failed many times in an hour."
+    );
+    alarm(
+      "SharePageThrottlesAlarm",
+      sharePage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      0,
+      "The short link page hit its concurrency cap, which may mean abuse."
+    );
   }
 }

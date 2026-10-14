@@ -28,36 +28,11 @@ describe("useAlbumSorting", () => {
     });
   });
 
-  describe("color sort", () => {
-    const colorAt = (hue: number) => ({
-      l: 0.6,
-      a: 0.15 * Math.cos((hue * Math.PI) / 180),
-      b: 0.15 * Math.sin((hue * Math.PI) / 180),
-    });
-    const colors = { "1": colorAt(265), "2": colorAt(30), "3": colorAt(140), "4": null };
-
-    it("orders albums by their measured colors and puts unmeasured ones last", () => {
-      const albums = [1, 2, 3, 4].map((id) => makeAlbum(id, "A", `Album ${id}`));
+  describe("color", () => {
+    it("leaves the order alone: the gradient builder sets it", () => {
       const { result } = renderHook(() => useAlbumSorting());
       act(() => result.current.handleSortChange("color"));
-      const sorted = result.current.sortAlbums(albums, new Set(), colors);
-      expect(sorted.map((album) => album.id)).toEqual([2, 3, 1, 4]);
-    });
-
-    it("keeps pinned albums where they are", () => {
-      const albums = [1, 2, 3, 4].map((id) => makeAlbum(id, "A", `Album ${id}`));
-      const { result } = renderHook(() => useAlbumSorting());
-      act(() => result.current.handleSortChange("color"));
-      const sorted = result.current.sortAlbums(albums, new Set(["1"]), colors);
-      expect(sorted.map((album) => album.id)).toEqual([1, 2, 3, 4]);
-      const pinnedLast = result.current.sortAlbums(albums, new Set(["4"]), colors);
-      expect(pinnedLast.map((album) => album.id)).toEqual([2, 3, 1, 4]);
-    });
-
-    it("leaves the order alone when no colors are given", () => {
-      const albums = [3, 1, 2].map((id) => makeAlbum(id, "A", `Album ${id}`));
-      const { result } = renderHook(() => useAlbumSorting());
-      act(() => result.current.handleSortChange("color"));
+      const albums = [3, 1, 2].map((id) => ({ id, title: String(id), artist: String(4 - id) }));
       expect(result.current.sortAlbums(albums, new Set()).map((album) => album.id)).toEqual([
         3, 1, 2,
       ]);

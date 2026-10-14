@@ -1,6 +1,9 @@
 import { useId, useState, type FormEvent } from "react";
+import { wallSize } from "@/utils/wallSize";
 import type { Album, SharedWallState } from "@/types";
 import { useLayouts } from "@/hooks/useLayouts";
+import type { useHangHistory } from "@/hooks/useHangHistory";
+import { formatDay } from "@/utils/hangHistory";
 import { wallDisplayName } from "@/utils/demoCollection";
 import type { SavedLayout } from "@/utils/layoutStore";
 import { buildSharedWallUrl } from "@/utils/shareState";
@@ -19,6 +22,8 @@ interface LayoutsPanelProps {
   onApply: (wall: SharedWallState) => void;
   /** Options passed to the layout storage, for tests. */
   storageOptions?: Parameters<typeof useLayouts>[1];
+  /** Which walls were hung and when; included in backups. */
+  history?: ReturnType<typeof useHangHistory>;
 }
 
 const buttonClass =
@@ -39,11 +44,13 @@ export function LayoutsPanel({
   albums,
   onApply,
   storageOptions,
+  history,
 }: LayoutsPanelProps) {
   const { layouts, save, rename, remove, importText, exportText, needsBackup } = useLayouts(
     collectionName,
-    storageOptions
+    { ...storageOptions, ...(history ? { history } : {}) }
   );
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const [name, setName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
@@ -193,7 +200,7 @@ export function LayoutsPanel({
                   <div>
                     <p className="font-medium text-ink">{layout.name}</p>
                     <p className="text-xs text-muted">
-                      {layout.wall.columns}×{layout.wall.rows} wall, saved{" "}
+                      {wallSize(layout.wall.columns, layout.wall.rows)} wall, saved{" "}
                       {new Date(layout.savedAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -281,12 +288,60 @@ export function LayoutsPanel({
         />
       )}
 
+      {history && (
+        <div className="mt-4 border-t border-line pt-3">
+          <h4 className="mb-1 text-sm font-medium text-ink">Wall history</h4>
+          <p className="mb-2 text-sm text-muted">
+            {history.hangs.length === 0
+              ? "Mark the wall when you hang it, to see which records have not been up in a while."
+              : `Last hung ${formatDay(history.hangs[history.hangs.length - 1]!.date)}, ${
+                  history.hangs[history.hangs.length - 1]!.albumIds.length
+                } records. ${history.hangs.length} ${
+                  history.hangs.length === 1 ? "wall" : "walls"
+                } remembered.`}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={panelButtonClass}
+              onClick={() => {
+                const problem = history.markHung(currentWall.wallAlbumIds);
+                setMessage(problem ?? "Marked the current wall as hung today.");
+              }}
+            >
+              I hung the current wall
+            </button>
+            {history.hangs.length > 0 &&
+              (confirmingClear ? (
+                <button
+                  type="button"
+                  className={panelButtonClass}
+                  onClick={() => {
+                    setConfirmingClear(false);
+                    setMessage(history.clear() ?? "Cleared the wall history.");
+                  }}
+                >
+                  Clear all history?
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={panelButtonClass}
+                  onClick={() => setConfirmingClear(true)}
+                >
+                  Clear history
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
           className={panelButtonClass}
           onClick={handleExport}
-          disabled={layouts.length === 0}
+          disabled={layouts.length === 0 && (history?.hangs.length ?? 0) === 0}
         >
           Save backup file
         </button>

@@ -152,7 +152,13 @@ describe("exportBundle and importBundle", () => {
   it("restores an exported list into an empty one", () => {
     const list = layoutsNamed(["Autumn", "Winter"]);
     const result = importBundle([], exportBundle(list));
-    expect(result).toEqual({ layouts: list, added: 2, skipped: 0 });
+    expect(result).toEqual({ layouts: list, added: 2, skipped: 0, hangs: [] });
+  });
+
+  it("carries the wall history in the backup when there is one", () => {
+    const hangs = [{ date: "2026-10-14", albumIds: ["1"] }];
+    expect(importBundle([], exportBundle([], hangs)).hangs).toEqual(hangs);
+    expect(JSON.parse(exportBundle([])).hangs).toBeUndefined();
   });
 
   it("never overwrites a layout that has the same id", () => {

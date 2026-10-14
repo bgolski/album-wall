@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { wallSize } from "@/utils/wallSize";
+import type { Album } from "@/types";
 
 interface GridDimensionsConfigProps {
   isVisible: boolean;
@@ -9,6 +11,13 @@ interface GridDimensionsConfigProps {
   defaultColumns: number;
   onDimensionsChange: (rows: number, columns: number) => void;
   onReset: () => void;
+  /** "Show each album once": the setting, the sets of pressings, and the ones set aside. */
+  pressings?: {
+    once: boolean;
+    groups: Album[][];
+    hidden: Album[];
+    setOnce: (once: boolean) => void;
+  };
 }
 
 interface DimensionFieldProps {
@@ -69,6 +78,7 @@ export function GridDimensionsConfig({
   defaultColumns,
   onDimensionsChange,
   onReset,
+  pressings,
 }: GridDimensionsConfigProps) {
   if (!isVisible) return null;
 
@@ -77,21 +87,21 @@ export function GridDimensionsConfig({
       <h3 className="mb-3 text-ink font-medium">Wall Display Dimensions</h3>
       <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:gap-4">
         <DimensionField
-          id="rows"
-          label="Rows:"
-          value={rows}
-          min={1}
-          max={10}
-          onCommit={(next) => onDimensionsChange(next, columns)}
-        />
-
-        <DimensionField
           id="columns"
           label="Columns:"
           value={columns}
           min={1}
           max={12}
           onCommit={(next) => onDimensionsChange(rows, next)}
+        />
+
+        <DimensionField
+          id="rows"
+          label="Rows:"
+          value={rows}
+          min={1}
+          max={10}
+          onCommit={(next) => onDimensionsChange(next, columns)}
         />
 
         <p className="text-sm text-muted md:pb-2">
@@ -103,10 +113,38 @@ export function GridDimensionsConfig({
             onClick={onReset}
             className="w-full rounded-control bg-raised px-3 py-2 text-sm text-ink transition-colors hover:bg-line md:w-auto md:py-1"
           >
-            Reset to Default ({defaultRows}×{defaultColumns})
+            Reset to default ({wallSize(defaultColumns, defaultRows)})
           </button>
         </div>
       </div>
+
+      {pressings && (
+        <div className="mt-3">
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={pressings.once}
+              onChange={(event) => pressings.setOnce(event.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+            Show each album once (set aside extra pressings of the same album)
+          </label>
+          <p className="mt-1 text-xs text-muted">
+            {pressings.groups.length === 0
+              ? "No album appears more than once in this collection."
+              : pressings.once
+                ? `Setting aside ${pressings.hidden.length} extra ${
+                    pressings.hidden.length === 1 ? "pressing" : "pressings"
+                  }: ${pressings.hidden.map((album) => `${album.title} (${album.artist})`).join(", ")}.`
+                : `${pressings.groups.length} ${
+                    pressings.groups.length === 1 ? "album appears" : "albums appear"
+                  } more than once: ${pressings.groups
+                    .map((set) => `${set[0]!.title} (${set.length})`)
+                    .join(", ")}. Matching is by artist and title, so check the list.`}
+          </p>
+        </div>
+      )}
 
       <div className="mt-3 text-xs text-accent">
         <p>

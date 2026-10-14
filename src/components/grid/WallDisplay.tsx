@@ -1,4 +1,5 @@
 import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
+import { wallSize } from "@/utils/wallSize";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 import { TILE_COVER_SIZE } from "@/utils/imageProxy";
@@ -38,7 +39,7 @@ export function WallDisplay({
       <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-bold text-ink sm:mb-4 sm:text-xl">
         <span>Wall Display</span>
         <span className="text-ink">
-          ({columns}×{rows} = {gridSize} albums)
+          ({wallSize(columns, rows)} = {gridSize} albums)
         </span>
         {pinnedCount > 0 && (
           <span className="text-sm font-normal text-accent">({pinnedCount} pinned)</span>

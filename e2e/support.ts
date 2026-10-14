@@ -34,6 +34,11 @@ export async function stubNetwork(page: Page) {
     if (route.request().url().includes("localhost")) return route.continue();
     return route.fulfill({ status: 200, contentType: "image/png", body: PIXEL });
   });
+  // No short links unless a test serves one: sharing falls back to the long link.
+  await page.route(
+    (url) => url.pathname.endsWith("/share"),
+    (route) => route.fulfill({ status: 404, contentType: "application/json", body: "{}" })
+  );
   await page.route(/images\.weserv\.nl/, (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PIXEL })
   );

@@ -1,4 +1,5 @@
 import type { ExportStatus } from "@/hooks/useGridExport";
+import { LoadingSpinner } from "./LoadingSpinner";
 
 interface ToastProps {
   toast: ExportStatus | null;
@@ -22,7 +23,10 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           isError ? "bg-danger text-on-danger" : "bg-ink text-page"
         }`}
       >
-        <span>{toast.message}</span>
+        <span className="flex items-center">
+          {toast.busy && <LoadingSpinner />}
+          {toast.message}
+        </span>
         {toast.action && (
           <button
             type="button"

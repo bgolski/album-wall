@@ -1,21 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Album } from "@/types";
 import type { CoverColor } from "@/utils/colorBasics";
+import type { CoverProfile } from "@/utils/coverProfile";
 import { RecordGrid } from "./RecordGrid";
 
-// The measuring itself is tested with the hook; here the grid is given colors directly.
+// The measuring itself is tested with the hook; here the grid is given profiles directly.
 const measuring = vi.hoisted(() => ({
-  colors: {} as Record<string, CoverColor | null>,
+  profiles: {} as Record<string, CoverProfile | null>,
   pending: 0,
-  enabledCalls: [] as boolean[],
+  calls: [] as { count: number; enabled: boolean }[],
 }));
 vi.mock("@/hooks/useCoverColors", () => ({
-  useCoverColors: (_albums: Album[], enabled: boolean) => {
-    measuring.enabledCalls.push(enabled);
+  useCoverColors: (albums: Album[], enabled: boolean) => {
+    measuring.calls.push({ count: albums.length, enabled });
     return {
-      colors: enabled ? measuring.colors : {},
+      colors: {},
+      profiles: enabled ? measuring.profiles : {},
       pending: enabled ? measuring.pending : 0,
+      total: albums.length,
     };
   },
 }));
@@ -27,18 +30,21 @@ const albums: Album[] = Array.from({ length: 40 }, (_, index) => ({
 }));
 
 const colorAt = (hue: number): CoverColor => ({
-  l: 0.6,
+  l: 0.7,
   a: 0.15 * Math.cos((hue * Math.PI) / 180),
   b: 0.15 * Math.sin((hue * Math.PI) / 180),
 });
 
-// Odd albums are orange, even albums are blue, so a color sort puts every odd album first.
-function setColors(unreadable: number[] = []) {
-  measuring.colors = Object.fromEntries(
-    albums.map((album) => [
-      String(album.id),
-      unreadable.includes(album.id) ? null : colorAt(album.id % 2 === 1 ? 30 : 200),
-    ])
+// Odd albums are orange all over, even albums are blue.
+function setProfiles() {
+  measuring.profiles = Object.fromEntries(
+    albums.map((album) => {
+      const color = colorAt(album.id % 2 === 1 ? 55 : 250);
+      return [
+        String(album.id),
+        { color, palette: [{ color, share: 1 }], regions: Array.from({ length: 9 }, () => color) },
+      ];
+    })
   );
 }
 
@@ -58,75 +64,118 @@ const wallOrder = () =>
     .map((node) => Number(node.getAttribute("data-album-id")));
 
 const sortByColor = () => fireEvent.click(screen.getByRole("button", { name: "Sort by Color" }));
+const buildAllOrange = async () => {
+  fireEvent.click(screen.getByRole("button", { name: "All orange" }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Build wall" }));
+  });
+};
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   measuring.pending = 0;
-  measuring.enabledCalls = [];
-  setColors();
+  measuring.calls = [];
+  setProfiles();
 });
 
 describe("RecordGrid sort by color", () => {
-  it("measures nothing until Sort by Color is chosen", () => {
-    setColors();
+  it("measures nothing until Sort by Color is chosen, then the whole collection", () => {
+    setProfiles();
     renderGrid();
-    expect(measuring.enabledCalls.every((enabled) => !enabled)).toBe(true);
+    expect(measuring.calls.every((call) => !call.enabled)).toBe(true);
     sortByColor();
-    expect(measuring.enabledCalls.at(-1)).toBe(true);
+    expect(measuring.calls.at(-1)).toEqual({ count: 40, enabled: true });
   });
 
-  it("puts the wall in color order once the colors are known", () => {
-    setColors();
+  it("opens the gradient builder and leaves the wall alone until a wall is built", () => {
+    setProfiles();
     const onAlbumsReorder = renderGrid();
     sortByColor();
-    const order = wallOrder();
-    expect(order.slice(0, 16)).toEqual(Array.from({ length: 16 }, (_, i) => 2 * i + 1));
-    expect(order.slice(16)).toEqual(Array.from({ length: 16 }, (_, i) => 2 * i + 2));
-    expect(screen.getByRole("button", { name: "Sort by Color" }).getAttribute("aria-pressed")).toBe(
-      "true"
-    );
+    expect(screen.getByRole("heading", { name: "Sort by Color" })).toBeTruthy();
+    expect(wallOrder()).toEqual(Array.from({ length: 32 }, (_, i) => i + 1));
     expect(onAlbumsReorder).not.toHaveBeenCalled();
   });
 
-  it("keeps the wall as it is, and says so, while colors are still being read", () => {
-    setColors();
+  it("builds the wall from the whole collection as one reorder", async () => {
+    setProfiles();
+    const onAlbumsReorder = renderGrid();
+    sortByColor();
+    await buildAllOrange();
+
+    expect(onAlbumsReorder).toHaveBeenCalledTimes(1);
+    const reordered = (onAlbumsReorder.mock.calls[0]![0] as Album[]).map((album) => album.id);
+    expect([...reordered].sort((x, y) => x - y)).toEqual(albums.map((album) => album.id));
+    // All twenty orange covers make it onto the 32-cover wall.
+    const wall = new Set(reordered.slice(0, 32));
+    expect(albums.filter((album) => album.id % 2 === 1).every((album) => wall.has(album.id))).toBe(
+      true
+    );
+    expect(screen.getByText(/^Built the wall/)).toBeTruthy();
+  });
+
+  it("keeps a pinned album where it is", async () => {
+    setProfiles();
+    const onAlbumsReorder = renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: "Pin Album 4" }));
+    sortByColor();
+    await buildAllOrange();
+    expect((onAlbumsReorder.mock.calls[0]![0] as Album[])[3]!.id).toBe(4);
+  });
+
+  it("waits for the cover colors before building", () => {
+    setProfiles();
     measuring.pending = 5;
     renderGrid();
     sortByColor();
-    expect(wallOrder()).toEqual(Array.from({ length: 32 }, (_, i) => i + 1));
-    expect(screen.getByText("Reading cover colors... 5 left")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Build wall" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+    expect(screen.getByText("Reading cover colors... 35 of 40")).toBeTruthy();
   });
 
-  it("keeps a pinned album where it is", () => {
-    setColors();
-    renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: "Pin Album 4" }));
-    sortByColor();
-    expect(wallOrder()[3]).toBe(4);
-  });
-
-  it("says how many covers had no readable color and places them last", () => {
-    setColors([1, 2]);
-    renderGrid();
-    sortByColor();
-    expect(screen.getByText("2 covers had no readable color and were placed last.")).toBeTruthy();
-    expect(wallOrder().slice(-2)).toEqual([1, 2]);
-  });
-
-  it("says nothing extra when every color was read", () => {
-    setColors();
-    renderGrid();
-    sortByColor();
-    expect(screen.queryByText(/Reading cover colors|had no readable color/)).toBeNull();
-  });
-
-  it("returns to the custom order and stops measuring", () => {
-    setColors();
+  it("closes the builder and stops measuring on Custom Order", () => {
+    setProfiles();
     renderGrid();
     sortByColor();
     fireEvent.click(screen.getByRole("button", { name: "Custom Order" }));
-    expect(wallOrder()).toEqual(Array.from({ length: 32 }, (_, i) => i + 1));
-    expect(measuring.enabledCalls.at(-1)).toBe(false);
+    expect(screen.queryByRole("button", { name: "Build wall" })).toBeNull();
+    expect(measuring.calls.at(-1)!.enabled).toBe(false);
+  });
+});
+
+describe("RecordGrid sort by color and undo", () => {
+  it("keeps the gradient builder open after Undo so the wall can be built again", async () => {
+    setProfiles();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    render(
+      <RecordGrid
+        username="someone"
+        albums={albums}
+        onAlbumsReorder={vi.fn()}
+        canUndo
+        onUndo={() => true}
+      />
+    );
+    sortByColor();
+    await buildAllOrange();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("button", { name: "Build wall" })).toBeTruthy();
+  });
+});
+
+describe("RecordGrid starting a wall from a cover's color", () => {
+  it("fills the builder with a color from the cover's details", () => {
+    setProfiles();
+    renderGrid();
+    sortByColor();
+    fireEvent.click(screen.getByRole("group", { name: "Album 1 by Artist 1" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Start a wall from this/ }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText(/^Starting from a color on Album 1/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /^Color \d/ })).toHaveLength(2);
   });
 });

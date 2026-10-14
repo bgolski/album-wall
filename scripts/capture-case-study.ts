@@ -87,6 +87,27 @@ await page.getByRole("button", { name: /Export/ }).click();
 await page.getByRole("menuitem", { name: "Share or Save Image" }).waitFor();
 await page.screenshot({ path: `${out}/04-export-menu.png` });
 
+// 5. Sort by Color: gradients suggested for this collection, and the gradient editor.
+await page.keyboard.press("Escape");
+await page.getByRole("button", { name: "Sort by Color", exact: true }).click();
+await page.getByText("Suggested for your collection").waitFor();
+const builder = page.locator("section", {
+  has: page.getByRole("heading", { name: "Sort by Color" }),
+});
+await builder.screenshot({ path: `${out}/05-sort-by-color.png` });
+
+// 6. A rainbow wall built from the whole collection (unpinned first, so every spot is free).
+await page.getByRole("button", { name: /Pin All/ }).click();
+await page.getByRole("button", { name: /Unpin All/ }).click();
+await page.getByRole("button", { name: /Rainbow/ }).click();
+await page.getByRole("button", { name: "Build wall" }).click();
+await page.getByText(/^Built the wall/).waitFor();
+await coversLoaded(page);
+const wall = page
+  .locator("div.rounded-panel", { has: page.getByRole("heading", { name: /Wall Display/ }) })
+  .first();
+await wall.screenshot({ path: `${out}/06-gradient-wall.png` });
+
 await browser.close();
 
 const revision = execFileSync("git", ["rev-parse", "--short", "HEAD"]).toString().trim();
@@ -103,4 +124,4 @@ writeFileSync(
     2
   ) + "\n"
 );
-console.log(`Captured four scenes at ${revision} from ${url}`);
+console.log(`Captured six scenes at ${revision} from ${url}`);

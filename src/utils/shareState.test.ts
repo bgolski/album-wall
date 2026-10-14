@@ -135,3 +135,56 @@ describe("orderAlbumsBySharedWall", () => {
     expect(albums).toEqual(copy);
   });
 });
+
+describe("compact share links", () => {
+  // Discogs release ids for an 8 x 4 wall are mostly seven or eight digits long.
+  const wallAlbumIds = Array.from({ length: 32 }, (_, index) =>
+    String(1_234_567 + index * 987_653)
+  );
+  const wall = buildSharedWallState({
+    username: "bgolski",
+    rows: 4,
+    columns: 8,
+    wallAlbumIds,
+    pinnedAlbumIds: [wallAlbumIds[3]!, wallAlbumIds[31]!],
+  });
+  const jsonPayload = toBase64Url(JSON.stringify(wall));
+
+  it("round-trips a full wall with pins", () => {
+    expect(decodeSharedWallState(encodeSharedWallState(wall))).toEqual(wall);
+  });
+
+  it("is less than half the length of the JSON link", () => {
+    const compact = encodeSharedWallState(wall);
+    expect(compact.length).toBeLessThan(jsonPayload.length * 0.5);
+  });
+
+  it("still opens links in the earlier JSON format", () => {
+    expect(decodeSharedWallState(jsonPayload)).toEqual(wall);
+  });
+
+  it("keeps names in any language and ids up to the largest safe number", () => {
+    const odd = buildSharedWallState({
+      username: "Zoë & 日本",
+      rows: 1,
+      columns: 2,
+      wallAlbumIds: ["0", String(Number.MAX_SAFE_INTEGER)],
+      pinnedAlbumIds: [],
+    });
+    expect(decodeSharedWallState(encodeSharedWallState(odd))).toEqual(odd);
+  });
+
+  it("falls back to JSON for ids that are not whole numbers or pins off the wall", () => {
+    const named = { ...wall, wallAlbumIds: ["a1", ...wallAlbumIds.slice(1)] };
+    expect(encodeSharedWallState(named).startsWith("eyJ")).toBe(true);
+    expect(decodeSharedWallState(encodeSharedWallState(named))).toEqual(named);
+    const offWall = { ...wall, pinnedAlbumIds: ["42"] };
+    expect(decodeSharedWallState(encodeSharedWallState(offWall))).toEqual(offWall);
+  });
+
+  it("rejects a cut-off or padded compact link", () => {
+    const compact = encodeSharedWallState(wall);
+    expect(decodeSharedWallState(compact.slice(0, -6))).toBeNull();
+    expect(decodeSharedWallState(compact + "AAAA")).toBeNull();
+  });
+});

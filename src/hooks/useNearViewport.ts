@@ -6,13 +6,11 @@ import { useEffect, useState, type RefObject } from "react";
  * phone page still loads most of a large collection at once; a smaller margin holds back the rest.
  *
  * @param ref Element to watch.
- * @param always When true, reports true immediately (export, where every cover must load).
  * @param rootMargin How far outside the viewport counts as near.
  * @returns Whether the element is, or has been, near the viewport.
  */
 export function useNearViewport(
   ref: RefObject<Element | null>,
-  always: boolean = false,
   rootMargin: string = "400px"
 ): boolean {
   const [seen, setSeen] = useState(false);
@@ -20,7 +18,7 @@ export function useNearViewport(
 
   useEffect(() => {
     const element = ref.current;
-    if (always || seen || !observable || !element) return;
+    if (seen || !observable || !element) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
@@ -32,7 +30,7 @@ export function useNearViewport(
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [ref, always, seen, observable, rootMargin]);
+  }, [ref, seen, observable, rootMargin]);
 
-  return always || seen || !observable;
+  return seen || !observable;
 }

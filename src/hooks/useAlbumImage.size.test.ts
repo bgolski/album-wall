@@ -22,19 +22,13 @@ afterEach(() => vi.clearAllMocks());
 
 describe("wall artwork sizing", () => {
   it("requests a tile-sized image and memoizes the URL across unchanged rerenders", () => {
-    const { result, rerender } = renderHook(() => useAlbumImage(album, false, 320));
+    const { result, rerender } = renderHook(() => useAlbumImage(album, 320));
     expect(result.current.imageSource).toBe("https://example.com/cover.jpg?size=320");
     expect(getProxiedImageUrl).toHaveBeenCalledWith(album.cover_image, {
       size: 320,
     });
     rerender();
     expect(getProxiedImageUrl).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses the original image in export mode even when a tile size is supplied", () => {
-    const { result } = renderHook(() => useAlbumImage(album, true, 320));
-    expect(result.current.imageSource).toBe(album.cover_image);
-    expect(getProxiedImageUrl).toHaveBeenCalledWith(album.cover_image);
   });
 
   it("keeps the original image when no tile size is supplied", () => {

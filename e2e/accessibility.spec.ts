@@ -44,6 +44,25 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoViolations(page);
     });
 
+    test("gradient builder", async ({ page }) => {
+      await loadWall(page);
+      await page.getByRole("button", { name: "Sort by Color" }).click();
+      await expect(page.getByRole("button", { name: "Build wall" })).toBeVisible();
+      // Let the pressed button finish changing color before checking contrast.
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((animation) => animation.finished))
+      );
+      await expectNoViolations(page);
+    });
+
+    test("layouts panel with wall history", async ({ page }) => {
+      await loadWall(page);
+      await page.getByRole("button", { name: "Layouts" }).click();
+      await page.getByRole("button", { name: "I hung the current wall" }).click();
+      await expect(page.getByText(/1 wall remembered/)).toBeVisible();
+      await expectNoViolations(page);
+    });
+
     test("export menu", async ({ page }) => {
       await loadWall(page);
       await page.getByRole("button", { name: /Export/ }).click();

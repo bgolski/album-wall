@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { Album } from "@/types";
-import type { CoverColor } from "@/utils/colorBasics";
-import { sortAlbumsByColor } from "@/utils/sortByColor";
 
 export type SortOption = "none" | "artist" | "genre" | "color";
 
@@ -44,21 +42,14 @@ export function useAlbumSorting() {
   /**
    * Sorts albums by the active sort option while preserving pinned album positions.
    *
-   * Unpinned albums are sorted once using {@link getSortKey} (or, for color, by their measured
-   * colors); pinned albums stay at their original indices while sorted unpinned albums fill the
+   * Unpinned albums are sorted once using {@link getSortKey}; pinned albums stay at their original indices while sorted unpinned albums fill the
    * remaining slots in order.
    *
    * @param albumsToSort Albums to sort.
    * @param pinnedAlbums Set of pinned album ids that must remain fixed in place.
-   * @param colors Measured cover colors by album id, used by the color sort; an album with none
-   *               is placed last.
    * @returns Albums sorted according to the active sort option.
    */
-  const sortAlbums = (
-    albumsToSort: Album[],
-    pinnedAlbums: Set<string>,
-    colors: Record<string, CoverColor | null> = {}
-  ) => {
+  const sortAlbums = (albumsToSort: Album[], pinnedAlbums: Set<string>) => {
     if (sortOption === "none") return albumsToSort;
 
     // Collect pinned album positions
@@ -71,12 +62,9 @@ export function useAlbumSorting() {
 
     // Sort unpinned albums using a single shared comparison path
     const unpinnedAlbums = albumsToSort.filter((album) => !pinnedAlbums.has(String(album.id)));
-    const sortedUnpinned =
-      sortOption === "color"
-        ? sortAlbumsByColor(unpinnedAlbums, colors, (album) => String(album.id))
-        : [...unpinnedAlbums].sort((a, b) =>
-            getSortKey(a, sortOption).localeCompare(getSortKey(b, sortOption))
-          );
+    const sortedUnpinned = [...unpinnedAlbums].sort((a, b) =>
+      getSortKey(a, sortOption).localeCompare(getSortKey(b, sortOption))
+    );
 
     // When nothing is pinned the result is just the plain sorted list
     if (pinnedIndices.size === 0) {

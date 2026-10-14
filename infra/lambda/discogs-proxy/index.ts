@@ -1,4 +1,6 @@
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
+import { ShareInputError, parseShareRequest, storeSharedWall } from "./share";
 
 const BASE_URL = "https://api.discogs.com";
 const COLLECTION_PAGE_SIZE = 100;
@@ -50,6 +52,9 @@ type Album = {
 };
 
 type LambdaEvent = {
+  rawPath?: string;
+  body?: string | null;
+  isBase64Encoded?: boolean;
   queryStringParameters?: Record<string, string | undefined> | null;
   requestContext?: {
     http?: {
@@ -59,6 +64,7 @@ type LambdaEvent = {
 };
 
 const ssmClient = new SSMClient({});
+const dynamoClient = new DynamoDBClient({});
 const cachedParameters = new Map<string, string>();
 
 /**
@@ -437,13 +443,45 @@ function mapErrorToResponse(error: unknown, username: string) {
 }
 
 /**
- * Lambda Function URL handler for the Discogs collection proxy.
+ * Stores a shared wall and answers with its short link (`POST /share`).
+ *
+ * @param event Function URL request with the wall as JSON.
+ * @returns `{ url }`, or an error.
+ */
+async function createShortLink(event: LambdaEvent) {
+  const tableName = process.env.SHARE_TABLE_NAME;
+  const domainParameter = process.env.SHARE_DOMAIN_PARAMETER_NAME;
+  if (!tableName || !domainParameter) {
+    return jsonResponse(404, { error: "Short links are not set up." });
+  }
+
+  try {
+    const body = event.isBase64Encoded
+      ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
+      : (event.body ?? "");
+    const id = await storeSharedWall(dynamoClient, tableName, parseShareRequest(body));
+    const domain = await getSecureParameter(domainParameter);
+    return jsonResponse(200, { url: `https://${domain}/w/${id}` });
+  } catch (error) {
+    if (error instanceof ShareInputError) return jsonResponse(400, { error: error.message });
+    console.error("Error storing a shared wall:", error);
+    return jsonResponse(503, { error: "Could not make a short link." });
+  }
+}
+
+/**
+ * Lambda Function URL handler for the Discogs collection proxy, which also
+ * makes short share links (`POST /share`).
  *
  * @param event Function URL request event with query parameters.
  * @returns Normalized album payload or a descriptive error response.
  */
 export async function handler(event: LambdaEvent) {
   const method = event.requestContext?.http?.method ?? "GET";
+
+  if (method === "POST" && event.rawPath?.replace(/\/+$/, "").endsWith("/share")) {
+    return createShortLink(event);
+  }
 
   if (method !== "GET") {
     return jsonResponse(405, {

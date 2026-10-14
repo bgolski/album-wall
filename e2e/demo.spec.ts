@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { stubNetwork } from "./support";
+import { buildShareHash, decodeSharedWallState } from "../src/utils/shareState";
 
 const ids = (page: Page) =>
   page
@@ -63,9 +64,7 @@ test("a returning visitor can still try the demo from the header", async ({ page
   expect(link).toContain("#share=");
 
   // A share link records the wall (and pins), not the order of the pool below it.
-  const shared = JSON.parse(
-    Buffer.from(link.split("#share=")[1] ?? "", "base64url").toString("utf-8")
-  ) as { username: string; wallAlbumIds: string[] };
+  const shared = decodeSharedWallState(link.split("#share=")[1] ?? "")!;
   expect(shared.username).toBe("~demo");
   const wallSize = shared.wallAlbumIds.length;
   expect((await ids(page)).slice(0, wallSize)).toEqual(shared.wallAlbumIds);
@@ -73,6 +72,14 @@ test("a returning visitor can still try the demo from the header", async ({ page
   await page.goto(link);
   await page.reload();
   await expect(page.getByText("Demo wall", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-album-id]").first()).toBeVisible();
+  expect((await ids(page)).slice(0, wallSize)).toEqual(shared.wallAlbumIds);
+
+  // Links made before the compact format still open the same wall.
+  const oldLink =
+    link.split("#")[0] + buildShareHash(Buffer.from(JSON.stringify(shared)).toString("base64url"));
+  await page.goto(oldLink);
+  await page.reload();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
   expect((await ids(page)).slice(0, wallSize)).toEqual(shared.wallAlbumIds);
   expect(discogsRequests).toEqual([]);

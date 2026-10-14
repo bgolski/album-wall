@@ -2,7 +2,6 @@ interface PinButtonProps {
   isPinned: boolean;
   title: string;
   disabled?: boolean;
-  hidden?: boolean;
   onToggle: () => void;
 }
 
@@ -10,14 +9,8 @@ interface PinButtonProps {
  * Shows the pin badge for an album. Pinned albums always show it; others show it on hover or
  * keyboard focus. Activating it pins or unpins the album without opening the album sheet.
  */
-export function PinButton({
-  isPinned,
-  title,
-  disabled = false,
-  hidden = false,
-  onToggle,
-}: PinButtonProps) {
-  if (disabled || hidden) return null;
+export function PinButton({ isPinned, title, disabled = false, onToggle }: PinButtonProps) {
+  if (disabled) return null;
 
   return (
     <button

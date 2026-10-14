@@ -23,6 +23,8 @@ interface LayoutOptions {
   now?: () => Date;
   /** Makes a new layout id, replaceable for tests. */
   newId?: () => string;
+  /** Wall history to include in backups and restore from them. */
+  history?: { hangs: unknown[]; merge: (incoming: unknown[]) => string | null };
 }
 
 const MESSAGES: Record<LayoutError["code"], string> = {
@@ -119,10 +121,13 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
       const result = importBundle(layouts, text);
       const problem = commit(result.layouts);
       if (problem) return { ok: false, message: problem };
+      const restoredHistory =
+        result.hangs.length > 0 && options.history && !options.history.merge(result.hangs);
       const added = `Added ${result.added} ${result.added === 1 ? "layout" : "layouts"}`;
       const skipped =
         result.skipped > 0 ? `, skipped ${result.skipped} already here or damaged` : "";
-      return { ok: true, message: `${added}${skipped}.` };
+      const history = restoredHistory ? " and the wall history" : "";
+      return { ok: true, message: `${added}${skipped}${history}.` };
     } catch (error) {
       if (error instanceof LayoutError) return { ok: false, message: MESSAGES[error.code] };
       return { ok: false, message: MESSAGES["invalid-file"] };
@@ -138,7 +143,7 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
       // The reminder to back up just stays.
     }
     setExportedAt(stamp);
-    return exportBundle(layouts);
+    return exportBundle(layouts, options.history?.hangs ?? []);
   };
 
   const needsBackup =

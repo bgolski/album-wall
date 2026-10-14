@@ -175,9 +175,15 @@ export function deleteLayout(layouts: SavedLayout[], id: string): SavedLayout[] 
 /*  Import / export bundle                                             */
 /* ------------------------------------------------------------------ */
 
-/** Create a portable JSON bundle string for all layouts. */
-export function exportBundle(layouts: SavedLayout[]): string {
-  return JSON.stringify({ app: "album-wall", kind: "layouts", v: 1, layouts });
+/** Create a portable JSON bundle string for all layouts, and the wall history when there is one. */
+export function exportBundle(layouts: SavedLayout[], hangs: unknown[] = []): string {
+  return JSON.stringify({
+    app: "album-wall",
+    kind: "layouts",
+    v: 1,
+    layouts,
+    ...(hangs.length > 0 ? { hangs } : {}),
+  });
 }
 
 /**
@@ -187,7 +193,7 @@ export function exportBundle(layouts: SavedLayout[]): string {
 export function importBundle(
   existing: SavedLayout[],
   raw: string
-): { layouts: SavedLayout[]; added: number; skipped: number } {
+): { layouts: SavedLayout[]; added: number; skipped: number; hangs: unknown[] } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -229,5 +235,5 @@ export function importBundle(
     added++;
   }
 
-  return { layouts, added, skipped };
+  return { layouts, added, skipped, hangs: Array.isArray(obj.hangs) ? obj.hangs : [] };
 }

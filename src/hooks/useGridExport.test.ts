@@ -440,19 +440,53 @@ describe("useGridExport image size at the screen's own size", () => {
     return wallMock.mock.calls[0]![0].scale;
   }
 
-  it("keeps a saved wall to about a million pixels on a high-density computer screen", async () => {
-    // A 1120 x 552 wall at the old 2x-density scale of 4 would be about 9.9 million pixels.
+  it("saves an 8 x 4 wall at about three million pixels on a computer", async () => {
     const scale = await defaultScale(1120, 552, 2);
-    expect(1120 * scale * 552 * scale).toBeCloseTo(1_300_000, -3);
+    expect(1120 * scale * 552 * scale).toBeCloseTo(3_000_000, -3);
   });
 
-  it("still saves a small wall at twice the screen's density", async () => {
-    expect(await defaultScale(354, 354, 1)).toBe(2);
+  it("saves a phone wall as large as a computer's instead of at the screen's size", async () => {
+    // A phone shows an 8 x 4 wall about 354 x 174 pixels; at the screen's density each cover was ~80 px.
+    const scale = await defaultScale(354, 174, 3, true);
+    expect(354 * scale).toBeGreaterThan(2400);
+    expect(354 * scale * 174 * scale).toBeCloseTo(3_000_000, -3);
   });
 
-  it("saves a phone wall at the screen's density without exceeding the budget", async () => {
-    expect(await defaultScale(354, 354, 3, true)).toBe(2);
-    const wide = await defaultScale(1120, 552, 3, true);
-    expect(1120 * wide * 552 * wide).toBeLessThanOrEqual(1_300_001);
+  it("keeps a tall wall within a canvas size phones can render", async () => {
+    const scale = await defaultScale(100, 2000, 3, true);
+    expect(2000 * scale).toBeLessThanOrEqual(4096);
+  });
+});
+
+describe("useGridExport progress", () => {
+  it("shows a busy notice while the image is prepared and clears it after a silent share", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport("u", [{ id: 1, title: "A", artist: "B" }]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    let finish: (value: { canvas: HTMLCanvasElement; left: number }) => void = () => {};
+    wallMock.mockReset();
+    wallMock.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(true);
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "share", { value: share, configurable: true });
+
+    let pending: Promise<void> = Promise.resolve();
+    act(() => {
+      pending = result.current.shareOrSaveImage();
+    });
+    expect(result.current.status).toMatchObject({ message: "Preparing image...", busy: true });
+
+    const canvas = document.createElement("canvas");
+    vi.spyOn(canvas, "toBlob").mockImplementation((callback: BlobCallback) =>
+      callback(new Blob(["png"], { type: "image/png" }))
+    );
+    await act(async () => {
+      finish({ canvas, left: 0 });
+      await pending;
+    });
+    expect(share).toHaveBeenCalled();
+    expect(result.current.status).toBeNull();
   });
 });

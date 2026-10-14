@@ -40,11 +40,6 @@ describe("useNearViewport", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
-  it("is true at once when always is set, as export needs every cover", () => {
-    const { result } = renderHook(() => useNearViewport(element(), true));
-    expect(result.current).toBe(true);
-  });
-
   it("is true where IntersectionObserver does not exist", () => {
     vi.unstubAllGlobals();
     vi.stubGlobal("IntersectionObserver", undefined);

@@ -12,8 +12,10 @@ I collect vinyl and hang part of the collection on a wall, swapping records ever
 - **Load a Discogs collection** by username.
 - **Rearrange by dragging** records between the wall and the pool, or tap a record to move or swap it.
 - **Pin** records so that shuffling and swapping leave them in place. **Shuffle** only moves unpinned records, and **Undo** steps back.
-- **Sort** by artist, genre or cover color (colors are measured in your browser from tiny copies of the covers, only when you ask), change the grid size, and hide the labels.
-- **Search** the pool.
+- **Sort** by artist or genre, change the grid size, and hide the labels.
+- **Build a wall from a gradient.** Sort by Color opens a simple gradient editor (two or three colors, presets, a direction) and suggests gradients your own collection can fill well. The wall is filled from your whole collection with the covers that best fit it and each other, judged by each cover's main colors and how its parts line up with the gradient, measured in your browser from tiny copies of the covers, only when you ask. An optional switch keeps covers by the same artist from touching, and any color on a cover can start a wall of its own.
+- **Search** the pool, and optionally **show each album once** when the collection holds several pressings of one album.
+- **Remember what has been up.** Mark the wall when you hang it; the pool can then list records that have not been hung recently first, an album's details say when it was last up, and Build wall can prefer rested records.
 - **Keep layouts.** Save the wall under a name, put a saved wall back, and compare the wall with a saved one: a small diagram of the wall shows where each cover goes, with the steps in an order you can follow at the real wall. Layouts are kept in your browser; save a backup file to keep a copy or move them to another device.
 - **Save the wall as an image** at a phone-wallpaper, desktop-wallpaper or square-print size, or copy a share link. The wall is remembered in the browser between visits.
 - **Keep working when the image service is down.** Covers load from their own hosts instead, with a note saying so; covers whose host does not allow it are left out of saved images, and the message says how many.
@@ -29,6 +31,8 @@ Captured from the static build using `scripts/capture-case-study.ts` (the revisi
 | A fresh visit offers the demo. | The demo's 8 × 4 wall with the record pool below it. |
 | ![The wall after pinning four records and shuffling; the pinned covers carry a pin badge and stayed in their places](docs/screenshots/03-pin-and-shuffle.png) | ![The Export menu open, listing Share or Save Image, phone wallpaper, desktop wallpaper and square print sizes, and Copy Share Link](docs/screenshots/04-export-menu.png) |
 | Four records pinned, then shuffled. | The Export menu with sized image options and a share link. |
+| ![Sort by Color: gradients suggested for this collection, presets and single colors, the colors and direction, and a preview of what each spot on the 8 by 4 wall aims for](docs/screenshots/05-sort-by-color.png) | ![A rainbow wall built from the demo collection: red and orange covers on the left through yellow and green to blue and purple on the right](docs/screenshots/06-gradient-wall.png) |
+| Sort by Color with suggestions for this collection. | A rainbow wall built from the whole collection. |
 
 ## How it is built
 
