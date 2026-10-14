@@ -86,8 +86,22 @@ describe("short share links", () => {
     });
   });
 
+  it("serves links on albumwall.bradleygolski.com with a DNS-validated certificate", () => {
+    stack.hasResourceProperties("AWS::CertificateManager::Certificate", {
+      DomainName: "albumwall.bradleygolski.com",
+      ValidationMethod: "DNS",
+    });
+    stack.hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({ Aliases: ["albumwall.bradleygolski.com"] }),
+    });
+    stack.resourceCountIs("AWS::Route53::HostedZone", 0);
+  });
+
   it("publishes the link domain in Parameter Store for the functions to read by name", () => {
-    stack.hasResourceProperties("AWS::SSM::Parameter", { Name: "/album-wall/share-domain" });
+    stack.hasResourceProperties("AWS::SSM::Parameter", {
+      Name: "/album-wall/share-domain",
+      Value: "albumwall.bradleygolski.com",
+    });
     const json = JSON.stringify(stack.toJSON());
     expect(json).toContain("parameter/album-wall/share-domain");
   });

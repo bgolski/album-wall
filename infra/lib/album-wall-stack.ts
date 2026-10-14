@@ -7,6 +7,7 @@ import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as budgets from "aws-cdk-lib/aws-budgets";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
@@ -35,6 +36,10 @@ const HOURLY_ERROR_ALARM = 50;
 // by name at run time, so the functions do not depend on the distribution that points at them.
 const SHARE_DOMAIN_PARAMETER_NAME = "/album-wall/share-domain";
 const LIVE_APP_URL = "https://bradleygolski.com/album-wall/";
+// Short links live on a subdomain of the site. DNS is on Cloudflare (no Route 53 zone, which costs
+// a monthly fee), so the certificate is validated by a CNAME added there by hand, and the domain
+// is a CNAME (DNS only) to the distribution.
+const SHARE_DOMAIN = "albumwall.bradleygolski.com";
 
 /**
  * Root infrastructure stack for album-wall AWS resources.
@@ -186,8 +191,14 @@ export class AlbumWallStack extends cdk.Stack {
     const origin = new origins.FunctionUrlOrigin(
       sharePage.addFunctionUrl({ authType: lambda.FunctionUrlAuthType.NONE })
     );
+    const certificate = new acm.Certificate(this, "ShareCertificate", {
+      domainName: SHARE_DOMAIN,
+      validation: acm.CertificateValidation.fromDns(),
+    });
     const distribution = new cloudfront.Distribution(this, "ShareDistribution", {
       comment: "Album Wall short share links",
+      domainNames: [SHARE_DOMAIN],
+      certificate,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin,
@@ -209,13 +220,18 @@ export class AlbumWallStack extends cdk.Stack {
 
     new ssm.StringParameter(this, "ShareDomainParameter", {
       parameterName: SHARE_DOMAIN_PARAMETER_NAME,
-      stringValue: distribution.distributionDomainName,
-      description: "CloudFront domain of album-wall short share links.",
+      stringValue: SHARE_DOMAIN,
+      description: "Domain of album-wall short share links.",
     });
 
     new cdk.CfnOutput(this, "ShareLinkDomain", {
-      value: distribution.distributionDomainName,
+      value: SHARE_DOMAIN,
       description: "Domain of short share links (https://<domain>/w/<id>).",
+    });
+
+    new cdk.CfnOutput(this, "ShareDistributionDomain", {
+      value: distribution.distributionDomainName,
+      description: "CloudFront domain the short link domain points to (CNAME, DNS only).",
     });
 
     return sharePage;
