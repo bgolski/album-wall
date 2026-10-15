@@ -44,9 +44,10 @@ const SHARE_DOMAIN = "albumwall.bradleygolski.com";
 // Cover images are served on the same domain, under this path (the app asks for
 // https://<domain>/img?url=...&w=...).
 const COVER_IMAGE_PATH = "/img";
-// Fresh covers are resized when a wall first loads, many at once; throttled requests fall back to
-// the third-party proxy in the app, so the throttle alarm only fires on sustained throttling.
-const COVER_IMAGE_CONCURRENCY = 10;
+// A wall's first load asks for about 50 covers at once (the wall and the pool tiles in view), and
+// covers not yet cached each need the function. Throttled requests fall back to the third-party
+// proxy in the app, and after a few the app stops asking, so the cap has to take a whole wall.
+const COVER_IMAGE_CONCURRENCY = 50;
 const HOURLY_COVER_THROTTLE_ALARM = 100;
 
 /**

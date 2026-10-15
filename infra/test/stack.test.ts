@@ -126,7 +126,7 @@ describe("cover images", () => {
   it("resizes covers in an ARM function with capped concurrency and short-lived logs", () => {
     stack.hasResourceProperties("AWS::Lambda::Function", {
       Architectures: ["arm64"],
-      ReservedConcurrentExecutions: 10,
+      ReservedConcurrentExecutions: 50,
       Timeout: 12,
       Description: Match.stringLikeRegexp("cover images"),
     });
