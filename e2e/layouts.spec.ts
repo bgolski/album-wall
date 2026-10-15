@@ -52,6 +52,7 @@ test("save a layout, change the wall, compare, put the layout back, and keep it 
   await page.getByRole("button", { name: "Layouts" }).click();
   await expect(page.getByRole("list", { name: "Saved layouts" }).getByText("First")).toBeVisible();
 
+  await page.getByRole("button", { name: /^Backup/ }).click();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save backup file" }).click();
   const file = await (await download).path();

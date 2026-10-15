@@ -63,7 +63,7 @@ const wallOrder = () =>
     .slice(0, 32)
     .map((node) => Number(node.getAttribute("data-album-id")));
 
-const sortByColor = () => fireEvent.click(screen.getByRole("button", { name: "Sort by Color" }));
+const sortByColor = () => fireEvent.click(screen.getByRole("button", { name: "Color" }));
 const buildAllOrange = async () => {
   fireEvent.click(screen.getByRole("button", { name: "All orange" }));
   await act(async () => {
@@ -138,7 +138,7 @@ describe("RecordGrid sort by color", () => {
     setProfiles();
     renderGrid();
     sortByColor();
-    fireEvent.click(screen.getByRole("button", { name: "Custom Order" }));
+    fireEvent.click(screen.getByRole("button", { name: "By hand" }));
     expect(screen.queryByRole("button", { name: "Build wall" })).toBeNull();
     expect(measuring.calls.at(-1)!.enabled).toBe(false);
   });

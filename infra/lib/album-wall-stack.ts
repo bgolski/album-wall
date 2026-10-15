@@ -33,6 +33,11 @@ const MONTHLY_BUDGET_USD = 1;
 // Far below Lambda's free allowance (1M requests a month), so unusual traffic is noticed early.
 const DAILY_INVOCATION_ALARM = 100_000;
 const HOURLY_ERROR_ALARM = 50;
+// Throttling is the caps doing their job (scanners and bursts are turned away for free), so it
+// alarms only when it is heavy enough to mean abuse or a cap that is too low.
+const HOURLY_THROTTLE_ALARM = 20;
+// Room for a message preview (page and picture, sometimes several fetchers at once).
+const SHARE_PAGE_CONCURRENCY = 10;
 // Short share links: the CloudFront domain is written here after the distribution is made and read
 // by name at run time, so the functions do not depend on the distribution that points at them.
 const SHARE_DOMAIN_PARAMETER_NAME = "/album-wall/share-domain";
@@ -119,6 +124,8 @@ export class AlbumWallStack extends cdk.Stack {
     const { sharePage: sharePageFunction, distribution } = this.addShortLinks(discogsProxyFunction);
     const coverImageFunction = this.addCoverImages(distribution);
 
+    this.addSavedWalls(discogsProxyFunction);
+
     this.addCostGuardrails(discogsProxyFunction, sharePageFunction, coverImageFunction);
 
     new cdk.CfnOutput(this, "DiscogsProxyFunctionUrl", {
@@ -168,7 +175,7 @@ export class AlbumWallStack extends cdk.Stack {
       description: "Short share links for album-wall: link page and wall picture.",
       timeout: cdk.Duration.seconds(20),
       memorySize: 1024,
-      reservedConcurrentExecutions: 3,
+      reservedConcurrentExecutions: SHARE_PAGE_CONCURRENCY,
       environment: {
         SHARE_TABLE_NAME: table.tableName,
         SHARE_DOMAIN_PARAMETER_NAME,
@@ -202,6 +209,32 @@ export class AlbumWallStack extends cdk.Stack {
     const origin = new origins.FunctionUrlOrigin(
       sharePage.addFunctionUrl({ authType: lambda.FunctionUrlAuthType.NONE })
     );
+    // Anything that is not a short link (scanners trying /wp-login.php, /.env and the like) is
+    // answered at the edge, so it never runs the function: robots.txt, or a redirect to the app.
+    const edgeOnly = new cloudfront.Function(this, "ShareEdgeFunction", {
+      comment: "Album Wall short links: answer everything but /w/ at the edge",
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var uri = event.request.uri;
+  if (uri.indexOf("/w/") === 0) return event.request;
+  var cache = { value: "public, max-age=86400" };
+  if (uri === "/robots.txt") {
+    return {
+      statusCode: 200,
+      statusDescription: "OK",
+      headers: { "content-type": { value: "text/plain" }, "cache-control": cache },
+      body: { encoding: "text", data: "User-agent: *\\nAllow: /w/\\nDisallow: /\\n" },
+    };
+  }
+  return {
+    statusCode: 301,
+    statusDescription: "Moved Permanently",
+    headers: { location: { value: "${LIVE_APP_URL}" }, "cache-control": cache },
+  };
+}`),
+    });
+
     const certificate = new acm.Certificate(this, "ShareCertificate", {
       domainName: SHARE_DOMAIN,
       validation: acm.CertificateValidation.fromDns(),
@@ -218,6 +251,9 @@ export class AlbumWallStack extends cdk.Stack {
         // The page depends on who asks (a preview fetcher or a person), so it is not cached.
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        functionAssociations: [
+          { function: edgeOnly, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST },
+        ],
       },
       additionalBehaviors: {
         "/w/*.jpg": {
@@ -246,6 +282,25 @@ export class AlbumWallStack extends cdk.Stack {
     });
 
     return { sharePage, distribution };
+  }
+
+  /**
+   * Signed-in visitors' saved layouts and wall history, so they load on any device: one item per
+   * Discogs account, collection and kind, in a table with provisioned capacity inside the
+   * always-free allowance (on-demand is not free). Kept until the visitor deletes them.
+   *
+   * @param proxy The Discogs proxy, which checks the sign-in and reads and writes the items.
+   */
+  private addSavedWalls(proxy: lambdaNodejs.NodejsFunction) {
+    const table = new dynamodb.Table(this, "SavedWallsTable", {
+      partitionKey: { name: "user", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "item", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PROVISIONED,
+      readCapacity: 2,
+      writeCapacity: 2,
+    });
+    table.grantReadWriteData(proxy);
+    proxy.addEnvironment("SAVED_TABLE_NAME", table.tableName);
   }
 
   /**
@@ -398,8 +453,8 @@ export class AlbumWallStack extends cdk.Stack {
     alarm(
       "ProxyThrottlesAlarm",
       proxy.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
-      0,
-      "The Discogs proxy hit its concurrency cap, which may mean abuse."
+      HOURLY_THROTTLE_ALARM,
+      "The Discogs proxy was throttled many times in an hour, which may mean abuse."
     );
     alarm(
       "SharePageInvocationsAlarm",
@@ -416,8 +471,8 @@ export class AlbumWallStack extends cdk.Stack {
     alarm(
       "SharePageThrottlesAlarm",
       sharePage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
-      0,
-      "The short link page hit its concurrency cap, which may mean abuse."
+      HOURLY_THROTTLE_ALARM,
+      "The short link page was throttled many times in an hour, which may mean abuse."
     );
     alarm(
       "CoverImageInvocationsAlarm",

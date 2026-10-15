@@ -28,14 +28,12 @@ interface LayoutsPanelProps {
 
 const buttonClass =
   "rounded-control bg-raised px-3 py-1 text-sm text-ink transition-colors hover:bg-line";
-// The panel sits on the raised background, so its own buttons use the panel color to stand out.
-const panelButtonClass =
-  "rounded-control bg-panel px-3 py-1 text-sm text-ink transition-colors hover:bg-line disabled:opacity-50";
 
 /**
  * Saves the wall under a name, puts a saved wall back, lists what would change on the physical
- * wall to get from the current wall to a saved one, and backs layouts up to a file. Layouts live
- * in this browser only; the panel says so and offers the backup.
+ * wall to get from the current wall to a saved one, and marks which layout is on the real wall
+ * (that is the wall history: when each record was last up). Layouts live in this browser only; a
+ * small Backup menu says so and saves or loads a backup file.
  */
 export function LayoutsPanel({
   isVisible,
@@ -46,12 +44,13 @@ export function LayoutsPanel({
   storageOptions,
   history,
 }: LayoutsPanelProps) {
-  const { layouts, save, rename, remove, importText, exportText, needsBackup } = useLayouts(
+  const { layouts, saveLayout, rename, remove, importText, exportText, needsBackup } = useLayouts(
     collectionName,
     { ...storageOptions, ...(history ? { history } : {}) }
   );
-  const [confirmingClear, setConfirmingClear] = useState(false);
   const [name, setName] = useState("");
+  const [onWallNow, setOnWallNow] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
@@ -64,11 +63,31 @@ export function LayoutsPanel({
 
   const albumsById = new Map(albums.map((album) => [String(album.id), album]));
 
+  // The saved layout most recently marked as on the wall, and since when.
+  const lastHang = history?.hangs[history.hangs.length - 1];
+  const onWallId = lastHang?.layoutId;
+
+  const markOnWall = (layout: Pick<SavedLayout, "id" | "name" | "wall">) => {
+    if (!history) return;
+    const problem = history.markHung(layout.wall.wallAlbumIds, layout.id);
+    setMessage(problem ?? `"${layout.name}" is on your wall.`);
+  };
+
   const handleSave = (event: FormEvent) => {
     event.preventDefault();
-    const problem = save(name, currentWall);
-    setMessage(problem ?? `Saved "${name.trim()}".`);
-    if (!problem) setName("");
+    const { problem, layout } = saveLayout(name, currentWall);
+    if (problem !== null) {
+      setMessage(problem);
+      return;
+    }
+    setName("");
+    if (onWallNow && history) {
+      setOnWallNow(false);
+      const marked = history.markHung(layout.wall.wallAlbumIds, layout.id);
+      setMessage(marked ?? `Saved "${layout.name}". It's on your wall.`);
+    } else {
+      setMessage(`Saved "${layout.name}".`);
+    }
   };
 
   const handleApply = (layout: SavedLayout) => {
@@ -123,16 +142,63 @@ export function LayoutsPanel({
   const compared = layouts.find((layout) => layout.id === comparing);
 
   return (
-    <section aria-labelledby={`${nameId}-heading`} className="mt-3 rounded-control bg-raised p-3">
-      <h3 id={`${nameId}-heading`} className="mb-1 font-medium text-ink">
-        Layouts
-      </h3>
-      <p className="mb-3 text-sm text-muted">
-        Layouts are kept in this browser only.
-        {needsBackup && " Some are not backed up yet: save a backup file to keep a copy."}
-      </p>
+    <section aria-labelledby={`${nameId}-heading`} className="pr-8">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 id={`${nameId}-heading`} className="font-medium text-ink">
+          Layouts
+        </h3>
+        <div className="relative">
+          <button
+            type="button"
+            className="rounded-control px-2 py-1 text-sm text-muted hover:bg-panel hover:text-ink"
+            aria-expanded={backupOpen}
+            aria-controls={`${nameId}-backup`}
+            onClick={() => setBackupOpen((open) => !open)}
+          >
+            Backup
+            {needsBackup && (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="ml-1 inline-block h-2 w-2 rounded-full bg-accent align-middle"
+                />
+                <span className="sr-only"> (not backed up yet)</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+      {backupOpen && (
+        <div id={`${nameId}-backup`} className="mb-3 rounded-control bg-panel p-3 text-sm">
+          <p className="mb-2 text-muted">
+            Layouts are kept in this browser only.
+            {needsBackup && " Some are not backed up yet."} A backup file keeps a copy or moves them
+            to another device.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {(layouts.length > 0 || (history?.hangs.length ?? 0) > 0) && (
+              <button type="button" className={buttonClass} onClick={handleExport}>
+                Save backup file
+              </button>
+            )}
+            <label htmlFor={importId} className={`${buttonClass} cursor-pointer`}>
+              Load backup file
+            </label>
+            <input
+              id={importId}
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={(event) => {
+                void handleImport(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+          </div>
+        </div>
+      )}
 
-      <form onSubmit={handleSave} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <form onSubmit={handleSave} className="flex flex-col gap-2 @lg:flex-row @lg:items-end">
         <div className="flex flex-1 flex-col gap-1">
           <label htmlFor={nameId} className="text-sm text-ink">
             Name for the current wall
@@ -152,6 +218,17 @@ export function LayoutsPanel({
           Save current wall
         </button>
       </form>
+      {history && (
+        <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={onWallNow}
+            onChange={(event) => setOnWallNow(event.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          It&apos;s on my wall now
+        </label>
+      )}
 
       {message && (
         <p role="status" className="mt-3 text-sm text-ink">
@@ -170,7 +247,7 @@ export function LayoutsPanel({
             <li key={layout.id} className="rounded-control bg-panel p-3">
               {renaming?.id === layout.id ? (
                 <form
-                  className="flex flex-col gap-2 sm:flex-row"
+                  className="flex flex-col gap-2 @lg:flex-row"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const problem = rename(layout.id, renaming.value);
@@ -196,9 +273,16 @@ export function LayoutsPanel({
                   </button>
                 </form>
               ) : (
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-2 @lg:flex-row @lg:items-center @lg:justify-between">
                   <div>
-                    <p className="font-medium text-ink">{layout.name}</p>
+                    <p className="font-medium text-ink">
+                      {layout.name}
+                      {onWallId === layout.id && lastHang && (
+                        <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-on-accent">
+                          On your wall since {formatDay(lastHang.date)}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted">
                       {wallSize(layout.wall.columns, layout.wall.rows)} wall, saved{" "}
                       {new Date(layout.savedAt).toLocaleDateString()}
@@ -236,6 +320,16 @@ export function LayoutsPanel({
                       >
                         Put on wall
                       </button>
+                      {history && onWallId !== layout.id && (
+                        <button
+                          type="button"
+                          className={buttonClass}
+                          aria-label={`Mark ${layout.name} as on my wall`}
+                          onClick={() => markOnWall(layout)}
+                        >
+                          On my wall
+                        </button>
+                      )}
                       <button
                         type="button"
                         className={buttonClass}
@@ -287,78 +381,6 @@ export function LayoutsPanel({
           albumsById={albumsById}
         />
       )}
-
-      {history && (
-        <div className="mt-4 border-t border-line pt-3">
-          <h4 className="mb-1 text-sm font-medium text-ink">Wall history</h4>
-          <p className="mb-2 text-sm text-muted">
-            {history.hangs.length === 0
-              ? "Mark the wall when you hang it, to see which records have not been up in a while."
-              : `Last hung ${formatDay(history.hangs[history.hangs.length - 1]!.date)}, ${
-                  history.hangs[history.hangs.length - 1]!.albumIds.length
-                } records. ${history.hangs.length} ${
-                  history.hangs.length === 1 ? "wall" : "walls"
-                } remembered.`}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={panelButtonClass}
-              onClick={() => {
-                const problem = history.markHung(currentWall.wallAlbumIds);
-                setMessage(problem ?? "Marked the current wall as hung today.");
-              }}
-            >
-              I hung the current wall
-            </button>
-            {history.hangs.length > 0 &&
-              (confirmingClear ? (
-                <button
-                  type="button"
-                  className={panelButtonClass}
-                  onClick={() => {
-                    setConfirmingClear(false);
-                    setMessage(history.clear() ?? "Cleared the wall history.");
-                  }}
-                >
-                  Clear all history?
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className={panelButtonClass}
-                  onClick={() => setConfirmingClear(true)}
-                >
-                  Clear history
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={panelButtonClass}
-          onClick={handleExport}
-          disabled={layouts.length === 0 && (history?.hangs.length ?? 0) === 0}
-        >
-          Save backup file
-        </button>
-        <label htmlFor={importId} className={`${panelButtonClass} cursor-pointer`}>
-          Load backup file
-        </label>
-        <input
-          id={importId}
-          type="file"
-          accept="application/json,.json"
-          className="sr-only"
-          onChange={(event) => {
-            void handleImport(event.target.files?.[0]);
-            event.target.value = "";
-          }}
-        />
-      </div>
     </section>
   );
 }

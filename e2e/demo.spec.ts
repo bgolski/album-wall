@@ -38,7 +38,7 @@ test("a first-time visitor is offered the demo, and only once", async ({ page })
 test("a visitor who closes the welcome is not asked again", async ({ page }) => {
   await page.route(/images\.weserv\.nl/, (route) => route.fulfill({ status: 404 }));
   await page.goto("./");
-  await page.getByRole("button", { name: "I'll use my username" }).click();
+  await page.getByRole("button", { name: "Use my collection" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole("button", { name: "Load Collection" })).toBeVisible();
@@ -57,8 +57,7 @@ test("a returning visitor can still try the demo from the header", async ({ page
   expect(discogsRequests).toEqual([]);
 
   await page.getByRole("button", { name: "Shuffle" }).click();
-  await page.getByRole("button", { name: /Export/ }).click();
-  await page.getByRole("menuitem", { name: "Copy Share Link" }).click();
+  await page.getByRole("button", { name: "Share link" }).click();
   await expect(page.getByText("Share link copied.")).toBeVisible();
   const link = await page.evaluate(() => navigator.clipboard.readText());
   expect(link).toContain("#share=");

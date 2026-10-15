@@ -51,3 +51,11 @@ describe("Footer", () => {
     expect(footer?.className).toContain("border-t");
   });
 });
+
+describe("Footer privacy link", () => {
+  it("links to the privacy page", () => {
+    const { getByRole } = render(<Footer />);
+    // The static build adds the trailing slash (trailingSlash in next.config).
+    expect(getByRole("link", { name: "Privacy" }).getAttribute("href")).toMatch(/^\/privacy\/?$/);
+  });
+});

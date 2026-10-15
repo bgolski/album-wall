@@ -42,7 +42,10 @@ export function useWallDrag(input: {
   const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 4 } });
+  // On touch screens a cover is picked up by pressing and holding it, so a swipe still scrolls.
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 250, tolerance: 8 },
+  });
   const keyboardSensor = useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates,
   });

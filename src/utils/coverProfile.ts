@@ -1,4 +1,4 @@
-import { CoverColor, chromaOf } from "./colorBasics";
+import { CoverColor, NEUTRAL_CHROMA, chromaOf } from "./colorBasics";
 import { srgbToOklab } from "./coverColor";
 
 /** A single entry in the palette. */
@@ -12,6 +12,30 @@ export interface CoverProfile {
   color: CoverColor;
   palette: PaletteEntry[];
   regions: (CoverColor | null)[];
+}
+
+/**
+ * The color people notice first on a cover: among palette colors covering at least a tenth of it,
+ * the biggest area weighted by how colorful it is. Chroma below {@link NEUTRAL_CHROMA} reads as
+ * grey and only reflects lighting and compression, so every grey counts as that colorful: between
+ * two grey areas size decides, instead of noise picking black on one photo of a cover and cream on
+ * the next. Ties keep the bigger area.
+ *
+ * @param palette Palette entries, biggest share first; at least one.
+ * @returns The chosen palette color.
+ */
+export function mostNoticeableColor(palette: readonly PaletteEntry[]): CoverColor {
+  let color = palette[0]!.color;
+  let bestScore = -1;
+  for (const entry of palette) {
+    if (entry.share < 0.1) continue;
+    const score = entry.share * Math.max(chromaOf(entry.color), NEUTRAL_CHROMA);
+    if (score > bestScore) {
+      bestScore = score;
+      color = entry.color;
+    }
+  }
+  return color;
 }
 
 /** Squared Euclidean distance between two OKLab colours. */
@@ -165,28 +189,7 @@ export function coverProfile(
   });
 
   // ---- 3. colour (most noticeable) ----
-  let color: CoverColor;
-  const qualifying: { color: CoverColor; share: number; clusterIndex: number }[] =
-    paletteRaw.filter((e) => e.share >= 0.1);
-  if (qualifying.length > 0) {
-    let best = 0;
-    let bestProduct = qualifying[0]!.share * chromaOf(qualifying[0]!.color);
-    for (let i = 1; i < qualifying.length; i += 1) {
-      const entry = qualifying[i]!;
-      const product = entry.share * chromaOf(entry.color);
-      if (product > bestProduct) {
-        bestProduct = product;
-        best = i;
-      }
-    }
-    if (bestProduct < 0.004) {
-      color = paletteRaw[0]!.color;
-    } else {
-      color = qualifying[best]!.color;
-    }
-  } else {
-    color = paletteRaw[0]!.color;
-  }
+  const color = mostNoticeableColor(paletteRaw);
 
   // ---- 4. regions: 3 x 3 grid in row-major order ----
   const regionL = new Float64Array(9);

@@ -61,6 +61,33 @@ describe("profile cache", () => {
     expect(loaded.get("https://x/b.jpg")).toEqual(profile(0.9));
   });
 
+  it("chooses the main color again by the current rule when reading a version 2 cache", () => {
+    const cream = { l: 0.85, a: 0.004, b: 0.02 };
+    const black = { l: 0.1, a: 0, b: 0.002 };
+    const storage = fakeStorage();
+    saveProfileCache(
+      storage,
+      new Map([
+        [
+          "u",
+          {
+            color: cream,
+            palette: [
+              { color: black, share: 0.6 },
+              { color: cream, share: 0.4 },
+            ],
+            regions: Array(9).fill(black),
+          },
+        ],
+      ])
+    );
+    expect(loadProfileCache(storage).get("u")!.color).toEqual(cream);
+    const stored = JSON.parse(storage.data[PROFILE_CACHE_KEY]!);
+    expect(stored.v).toBe(3);
+    storage.data[PROFILE_CACHE_KEY] = JSON.stringify({ ...stored, v: 2 });
+    expect(loadProfileCache(storage).get("u")!.color).toEqual(black);
+  });
+
   it("clears the single colors earlier versions kept", () => {
     const storage = fakeStorage({ "album-wall:cover-colors": "{}" });
     saveProfileCache(storage, new Map([["u", profile(0.5)]]));

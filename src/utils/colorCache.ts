@@ -1,9 +1,12 @@
 import type { CoverColor } from "./colorBasics";
-import type { CoverProfile } from "./coverProfile";
+import { mostNoticeableColor, type CoverProfile } from "./coverProfile";
 import { isCoverProfile, roundProfile } from "./profileShape";
 
 /** Storage key for the cover profiles measured in this browser. */
 export const PROFILE_CACHE_KEY = "album-wall:cover-profiles";
+
+/** Format of the stored profiles; version 2 caches are still read (see {@link loadProfileCache}). */
+const CACHE_VERSION = 3;
 
 /** Where the single average colors of earlier versions were kept; cleared when profiles are saved. */
 const OLD_COLOR_KEY = "album-wall:cover-colors";
@@ -65,11 +68,21 @@ export function loadProfileCache(storage: Pick<Storage, "getItem">): Map<string,
     const parsed: unknown = JSON.parse(storage.getItem(PROFILE_CACHE_KEY) ?? "null");
     if (typeof parsed !== "object" || parsed === null) return profiles;
     const stored = parsed as { v?: unknown; covers?: unknown };
-    if (stored.v !== 2 || typeof stored.covers !== "object" || stored.covers === null)
+    if (
+      (stored.v !== 2 && stored.v !== CACHE_VERSION) ||
+      typeof stored.covers !== "object" ||
+      stored.covers === null
+    )
       return profiles;
     for (const [url, value] of Object.entries(stored.covers as Record<string, unknown>)) {
       const profile = unpackProfile(value);
-      if (profile) profiles.set(url, profile);
+      if (!profile) continue;
+      // Version 2 chose the most noticeable color by an older rule; the palette it kept is enough
+      // to choose again without reading the cover.
+      if (stored.v === 2 && profile.palette.length > 0) {
+        profile.color = mostNoticeableColor([...profile.palette].sort((x, y) => y.share - x.share));
+      }
+      profiles.set(url, profile);
     }
   } catch {
     // Blocked or damaged storage: start with nothing remembered.
@@ -94,7 +107,7 @@ export function saveProfileCache(
     for (const [url, profile] of [...profiles].slice(-MAX_CACHED_PROFILES)) {
       covers[url] = packProfile(profile);
     }
-    storage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ v: 2, covers }));
+    storage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ v: CACHE_VERSION, covers }));
     storage.removeItem?.(OLD_COLOR_KEY);
     return true;
   } catch {

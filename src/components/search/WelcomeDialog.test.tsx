@@ -10,7 +10,7 @@ describe("WelcomeDialog", () => {
     const dialog = screen.getByRole("dialog", { name: "New to Album Wall?" });
     expect(dialog.contains(document.activeElement)).toBe(true);
     expect(screen.getByRole("button", { name: "Try the demo" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "I'll use my username" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use my collection" })).toBeTruthy();
   });
 
   it("starts the demo from the primary button without also closing", () => {
@@ -27,7 +27,7 @@ describe("WelcomeDialog", () => {
     render(<WelcomeDialog onTryDemo={vi.fn()} onClose={onClose} />);
     fireEvent.click(screen.getByRole("dialog"));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "I'll use my username" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use my collection" }));
     fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.click(screen.getByTestId("welcome-backdrop"));
     expect(onClose).toHaveBeenCalledTimes(3);

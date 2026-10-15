@@ -71,15 +71,6 @@ describe("useGridDimensions", () => {
     expect(result.current.columns).toBe(4);
   });
 
-  it("toggleConfig toggles visibility flag", () => {
-    const { result } = renderHook(() => useGridDimensions());
-    expect(result.current.showDimensionsConfig).toBe(false);
-    act(() => result.current.toggleConfig());
-    expect(result.current.showDimensionsConfig).toBe(true);
-    act(() => result.current.toggleConfig());
-    expect(result.current.showDimensionsConfig).toBe(false);
-  });
-
   it("gridSize reflects current rows * columns", () => {
     const { result } = renderHook(() => useGridDimensions());
     expect(result.current.gridSize).toBe(result.current.rows * result.current.columns);

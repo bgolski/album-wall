@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Album, SharedWallState } from "@/types";
 import { LayoutsPanel } from "./LayoutsPanel";
+import { useHangHistory } from "@/hooks/useHangHistory";
 
 const albums: Album[] = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1,
@@ -79,12 +80,17 @@ describe("LayoutsPanel", () => {
     expect(screen.queryByText("Layouts")).toBeNull();
   });
 
-  it("says layouts live in this browser and asks for a backup once one is saved", () => {
+  it("keeps the backup in a small menu that says layouts live in this browser", () => {
     renderPanel();
+    expect(screen.queryByText(/kept in this browser only/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Backup" }));
     expect(screen.getByText(/kept in this browser only/)).toBeTruthy();
+    // Nothing to back up yet: only loading a file is offered.
+    expect(screen.queryByRole("button", { name: "Save backup file" })).toBeNull();
     expect(screen.queryByText(/not backed up yet/)).toBeNull();
     saveAs("Autumn");
-    expect(screen.getByText(/not backed up yet/)).toBeTruthy();
+    expect(screen.getByText(/Some are not backed up yet/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Backup.*not backed up yet/ })).toBeTruthy();
     expect(screen.getByText('Saved "Autumn".')).toBeTruthy();
     expect(
       within(screen.getByRole("list", { name: "Saved layouts" })).getByText("Autumn")
@@ -154,6 +160,7 @@ describe("LayoutsPanel", () => {
 
     renderPanel();
     saveAs("Autumn");
+    fireEvent.click(screen.getByRole("button", { name: /^Backup/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save backup file" }));
     expect(click).toHaveBeenCalled();
     expect(screen.queryByText(/not backed up yet/)).toBeNull();
@@ -166,5 +173,52 @@ describe("LayoutsPanel", () => {
     });
     await waitFor(() => expect(screen.getByText("Added 1 layout.")).toBeTruthy());
     expect(screen.getByText("Autumn")).toBeTruthy();
+  });
+
+  it("marks a layout as on the wall, from its row or when saving", () => {
+    const storage = fakeStorage();
+    let id = 0;
+    const storageOptions = { storage, newId: () => `id-${++id}` };
+    function WithHistory() {
+      const history = useHangHistory("someone", {
+        storage,
+        now: () => new Date(2026, 9, 14),
+      });
+      return (
+        <LayoutsPanel
+          isVisible
+          collectionName="someone"
+          currentWall={wall(["1", "2", "3"])}
+          albums={albums}
+          onApply={vi.fn()}
+          storageOptions={storageOptions}
+          history={history}
+        />
+      );
+    }
+    render(<WithHistory />);
+    expect(screen.queryByText(/I hung/)).toBeNull();
+
+    saveAs("Autumn");
+    fireEvent.click(screen.getByRole("button", { name: "Mark Autumn as on my wall" }));
+    expect(screen.getByText('"Autumn" is on your wall.')).toBeTruthy();
+    expect(screen.getByText(/On your wall since/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Mark Autumn as on my wall" })).toBeNull();
+
+    // Saving with "It's on my wall now" moves the badge to the new layout.
+    fireEvent.click(screen.getByRole("checkbox", { name: "It's on my wall now" }));
+    saveAs("Winter");
+    expect(screen.getByText('Saved "Winter". It\'s on your wall.')).toBeTruthy();
+    const rows = within(screen.getByRole("list", { name: "Saved layouts" })).getAllByRole(
+      "listitem"
+    );
+    expect(within(rows[1]!).getByText(/On your wall since/)).toBeTruthy();
+    expect(within(rows[0]!).queryByText(/On your wall since/)).toBeNull();
+    expect(
+      within(rows[0]!).getByRole("button", { name: "Mark Autumn as on my wall" })
+    ).toBeTruthy();
+    expect(JSON.parse(storage.getItem("album-wall:hang-history:someone")!).hangs).toEqual([
+      { date: "2026-10-14", albumIds: ["1", "2", "3"], layoutId: "id-2" },
+    ]);
   });
 });

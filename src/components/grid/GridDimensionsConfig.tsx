@@ -38,7 +38,7 @@ function DimensionField({ id, label, value, min, max, onCommit }: DimensionField
   const [draft, setDraft] = useState<string | null>(null);
 
   return (
-    <div className="flex w-full flex-col gap-2 sm:max-w-[180px]">
+    <div className="flex w-full flex-col gap-2 @lg:max-w-[180px]">
       <label htmlFor={id} className="text-sm text-ink">
         {label}
       </label>
@@ -83,9 +83,9 @@ export function GridDimensionsConfig({
   if (!isVisible) return null;
 
   return (
-    <div className="mt-3 rounded-control bg-raised p-3">
-      <h3 className="mb-3 text-ink font-medium">Wall Display Dimensions</h3>
-      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:gap-4">
+    <div className="pr-8">
+      <h3 className="mb-3 font-medium text-ink">Wall size</h3>
+      <div className="flex flex-col gap-3 @lg:flex-row @lg:flex-wrap @lg:items-end @lg:gap-4">
         <DimensionField
           id="columns"
           label="Columns:"
@@ -104,21 +104,22 @@ export function GridDimensionsConfig({
           onCommit={(next) => onDimensionsChange(next, columns)}
         />
 
-        <p className="text-sm text-muted md:pb-2">
+        <p className="text-sm text-muted @lg:pb-2">
           Total albums in display: <span className="font-semibold">{gridSize}</span>
         </p>
 
-        <div className="w-full md:ml-auto md:w-auto">
+        <div className="w-full @lg:ml-auto @lg:w-auto">
           <button
             onClick={onReset}
-            className="w-full rounded-control bg-raised px-3 py-2 text-sm text-ink transition-colors hover:bg-line md:w-auto md:py-1"
+            className="w-full rounded-control bg-raised px-3 py-2 text-sm text-ink transition-colors hover:bg-line @lg:w-auto @lg:py-1"
           >
             Reset to default ({wallSize(defaultColumns, defaultRows)})
           </button>
         </div>
       </div>
 
-      {pressings && (
+      {/* Only offered when the collection has more than one pressing of an album. */}
+      {pressings && pressings.groups.length > 0 && (
         <div className="mt-3">
           <label className="flex items-center gap-2 text-sm text-ink">
             <input
@@ -131,27 +132,18 @@ export function GridDimensionsConfig({
             Show each album once (set aside extra pressings of the same album)
           </label>
           <p className="mt-1 text-xs text-muted">
-            {pressings.groups.length === 0
-              ? "No album appears more than once in this collection."
-              : pressings.once
-                ? `Setting aside ${pressings.hidden.length} extra ${
-                    pressings.hidden.length === 1 ? "pressing" : "pressings"
-                  }: ${pressings.hidden.map((album) => `${album.title} (${album.artist})`).join(", ")}.`
-                : `${pressings.groups.length} ${
-                    pressings.groups.length === 1 ? "album appears" : "albums appear"
-                  } more than once: ${pressings.groups
-                    .map((set) => `${set[0]!.title} (${set.length})`)
-                    .join(", ")}. Matching is by artist and title, so check the list.`}
+            {pressings.once
+              ? `Setting aside ${pressings.hidden.length} extra ${
+                  pressings.hidden.length === 1 ? "pressing" : "pressings"
+                }: ${pressings.hidden.map((album) => `${album.title} (${album.artist})`).join(", ")}.`
+              : `${pressings.groups.length} ${
+                  pressings.groups.length === 1 ? "album appears" : "albums appear"
+                } more than once: ${pressings.groups
+                  .map((set) => `${set[0]!.title} (${set.length})`)
+                  .join(", ")}. Matching is by artist and title, so check the list.`}
           </p>
         </div>
       )}
-
-      <div className="mt-3 text-xs text-accent">
-        <p>
-          Note: Changing dimensions will redistribute albums between the wall display and the
-          remaining records.
-        </p>
-      </div>
     </div>
   );
 }

@@ -30,16 +30,14 @@ describe("GridControls color sort", () => {
 
   it("offers Sort by Color and reports the choice", () => {
     const { props } = renderControls();
-    fireEvent.click(screen.getByRole("button", { name: "Sort by Color" }));
+    fireEvent.click(screen.getByRole("button", { name: "Color" }));
     expect(props.onSortChange).toHaveBeenCalledWith("color");
   });
 
   it("marks Sort by Color as pressed when it is the active sort", () => {
     renderControls({ sortOption: "color" });
-    expect(screen.getByRole("button", { name: "Sort by Color" }).getAttribute("aria-pressed")).toBe(
-      "true"
-    );
-    expect(screen.getByRole("button", { name: "Custom Order" }).getAttribute("aria-pressed")).toBe(
+    expect(screen.getByRole("button", { name: "Color" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "By hand" }).getAttribute("aria-pressed")).toBe(
       "false"
     );
   });
@@ -58,25 +56,29 @@ afterEach(() => {
 });
 
 describe("GridControls", () => {
-  it("groups the sort buttons under the Sort Records heading", () => {
+  it("groups the ways to arrange the wall under the Arrange heading", () => {
     renderControls();
-    const group = screen.getByRole("group", { name: "Sort Records" });
+    const group = screen.getByRole("group", { name: "Arrange" });
     expect(
       within(group)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["Custom Order", "Sort by Artist", "Sort by Genre", "Sort by Color"]);
+    ).toEqual(["By hand", "Artist", "Genre", "Color", "Shuffle"]);
   });
 
   it.each([
-    ["none", "Custom Order"],
-    ["artist", "Sort by Artist"],
-    ["genre", "Sort by Genre"],
-    ["color", "Sort by Color"],
+    ["none", "By hand"],
+    ["artist", "Artist"],
+    ["genre", "Genre"],
+    ["color", "Color"],
   ] as const)("marks the %s sort as pressed and the others as not pressed", (option, label) => {
     renderControls({ sortOption: option });
-    const group = screen.getByRole("group", { name: "Sort Records" });
-    for (const button of within(group).getAllByRole("button")) {
+    const group = screen.getByRole("group", { name: "Arrange" });
+    const modes = within(group)
+      .getAllByRole("button")
+      .filter((button) => button.hasAttribute("aria-pressed"));
+    expect(modes).toHaveLength(4);
+    for (const button of modes) {
       expect(button.getAttribute("aria-pressed")).toBe(
         button.textContent === label ? "true" : "false"
       );
@@ -85,21 +87,21 @@ describe("GridControls", () => {
 
   it("calls onSortChange with the option of the clicked sort button", () => {
     const { props } = renderControls();
-    fireEvent.click(screen.getByRole("button", { name: "Sort by Genre" }));
-    fireEvent.click(screen.getByRole("button", { name: "Sort by Artist" }));
-    fireEvent.click(screen.getByRole("button", { name: "Custom Order" }));
+    fireEvent.click(screen.getByRole("button", { name: "Genre" }));
+    fireEvent.click(screen.getByRole("button", { name: "Artist" }));
+    fireEvent.click(screen.getByRole("button", { name: "By hand" }));
     expect(vi.mocked(props.onSortChange).mock.calls).toEqual([["genre"], ["artist"], ["none"]]);
   });
 
   it("says whether the grid settings panel is open", () => {
     const { props, rerender } = renderControls();
-    expect(
-      screen.getByRole("button", { name: "Configure Grid" }).getAttribute("aria-expanded")
-    ).toBe("false");
+    expect(screen.getByRole("button", { name: "Wall size" }).getAttribute("aria-expanded")).toBe(
+      "false"
+    );
     rerender(<GridControls {...props} showDimensionsConfig />);
-    expect(
-      screen.getByRole("button", { name: "Hide Grid Config" }).getAttribute("aria-expanded")
-    ).toBe("true");
+    expect(screen.getByRole("button", { name: "Wall size" }).getAttribute("aria-expanded")).toBe(
+      "true"
+    );
   });
 
   it("hides the decorative icons from assistive technology", () => {
@@ -118,11 +120,11 @@ describe("GridControls", () => {
 
   it("keeps the other actions wired up", () => {
     const { props } = renderControls();
-    fireEvent.click(screen.getByRole("button", { name: "Configure Grid" }));
-    fireEvent.click(screen.getByRole("button", { name: "Pin All" }));
-    fireEvent.click(screen.getByRole("button", { name: "Hide Labels" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pin all" }));
+    fireEvent.click(screen.getByRole("button", { name: "Labels" }));
     fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
-    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save image" }));
     expect(props.onToggleDimensionsConfig).toHaveBeenCalledTimes(1);
     expect(props.onTogglePinAll).toHaveBeenCalledTimes(1);
     expect(props.onToggleAlbumLabels).toHaveBeenCalledTimes(1);
@@ -130,10 +132,39 @@ describe("GridControls", () => {
     expect(props.onToggleExportDropdown).toHaveBeenCalledTimes(1);
   });
 
+  it("shows Labels and Pin all as switches that keep their names", () => {
+    const { props, rerender } = renderControls({ showAlbumLabels: false, areAllPinned: false });
+    expect(screen.getByRole("button", { name: "Labels" }).getAttribute("aria-pressed")).toBe(
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Pin all" }).getAttribute("aria-pressed")).toBe(
+      "false"
+    );
+    rerender(<GridControls {...props} showAlbumLabels areAllPinned />);
+    expect(screen.getByRole("button", { name: "Labels" }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: "Pin all" }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
+  });
+
+  it("offers Share next to Layouts and Export, and gets the link ready on approach", () => {
+    const onShare = vi.fn();
+    const onPrepareShare = vi.fn();
+    renderControls({ onShare, onPrepareShare });
+    const group = screen.getByRole("group", { name: "Save & share" });
+    const share = within(group).getByRole("button", { name: "Share link" });
+    fireEvent.focus(share);
+    fireEvent.click(share);
+    expect(onPrepareShare).toHaveBeenCalled();
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
+
   it("disables Shuffle when every album is pinned", () => {
     renderControls({ areAllPinned: true });
     expect(screen.getByRole("button", { name: "Shuffle" })).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: "Unpin All" })).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "Pin all" })).toHaveProperty("disabled", false);
   });
 });
 

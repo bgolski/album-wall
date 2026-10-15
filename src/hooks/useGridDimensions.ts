@@ -28,7 +28,6 @@ export function useGridDimensions(initialDimensions?: InitialGridDimensions) {
   const resolvedInitialDimensions = initialDimensions ?? getDefaultGridDimensions();
   const [columns, setColumns] = useState(resolvedInitialDimensions.columns);
   const [rows, setRows] = useState(resolvedInitialDimensions.rows);
-  const [showDimensionsConfig, setShowDimensionsConfig] = useState(false);
   const viewportDefaults = getDefaultGridDimensions();
 
   const gridSize = rows * columns;
@@ -59,19 +58,14 @@ export function useGridDimensions(initialDimensions?: InitialGridDimensions) {
   /**
    * Toggles visibility of the grid dimension configuration panel.
    */
-  const toggleConfig = () => {
-    setShowDimensionsConfig(!showDimensionsConfig);
-  };
 
   return {
     rows,
     columns,
     gridSize,
-    showDimensionsConfig,
     handleDimensionsChange,
     replaceDimensions,
     resetToDefault,
-    toggleConfig,
     DEFAULT_ROWS,
     DEFAULT_COLUMNS: viewportDefaults.columns,
   };

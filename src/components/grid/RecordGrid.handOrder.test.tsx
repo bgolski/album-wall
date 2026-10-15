@@ -36,16 +36,16 @@ describe("RecordGrid after a sort", () => {
       vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
     );
     render(<Wall initial={albums} />);
-    fireEvent.click(screen.getByRole("button", { name: "Sort by Artist" }));
+    fireEvent.click(screen.getByRole("button", { name: "Artist" }));
     expect(wallArtists()).toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
 
     // Move Alpha onto Delta's spot with the album sheet's Move.
     fireEvent.click(screen.getByRole("group", { name: "Album 2 by Alpha" }));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(screen.getByRole("group", { name: "Album 1 by Delta" }));
 
     expect(wallArtists()).toEqual(["Delta", "Bravo", "Charlie", "Alpha"]);
-    expect(screen.getByRole("button", { name: "Custom Order" }).getAttribute("aria-pressed")).toBe(
+    expect(screen.getByRole("button", { name: "By hand" }).getAttribute("aria-pressed")).toBe(
       "true"
     );
   });

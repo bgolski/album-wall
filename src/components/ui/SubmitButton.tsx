@@ -16,7 +16,7 @@ export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps
       onClick={onClick}
       disabled={disabled}
       aria-busy={isLoading}
-      className="flex min-h-[42px] w-full items-center justify-center rounded-control bg-accent px-4 py-2 font-medium text-on-accent disabled:cursor-not-allowed disabled:opacity-50 md:min-w-[120px] md:w-auto md:rounded-l-none"
+      className="flex min-h-[42px] w-full items-center justify-center rounded-control bg-accent px-4 py-2 font-medium text-on-accent disabled:cursor-not-allowed disabled:bg-raised disabled:text-muted md:min-w-[120px] md:w-auto md:rounded-l-none"
     >
       {isLoading ? (
         <>

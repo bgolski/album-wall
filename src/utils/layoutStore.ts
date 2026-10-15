@@ -88,6 +88,32 @@ function isSavedLayout(value: unknown): value is SavedLayout {
 /*  Persistence serialisers                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Combines this browser's layouts with another copy (the account's) so none is lost: one of each
+ * id (the more recently saved), this browser's first, then the others; at most
+ * {@link MAX_LAYOUTS}, dropping the oldest.
+ *
+ * @param local This browser's layouts.
+ * @param other The other copy.
+ * @returns The combined layouts.
+ */
+export function unionLayouts(local: SavedLayout[], other: SavedLayout[]): SavedLayout[] {
+  const byId = new Map(local.map((layout) => [layout.id, layout]));
+  for (const layout of other) {
+    const here = byId.get(layout.id);
+    if (!here || layout.savedAt > here.savedAt) byId.set(layout.id, layout);
+  }
+  const combined = [...byId.values()];
+  if (combined.length <= MAX_LAYOUTS) return combined;
+  const keep = new Set(
+    [...combined]
+      .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+      .slice(0, MAX_LAYOUTS)
+      .map((layout) => layout.id)
+  );
+  return combined.filter((layout) => keep.has(layout.id));
+}
+
 /** Serialize a list of layouts into a JSON string for localStorage. */
 export function serializeLayouts(layouts: SavedLayout[]): string {
   return JSON.stringify({ v: 1, layouts });

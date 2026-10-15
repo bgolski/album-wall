@@ -1,6 +1,8 @@
 import type { DiscogsFolder } from "@/utils/discogsSignIn";
 
 interface FolderPickerProps {
+  /** Placement and width; the picker sits under the form or inside the collection bar. */
+  className?: string;
   folders: DiscogsFolder[];
   folderId: number;
   disabled: boolean;
@@ -10,13 +12,19 @@ interface FolderPickerProps {
 /**
  * Chooses which folder of the signed-in visitor's Discogs collection to load.
  */
-export function FolderPicker({ folders, folderId, disabled, onChange }: FolderPickerProps) {
+export function FolderPicker({
+  folders,
+  folderId,
+  disabled,
+  onChange,
+  className = "mt-2 w-full max-w-sm sm:max-w-md",
+}: FolderPickerProps) {
   // Discogs lists "All" (id 0) first; keep it first even if it does not.
   const sorted = [...folders].sort((a, b) => (a.id === 0 ? -1 : b.id === 0 ? 1 : 0));
   const value = sorted.some((folder) => folder.id === folderId) ? folderId : 0;
 
   return (
-    <div className="mt-2 flex w-full max-w-sm items-center gap-2 text-sm sm:max-w-md">
+    <div className={`flex items-center gap-2 text-sm ${className}`}>
       <label htmlFor="discogs-folder" className="text-muted">
         Folder
       </label>

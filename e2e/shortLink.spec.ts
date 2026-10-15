@@ -20,23 +20,21 @@ test("copies a short link made when the export menu opens", async ({ page }) => 
     }
   );
 
-  await page.getByRole("button", { name: /Export/ }).click();
+  await page.getByRole("button", { name: "Share link" }).hover();
   await expect.poll(() => requests.length).toBe(1);
   expect(requests[0]).toMatchObject({ title: "someone\x27s Album Wall", rows: expect.any(Number) });
-  await page.getByRole("menuitem", { name: "Copy Share Link" }).click();
+  await page.getByRole("button", { name: "Share link" }).click();
   await expect(page.getByText("Share link copied.")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(SHORT);
 
   // The same wall again reuses the link instead of asking for another.
-  await page.getByRole("button", { name: /Export/ }).click();
-  await page.getByRole("menuitem", { name: "Copy Share Link" }).click();
+  await page.getByRole("button", { name: "Share link" }).click();
   expect(requests).toHaveLength(1);
 });
 
 test("copies the long link when no short link can be made", async ({ page }) => {
   await loadWall(page);
-  await page.getByRole("button", { name: /Export/ }).click();
-  await page.getByRole("menuitem", { name: "Copy Share Link" }).click();
+  await page.getByRole("button", { name: "Share link" }).click();
   await expect(page.getByText("Share link copied.")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("#share=");
 });

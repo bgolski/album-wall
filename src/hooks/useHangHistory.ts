@@ -8,6 +8,7 @@ import {
   serializeHangs,
   type HangRecord,
 } from "@/utils/hangHistory";
+import { useAccountSync } from "./useAccountSync";
 
 type HistoryStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -47,6 +48,25 @@ export function useHangHistory(collectionName: string, options: HangHistoryOptio
   const hangs = state.key === key ? state.hangs : readHangs(storage, key);
   const last = useMemo(() => lastHung(hangs), [hangs]);
 
+  // Signed in, the history is also kept in the visitor's account and comes back on any device.
+  const sync = useAccountSync({
+    kind: "history",
+    collection: collectionName,
+    items: hangs,
+    apply: (next: HangRecord[]) => {
+      try {
+        storage?.setItem(key, serializeHangs(next));
+      } catch {
+        // Shown from the account copy even when this browser cannot keep it.
+      }
+      setState({ key, hangs: next });
+    },
+    parse: parseHangs,
+    serialize: serializeHangs,
+    union: mergeHangs,
+    storage,
+  });
+
   const commit = (next: HangRecord[]): string | null => {
     if (!storage) return NO_STORAGE;
     try {
@@ -55,14 +75,16 @@ export function useHangHistory(collectionName: string, options: HangHistoryOptio
       return STORAGE_FULL;
     }
     setState({ key, hangs: next });
+    sync.push(next);
     return null;
   };
 
   return {
     hangs,
     lastHung: last,
-    /** Records the albums as hung today. */
-    markHung: (albumIds: string[]) => commit(addHang(hangs, albumIds, now())),
+    /** Records the albums (of a saved layout, when given) as hung today. */
+    markHung: (albumIds: string[], layoutId?: string) =>
+      commit(addHang(hangs, albumIds, now(), layoutId)),
     /** Forgets every wall. */
     clear: () => commit([]),
     /** Adds records from a backup file. */

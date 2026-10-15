@@ -69,9 +69,6 @@ export function SortableRecord({
     onSelect(album);
   };
 
-  // Touch drags start only from the grip, so the rest of the tile scrolls the page normally.
-  const { onTouchStart: gripTouchStart, ...tileListeners } = listeners ?? {};
-
   const handleRecordRef = (node: HTMLDivElement | null) => {
     recordRef.current = node;
 
@@ -86,7 +83,7 @@ export function SortableRecord({
       style={style}
       {...(isPinned ? { role: "group" } : { ...attributes, role: "group" })}
       aria-label={`${album.title || "Album"} by ${album.artist}${isPinned ? ", pinned" : ""}`}
-      {...(isPinned ? {} : tileListeners)}
+      {...(isPinned ? {} : listeners)}
       className={`aspect-square cursor-pointer select-none [-webkit-touch-callout:none] group relative ${
         isPinned ? "z-10" : ""
       } ${isMoveSource ? "ring-4 ring-accent-2 rounded-tile" : ""}`}
@@ -121,27 +118,6 @@ export function SortableRecord({
             disabled={disablePinning || !onPinToggle}
             onToggle={() => onPinToggle?.(String(album.id))}
           />
-          {!isPinned && (
-            <button
-              type="button"
-              aria-label={`Drag ${album.title || "album"}`}
-              onTouchStart={
-                gripTouchStart as React.TouchEventHandler<HTMLButtonElement> | undefined
-              }
-              style={{ touchAction: "none" }}
-              className="absolute left-1.5 top-1.5 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white pointer-coarse:flex"
-            >
-              <svg
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-4 w-4"
-              >
-                <path d="M9 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 20a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
-              </svg>
-            </button>
-          )}
           {canOpenDiscogs && (
             <>
               <a

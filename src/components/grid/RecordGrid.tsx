@@ -13,6 +13,7 @@ import { useWallDrag, DRAG_INSTRUCTIONS } from "@/hooks/useWallDrag";
 import { useRememberWall } from "@/hooks/useRememberWall";
 import { useShareLinks } from "@/hooks/useShareLinks";
 import { useUndoShortcut } from "@/hooks/useUndoShortcut";
+import { useOpenPanel, type WallPanel } from "@/hooks/useOpenPanel";
 import { useWallResize } from "@/hooks/useWallResize";
 import { useHangHistory } from "@/hooks/useHangHistory";
 import { usePressings } from "@/hooks/usePressings";
@@ -25,11 +26,18 @@ import { GridDimensionsConfig } from "./GridDimensionsConfig";
 import { LayoutsPanel } from "../layouts/LayoutsPanel";
 import { GradientPanel } from "../gradient/GradientPanel";
 import { ExportDropdown } from "./ExportDropdown";
+import { DockedPanel } from "./DockedPanel";
 import { WallDisplay } from "./WallDisplay";
 import { PoolDisplay } from "./PoolDisplay";
 import { AlbumDragPreview } from "../album/AlbumDragPreview";
 import { AlbumActionSheet } from "../album/AlbumActionSheet";
 import { Toast } from "../ui/Toast";
+
+const PANEL_LABELS: Record<WallPanel, string> = {
+  size: "Wall size",
+  layouts: "Layouts",
+  color: "Sort by Color",
+};
 
 interface RecordGridProps {
   username: string;
@@ -72,10 +80,8 @@ export function RecordGrid({
     rows,
     columns,
     gridSize,
-    showDimensionsConfig,
     handleDimensionsChange: updateGridDimensions,
     resetToDefault,
-    toggleConfig,
     DEFAULT_ROWS,
     DEFAULT_COLUMNS,
   } = dimensions;
@@ -87,7 +93,9 @@ export function RecordGrid({
     replacePinnedAlbums,
     areAllPinned,
   } = pinning;
-  const [showLayouts, setShowLayouts] = useState(false);
+  const panels = useOpenPanel();
+  const openPanel = panels.panel;
+  const wallColumnRef = useRef<HTMLDivElement | null>(null);
   // A cover's color chosen to start a gradient wall from; a new choice starts the builder afresh.
   const [gradientStart, setGradientStart] = useState<{
     id: number;
@@ -169,13 +177,7 @@ export function RecordGrid({
     closeMenu: exportHooks.closeDropdown,
     setStatus: exportHooks.setStatus,
   });
-  // Ask for the short link as the export menu opens, so it is ready when a share is chosen.
-  const prepareShareLink = share.prepare;
-  useEffect(() => {
-    if (exportHooks.dropdownOpen) prepareShareLink();
-    // Only the menu opening matters; the wall cannot change while the menu is open.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exportHooks.dropdownOpen]);
+  const canShareSheet = typeof navigator !== "undefined" && Boolean(navigator.share);
 
   /**
    * Shows the wall in the chosen order.
@@ -183,9 +185,11 @@ export function RecordGrid({
    * @param option Sort mode selected from the control bar.
    */
   const handleSortChange = (option: typeof sorting.sortOption) => {
-    // Sorts are views of the wall (Custom Order returns to the user's own order), and Sort by Color
-    // opens the gradient builder, so choosing one does not reorder the collection.
+    // Sorts are views of the wall (By hand returns to the user's own order), and Color opens the
+    // gradient builder (again, if it was closed), so choosing one does not reorder the collection.
     sorting.handleSortChange(option);
+    if (option === "color") panels.open("color");
+    else if (panels.panel === "color") panels.close();
   };
 
   /**
@@ -208,6 +212,7 @@ export function RecordGrid({
    */
   const applyWall = (wall: SharedWallState) => {
     sorting.handleSortChange("none");
+    if (panels.panel === "color") panels.close();
     updateGridDimensions(wall.rows, wall.columns);
     replacePinnedAlbums(wall.pinnedAlbumIds);
     onAlbumsReorder(orderAlbumsBySharedWall(albums, wall));
@@ -229,8 +234,18 @@ export function RecordGrid({
 
   const { sheetAlbum, movingAlbum } = move;
 
+  // On a narrow screen the panel sheet covers the lower part of the screen, so bring the wall up
+  // above it as a panel opens.
+  useEffect(() => {
+    if (!openPanel || typeof window === "undefined") return;
+    if (!window.matchMedia?.("(max-width: 1023px)").matches) return;
+    wallColumnRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+  }, [openPanel]);
+
   return (
-    <div className="flex flex-col gap-8">
+    // On narrow screens the open panel is a sheet over the bottom of the screen; room below the
+    // page lets the wall scroll up above it.
+    <div className={`flex flex-col gap-8 ${panels.panel ? "pb-[55vh] lg:pb-0" : ""}`}>
       {/* Control Bar */}
       <div className="relative">
         <CoverSourceNotice />
@@ -239,69 +254,33 @@ export function RecordGrid({
           areAllPinned={areAllPinned(displayedAlbums)}
           showAlbumLabels={showAlbumLabels ?? false}
           onSortChange={handleSortChange}
-          onToggleDimensionsConfig={toggleConfig}
-          onToggleLayouts={() => setShowLayouts((open) => !open)}
-          showLayouts={showLayouts}
+          onToggleDimensionsConfig={() => panels.toggle("size")}
+          onToggleLayouts={() => panels.toggle("layouts")}
+          showLayouts={panels.panel === "layouts"}
           onTogglePinAll={() => togglePinAll(displayedAlbums)}
           onToggleAlbumLabels={toggleAlbumLabels}
           onShuffle={handleShuffle}
           canUndo={canUndo}
           onUndo={handleUndo}
+          onShare={() => void (canShareSheet ? share.shareLink() : share.copyShareLink())}
+          onPrepareShare={share.prepare}
           onToggleExportDropdown={exportHooks.toggleDropdown}
           exportOpen={exportHooks.dropdownOpen}
           exportMenuId={exportMenuId}
           exportButtonRef={exportButtonRef}
-          showDimensionsConfig={showDimensionsConfig}
-        />
-
-        {/* Export Dropdown positioned absolutely */}
-        <ExportDropdown
-          isOpen={exportHooks.dropdownOpen}
-          isExporting={exportHooks.isExporting}
-          menuId={exportMenuId}
-          triggerRef={exportButtonRef}
-          onClose={exportHooks.closeDropdown}
-          canShareLink={typeof navigator !== "undefined" && Boolean(navigator.share)}
-          onShareOrSaveImage={() => void exportHooks.shareOrSaveImage()}
-          presets={EXPORT_PRESETS}
-          onExportPreset={(preset) => void exportHooks.shareOrSaveImage(preset)}
-          onShareLink={share.shareLink}
-          onCopyShareLink={share.copyShareLink}
-        />
-
-        <GridDimensionsConfig
-          isVisible={showDimensionsConfig}
-          rows={rows}
-          columns={columns}
-          gridSize={gridSize}
-          defaultRows={DEFAULT_ROWS}
-          defaultColumns={DEFAULT_COLUMNS}
-          onDimensionsChange={resize.changeSize}
-          pressings={pressings}
-          onReset={resize.resetSize}
-        />
-
-        <LayoutsPanel
-          isVisible={showLayouts}
-          collectionName={username}
-          currentWall={wallState}
-          albums={albums}
-          onApply={applyWall}
-          history={history}
-        />
-
-        <GradientPanel
-          key={gradientStart?.id ?? 0}
-          start={gradientStart ?? undefined}
-          isVisible={colorSortActive}
-          rows={rows}
-          columns={columns}
-          pending={gradient.pending}
-          total={gradient.total}
-          onBuild={gradient.build}
-          suggestions={gradient.suggestions}
-          summary={gradient.summary}
-          canPreferRested={history.hangs.length > 0}
+          showDimensionsConfig={panels.panel === "size"}
+          exportMenu={
+            <ExportDropdown
+              isOpen={exportHooks.dropdownOpen}
+              isExporting={exportHooks.isExporting}
+              menuId={exportMenuId}
+              triggerRef={exportButtonRef}
+              onClose={exportHooks.closeDropdown}
+              onShareOrSaveImage={() => void exportHooks.shareOrSaveImage()}
+              presets={EXPORT_PRESETS}
+              onExportPreset={(preset) => void exportHooks.shareOrSaveImage(preset)}
+            />
+          }
         />
       </div>
 
@@ -332,9 +311,11 @@ export function RecordGrid({
           album={sheetAlbum}
           isPinned={pinnedAlbums.has(String(sheetAlbum.id))}
           canPin={displayedAlbums.some((album) => album.id === sheetAlbum.id)}
-          {...(colorSortActive && String(sheetAlbum.id) in gradient.profiles
+          {...(String(sheetAlbum.id) in gradient.profiles
             ? { colorProfile: gradient.profiles[String(sheetAlbum.id)] ?? null }
-            : {})}
+            : sheetAlbum.profile
+              ? { colorProfile: sheetAlbum.profile }
+              : {})}
           {...(history.hangs.length > 0
             ? { lastHungOn: history.lastHung.get(String(sheetAlbum.id)) ?? null }
             : {})}
@@ -355,6 +336,7 @@ export function RecordGrid({
                     colors: [hex, hex],
                     note: `Starting from a color on ${sheetAlbum.title || "this album"}. Choose Build wall.`,
                   }));
+                  panels.open("color");
                   move.closeSheet();
                 },
               }
@@ -379,28 +361,75 @@ export function RecordGrid({
           screenReaderInstructions: DRAG_INSTRUCTIONS,
         }}
       >
-        <div className="flex flex-col gap-8">
-          <WallDisplay
-            albums={wallAlbums}
-            columns={columns}
-            rows={rows}
-            gridSize={gridSize}
-            pinnedCount={pinnedAlbums.size}
-            pinnedAlbums={pinnedAlbums}
-            onPinToggle={togglePinAlbum}
-            onSelect={move.selectAlbum}
-            moveSourceId={movingAlbum?.id ?? null}
-            gridRef={exportHooks.gridRef}
-            showAlbumLabels={showAlbumLabels}
-          />
+        <div
+          className={`flex flex-col gap-8 lg:grid lg:items-start lg:gap-6 ${
+            panels.panel ? "lg:grid-cols-[minmax(0,1fr)_24rem]" : "lg:grid-cols-1"
+          }`}
+        >
+          <div ref={wallColumnRef} className="flex min-w-0 scroll-mt-4 flex-col gap-8">
+            <WallDisplay
+              albums={wallAlbums}
+              columns={columns}
+              rows={rows}
+              gridSize={gridSize}
+              pinnedCount={pinnedAlbums.size}
+              pinnedAlbums={pinnedAlbums}
+              onPinToggle={togglePinAlbum}
+              onSelect={move.selectAlbum}
+              moveSourceId={movingAlbum?.id ?? sheetAlbum?.id ?? null}
+              gridRef={exportHooks.gridRef}
+              showAlbumLabels={showAlbumLabels}
+            />
 
-          <PoolDisplay
-            albums={poolItems}
-            onSelect={move.selectAlbum}
-            moveSourceId={movingAlbum?.id ?? null}
-            showAlbumLabels={showAlbumLabels}
-            lastHung={history.lastHung}
-          />
+            <PoolDisplay
+              albums={poolItems}
+              onSelect={move.selectAlbum}
+              moveSourceId={movingAlbum?.id ?? sheetAlbum?.id ?? null}
+              showAlbumLabels={showAlbumLabels}
+              lastHung={history.lastHung}
+            />
+          </div>
+
+          <DockedPanel
+            label={panels.panel ? PANEL_LABELS[panels.panel] : "Panel"}
+            onClose={panels.close}
+            hidden={!panels.panel}
+          >
+            <GridDimensionsConfig
+              isVisible={panels.panel === "size"}
+              rows={rows}
+              columns={columns}
+              gridSize={gridSize}
+              defaultRows={DEFAULT_ROWS}
+              defaultColumns={DEFAULT_COLUMNS}
+              onDimensionsChange={resize.changeSize}
+              pressings={pressings}
+              onReset={resize.resetSize}
+            />
+
+            <LayoutsPanel
+              isVisible={panels.panel === "layouts"}
+              collectionName={username}
+              currentWall={wallState}
+              albums={albums}
+              onApply={applyWall}
+              history={history}
+            />
+
+            <GradientPanel
+              key={gradientStart?.id ?? 0}
+              start={gradientStart ?? undefined}
+              isVisible={panels.panel === "color" && colorSortActive}
+              rows={rows}
+              columns={columns}
+              pending={gradient.pending}
+              total={gradient.total}
+              onBuild={gradient.build}
+              suggestions={gradient.suggestions}
+              summary={gradient.summary}
+              canPreferRested={history.hangs.length > 0}
+            />
+          </DockedPanel>
         </div>
 
         {/* The dragged cover is drawn above both panels, so it stays visible between them. */}

@@ -69,12 +69,15 @@ test("signs in with Discogs, loads a folder, and signs out", async ({ page }) =>
   );
 
   await page.goto("./");
-  await page.getByRole("button", { name: "What is kept" }).click();
-  await expect(page.getByText(/does not keep or log it/)).toBeVisible();
+  // The privacy page is linked from the footer.
+  await expect(
+    page.getByRole("contentinfo").getByRole("link", { name: "Privacy" })
+  ).toHaveAttribute("href", /\/privacy\/$/);
   await page.getByRole("button", { name: "Sign in with Discogs" }).click();
 
   // Back from Discogs: signed in, and the visitor's own collection loads with their sign-in.
-  await expect(page.getByText("Signed in as")).toBeVisible();
+  const account = page.getByRole("button", { name: "Account: signed in as Collector" });
+  await expect(account).toBeVisible();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
   expect(new URL(callback).pathname).toMatch(/\/$/);
   expect(finishBodies).toEqual([{ token: "reqtoken", secret: "reqsecret", verifier: "verifier1" }]);
@@ -83,7 +86,7 @@ test("signs in with Discogs, loads a folder, and signs out", async ({ page }) =>
     folder: null,
     authorization: "Bearer accesstoken:accesssecret",
   });
-  await expect(page.getByLabel("Discogs username")).toHaveValue("Collector");
+  await expect(page.getByRole("link", { name: "Collector" })).toBeVisible();
 
   // A folder.
   await page.getByLabel("Folder").selectOption({ label: "Wall (5)" });
@@ -91,8 +94,11 @@ test("signs in with Discogs, loads a folder, and signs out", async ({ page }) =>
   await expect(page.locator("[data-album-id]")).toHaveCount(5);
 
   // Signing out forgets the token in this browser.
+  await account.click();
+  await expect(page.locator("#account-menu")).toContainText("Collector");
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page.getByRole("button", { name: "Sign in with Discogs" })).toBeVisible();
+  // The wall stays; the corner offers signing in again.
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   await expect(page.getByLabel("Folder")).toHaveCount(0);
   const stored = await page.evaluate(() => ({
     session: localStorage.getItem("album-wall:discogs-sign-in"),
@@ -129,8 +135,8 @@ test("explains a shared wall from a private collection", async ({ page }) => {
   );
 
   await page.goto(`./${hash}`);
-  await expect(page.getByRole("heading", { name: "Private Collection" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Private collection" })).toBeVisible();
   await expect(page.getByText(/shared from a private Discogs collection/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Try Again" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign in with Discogs" })).toHaveCount(2);
 });

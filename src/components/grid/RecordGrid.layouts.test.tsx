@@ -32,7 +32,7 @@ describe("RecordGrid layouts", () => {
     expect(screen.queryByLabelText("Name for the current wall")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Layouts" }));
     expect(screen.getByLabelText("Name for the current wall")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Hide Layouts" }).getAttribute("aria-expanded")).toBe(
+    expect(screen.getByRole("button", { name: "Layouts" }).getAttribute("aria-expanded")).toBe(
       "true"
     );
   });

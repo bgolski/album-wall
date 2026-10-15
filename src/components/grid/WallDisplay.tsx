@@ -37,13 +37,11 @@ export function WallDisplay({
   return (
     <div className="rounded-panel bg-panel p-3 shadow-sm sm:p-4">
       <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-bold text-ink sm:mb-4 sm:text-xl">
-        <span>Wall Display</span>
-        <span className="text-ink">
-          ({wallSize(columns, rows)} = {gridSize} albums)
+        <span>Your wall</span>
+        <span className="text-base font-normal text-muted">
+          {wallSize(columns, rows)} · {gridSize} albums
+          {pinnedCount > 0 && <span className="text-accent"> · {pinnedCount} pinned</span>}
         </span>
-        {pinnedCount > 0 && (
-          <span className="text-sm font-normal text-accent">({pinnedCount} pinned)</span>
-        )}
       </h2>
       <div
         ref={gridRef}

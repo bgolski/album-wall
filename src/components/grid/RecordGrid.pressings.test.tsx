@@ -39,7 +39,7 @@ describe("RecordGrid showing each album once", () => {
     );
     render(<Wall />);
     expect(shownIds()).toEqual(["1", "2", "3"]);
-    fireEvent.click(screen.getByRole("button", { name: /Configure Grid/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
 
     fireEvent.click(screen.getByRole("switch", { name: /^Show each album once/ }));
     expect(shownIds()).toEqual(["1", "2"]);
@@ -56,5 +56,17 @@ describe("RecordGrid showing each album once", () => {
     fireEvent.click(screen.getByRole("group", { name: "Utopia by Travis Scott" }));
     fireEvent.click(screen.getByRole("button", { name: "Show this one instead" }));
     expect(shownIds().sort()).toEqual(["2", "3"]);
+  });
+
+  it("offers the switch only when an album appears more than once", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    render(
+      <RecordGrid username="no-pressings" albums={albums.slice(0, 2)} onAlbumsReorder={vi.fn()} />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
+    expect(screen.queryByRole("switch", { name: /^Show each album once/ })).toBeNull();
   });
 });

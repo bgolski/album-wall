@@ -12,26 +12,49 @@ afterEach(() => {
 });
 
 describe("ErrorMessage", () => {
-  it("renders error, username and retry button", () => {
+  it("offers to try again after an unexpected failure", () => {
     const mockRetry = vi.fn();
     render(<ErrorMessage error="Network error" username="alice" onRetry={mockRetry} />);
-    expect(screen.getByText(/Network error/)).toBeTruthy();
-    expect(
-      screen.getByText(
-        /We couldn't find "alice" on Discogs or encountered a problem loading their collection./
-      )
-    ).toBeTruthy();
-    const button = screen.getByRole("button", { name: /Try Again/i });
-    fireEvent.click(button);
+    expect(screen.getByRole("heading", { name: "The collection didn't load" })).toBeTruthy();
+    expect(screen.getByText("Network error")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(mockRetry).toHaveBeenCalledOnce();
-    const link = screen.getByRole("link", { name: /Visit Discogs/i });
-    expect(link.getAttribute("href")).toBe("https://www.discogs.com/");
   });
 
-  it("renders generic message when username is empty", () => {
-    render(<ErrorMessage error="Auth error" username="" onRetry={vi.fn()} />);
-    expect(screen.getByText(/Auth error/)).toBeTruthy();
-    expect(screen.getByText(/There was a problem with the Discogs API./)).toBeTruthy();
+  it("says a name was not found without offering a retry that would fail the same way", () => {
+    render(<ErrorMessage error="x" username="alice" kind="not-found" onRetry={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: 'No Discogs user "alice"' })).toBeTruthy();
+    expect(screen.getByText(/Check the spelling/)).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it.each([
+    ["busy", "Discogs needs a short break"],
+    ["unavailable", "Discogs isn't answering"],
+  ] as const)(
+    "asks to try again later when Discogs is %s, without blaming the name",
+    (kind, heading) => {
+      render(<ErrorMessage error="x" username="alice" kind={kind} onRetry={vi.fn()} />);
+      expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
+      expect(screen.queryByText(/alice/)).toBeNull();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    }
+  );
+
+  it.each(["private", "signed-out"] as const)("offers sign-in for %s", (kind) => {
+    const onSignIn = vi.fn();
+    render(
+      <ErrorMessage
+        error="Why"
+        username="alice"
+        kind={kind}
+        onRetry={vi.fn()}
+        onSignIn={onSignIn}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Sign in with Discogs" }));
+    expect(onSignIn).toHaveBeenCalledOnce();
   });
 });
 

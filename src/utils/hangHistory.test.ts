@@ -4,6 +4,7 @@ import {
   MAX_HANGS,
   addHang,
   hangHistoryKey,
+  isHangRecord,
   lastHung,
   localDay,
   mergeHangs,
@@ -80,5 +81,15 @@ describe("hang history", () => {
       { date: "2026-10-01", albumIds: ["2"] },
     ]);
     expect(cost).toEqual({ "1": 0.04, "2": 0.08 });
+  });
+});
+
+describe("hangs from a saved layout", () => {
+  it("remembers which layout was marked, and rejects a damaged layout id", () => {
+    const hangs = addHang([], ["1", "2"], new Date(2026, 9, 14), "layout-1");
+    expect(hangs).toEqual([{ date: "2026-10-14", albumIds: ["1", "2"], layoutId: "layout-1" }]);
+    expect(addHang([], ["1"], new Date(2026, 9, 14))[0]).not.toHaveProperty("layoutId");
+    expect(isHangRecord({ date: "2026-10-14", albumIds: [], layoutId: 3 })).toBe(false);
+    expect(parseHangs(serializeHangs(hangs))).toEqual(hangs);
   });
 });

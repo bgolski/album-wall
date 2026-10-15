@@ -183,11 +183,7 @@ export function GradientPanel({
   };
 
   return (
-    <section
-      ref={sectionRef}
-      aria-labelledby={`${id}-heading`}
-      className="mt-3 rounded-control bg-raised p-3"
-    >
+    <section ref={sectionRef} aria-labelledby={`${id}-heading`} className="pr-8">
       <h3 id={`${id}-heading`} className="mb-3 font-medium text-ink">
         Sort by Color
       </h3>
@@ -263,7 +259,7 @@ export function GradientPanel({
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 @lg:flex-row @lg:items-start @lg:justify-between">
         <div className="flex flex-col gap-4">
           <div>
             <p id={`${id}-colors`} className="mb-1 text-sm text-muted">
@@ -373,7 +369,7 @@ export function GradientPanel({
           </div>
         </div>
 
-        <figure className="w-full max-w-56 sm:w-72 sm:max-w-none">
+        <figure className="w-full max-w-56 @lg:w-72 @lg:max-w-none">
           <div
             aria-hidden="true"
             className="grid gap-px overflow-hidden rounded-control border border-line"

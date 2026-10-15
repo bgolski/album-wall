@@ -4,7 +4,10 @@ import { AppContainer } from "./layout/AppContainer";
 import { SearchInput } from "./search/SearchInput";
 import { CollectionManager } from "./collection/CollectionManager";
 import { WelcomeDialog } from "./search/WelcomeDialog";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SavedWallsContext } from "@/hooks/savedWallsContext";
+import { savedWallsClient } from "@/utils/savedWalls";
+import { DEMO_USERNAME } from "@/utils/demoCollection";
 import { useCollection } from "@/hooks/useCollection";
 import { useWelcome } from "@/hooks/useWelcome";
 import { useDiscogsSignIn } from "@/hooks/useDiscogsSignIn";
@@ -17,6 +20,8 @@ export default function AlbumWallApp() {
   const discogs = useDiscogsSignIn();
   const { session, signOut } = discogs;
   const folders = useDiscogsFolders(session);
+  // Signed in, saved layouts and wall history are kept in the visitor's account too.
+  const savedWalls = useMemo(() => (session ? savedWallsClient(session) : null), [session]);
   const {
     albums,
     username,
@@ -57,7 +62,24 @@ export default function AlbumWallApp() {
     error: discogs.error,
     onSignIn: () => void discogs.signIn(),
     onSignOut: signOut,
+    onLoadOwn: session ? () => loadOwnCollection(session.username) : undefined,
   };
+
+  // The form folds into a one-line bar while a collection is on the wall; Change opens it until
+  // the next collection loads.
+  const [changingAt, setChangingAt] = useState<number | null>(null);
+  const shown =
+    albums.length > 0 && loadedUsername && !error && !isPending && changingAt !== loadCount
+      ? {
+          username: loadedUsername,
+          albumCount: albums.length,
+          isDemo: loadedUsername === DEMO_USERNAME,
+          onChange: () => {
+            setChangingAt(loadCount);
+            setTimeout(() => document.getElementById("discogs-username")?.focus(), 0);
+          },
+        }
+      : null;
 
   const tryDemo = () => {
     welcome.dismiss();
@@ -65,38 +87,41 @@ export default function AlbumWallApp() {
   };
 
   return (
-    <AppContainer>
-      <SearchInput
-        username={username}
-        isPending={isPending}
-        usernameError={usernameError}
-        onUsernameChange={handleUsernameChange}
-        onLoadCollection={loadCollection}
-        onTryDemo={demoAvailable ? tryDemo : undefined}
-        account={account}
-        folders={folders}
-        folderId={folderId}
-        onFolderChange={chooseFolder}
-      />
+    <SavedWallsContext.Provider value={savedWalls}>
+      <AppContainer>
+        <SearchInput
+          username={username}
+          isPending={isPending}
+          usernameError={usernameError}
+          onUsernameChange={handleUsernameChange}
+          onLoadCollection={loadCollection}
+          onTryDemo={demoAvailable ? tryDemo : undefined}
+          account={account}
+          folders={folders}
+          folderId={folderId}
+          onFolderChange={chooseFolder}
+          shown={shown}
+        />
 
-      <CollectionManager
-        albums={albums}
-        username={username}
-        loadedUsername={loadedUsername}
-        loadCount={loadCount}
-        sharedWallState={sharedWallState}
-        isPending={isPending}
-        error={error}
-        errorKind={errorKind}
-        onSignIn={session ? undefined : account.onSignIn}
-        onAlbumsReorder={handleAlbumsReorder}
-        canUndo={canUndo}
-        onUndo={undo}
-        onPinsChange={forgetUndo}
-        onRetry={retry}
-      />
+        <CollectionManager
+          albums={albums}
+          username={username}
+          loadedUsername={loadedUsername}
+          loadCount={loadCount}
+          sharedWallState={sharedWallState}
+          isPending={isPending}
+          error={error}
+          errorKind={errorKind}
+          onSignIn={session ? undefined : account.onSignIn}
+          onAlbumsReorder={handleAlbumsReorder}
+          canUndo={canUndo}
+          onUndo={undo}
+          onPinsChange={forgetUndo}
+          onRetry={retry}
+        />
 
-      {welcome.open && <WelcomeDialog onTryDemo={tryDemo} onClose={welcome.dismiss} />}
-    </AppContainer>
+        {welcome.open && <WelcomeDialog onTryDemo={tryDemo} onClose={welcome.dismiss} />}
+      </AppContainer>
+    </SavedWallsContext.Provider>
   );
 }

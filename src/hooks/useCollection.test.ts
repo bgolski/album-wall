@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useCollection } from "./useCollection";
+import { collectionErrorKind, useCollection } from "./useCollection";
+import { DiscogsProxyError } from "@/utils/discogsSignIn";
 import type { Album } from "@/types";
 import { encodeSharedWallState } from "@/utils/shareState";
 
@@ -259,5 +260,20 @@ describe("useCollection forgetUndo", () => {
       result.current.forgetUndo();
     });
     expect(result.current.canUndo).toBe(false);
+  });
+});
+
+describe("collectionErrorKind", () => {
+  it.each([
+    [new DiscogsProxyError("private", 403, "private"), "private"],
+    [new DiscogsProxyError("ended", 401, "signed-out"), "signed-out"],
+    [new DiscogsProxyError("missing", 404), "not-found"],
+    [new DiscogsProxyError("slow down", 429), "busy"],
+    [new DiscogsProxyError("no answer", 0), "unavailable"],
+    [new DiscogsProxyError("down", 502), "unavailable"],
+    [new DiscogsProxyError("bad", 400), null],
+    [new Error("anything"), null],
+  ] as const)("sorts %s as %s", (error, kind) => {
+    expect(collectionErrorKind(error)).toBe(kind);
   });
 });

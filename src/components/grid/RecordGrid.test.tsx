@@ -72,7 +72,7 @@ describe("RecordGrid tap actions", () => {
   it("swaps two albums by choosing Move and tapping another album", () => {
     const onAlbumsReorder = renderGrid();
     fireEvent.click(tile("Album 1"));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     expect(screen.getByTestId("move-banner").textContent).toContain("Moving Album 1");
 
     fireEvent.click(tile("Album 3"));
@@ -86,7 +86,7 @@ describe("RecordGrid tap actions", () => {
   it("swaps a wall album with a pool album", () => {
     const onAlbumsReorder = renderGrid();
     fireEvent.click(tile("Album 1"));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(tile("Album 40"));
     const order = onAlbumsReorder.mock.calls[0]![0].map((a: Album) => a.id);
     expect(order[0]).toBe(40);
@@ -96,12 +96,12 @@ describe("RecordGrid tap actions", () => {
   it("cancels a move by tapping the same album or Cancel", () => {
     const onAlbumsReorder = renderGrid();
     fireEvent.click(tile("Album 1"));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(tile("Album 1"));
     expect(screen.queryByTestId("move-banner")).toBeNull();
 
     fireEvent.click(tile("Album 1"));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByTestId("move-banner")).toBeNull();
     expect(onAlbumsReorder).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe("RecordGrid tap actions", () => {
     const onAlbumsReorder = renderGrid();
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 2" }));
     fireEvent.click(tile("Album 1"));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(tile("Album 2"));
     expect(onAlbumsReorder).not.toHaveBeenCalled();
     expect(screen.getByTestId("move-banner").textContent).toContain(
@@ -123,65 +123,76 @@ describe("RecordGrid tap actions", () => {
     renderGrid();
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 1" }));
     fireEvent.click(tile("Album 1"));
-    const move = screen.getByRole("button", { name: /^Move/ }) as HTMLButtonElement;
+    const move = screen.getByRole("button", { name: /Unpin to swap/ }) as HTMLButtonElement;
     expect(move.disabled).toBe(true);
   });
 
-  it("gives each unpinned tile a drag grip for touch", () => {
+  it("opens one panel at a time beside the wall and closes it", async () => {
     renderGrid();
-    expect(screen.getByRole("button", { name: "Drag Album 1" })).toBeTruthy();
+    const sizeButton = screen.getByRole("button", { name: "Wall size" });
+    sizeButton.focus();
+    fireEvent.click(sizeButton);
+    expect(screen.getByRole("heading", { name: "Wall size" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Layouts" }));
+    expect(screen.queryByRole("heading", { name: "Wall size" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Layouts" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close Layouts" }));
+    expect(screen.queryByRole("heading", { name: "Layouts" })).toBeNull();
+    expect(screen.getByTestId("docked-panel").hidden).toBe(true);
+
+    fireEvent.click(sizeButton);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("heading", { name: "Wall size" })).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(sizeButton));
   });
 
-  it("offers Share Link only when the browser can share", () => {
+  it("draws no drag grip over the covers", () => {
     renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    expect(screen.queryByRole("menuitem", { name: "Share Link" })).toBeNull();
-    cleanup();
-
-    vi.stubGlobal("navigator", { ...navigator, share: vi.fn() });
-    renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    expect(screen.getByRole("menuitem", { name: "Share Link" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Drag / })).toBeNull();
   });
 
-  it("shares the wall link through the share sheet", async () => {
+  it("keeps sharing out of the Export menu", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: /Save image/ }));
+    expect(screen.getByRole("menuitem", { name: "Wall as shown" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /Share/ })).toBeNull();
+  });
+
+  it("shares the wall link through the share sheet when there is one", async () => {
     const share = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { ...navigator, share });
     renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Share Link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share link" }));
     await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
     const [data] = share.mock.calls[0] as unknown as [{ url: string }];
     expect(data.url).toContain("#");
-    expect(screen.queryByRole("menuitem", { name: "Share Link" })).toBeNull();
   });
 
-  it("shows the copy result as a toast and closes the menu", async () => {
+  it("copies the wall link when there is no share sheet, and says so", async () => {
     const writeText = vi.fn(() => Promise.resolve());
-    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    vi.stubGlobal("navigator", { ...navigator, share: undefined, clipboard: { writeText } });
     renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Copy Share Link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share link" }));
     const line = await screen.findByText("Share link copied.");
     expect(line.closest("[role=status]")).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: "Copy Share Link" })).toBeNull();
+    expect(writeText).toHaveBeenCalledTimes(1);
   });
 
   it("marks the Export button as a menu button and the menu as a menu", () => {
     renderGrid();
-    const trigger = screen.getByRole("button", { name: /Export/ });
+    const trigger = screen.getByRole("button", { name: /Save image/ });
     expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
 
     fireEvent.click(trigger);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    const menu = screen.getByRole("menu", { name: "Export options" });
+    const menu = screen.getByRole("menu", { name: "Image sizes" });
     expect(trigger.getAttribute("aria-controls")).toBe(menu.id);
   });
 
   it("moves focus into the menu, steps with the arrow keys and wraps", () => {
     renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Save image/ }));
     const items = screen.getAllByRole("menuitem");
     expect(document.activeElement).toBe(items[0]);
 
@@ -199,7 +210,7 @@ describe("RecordGrid tap actions", () => {
 
   it("closes on Escape and returns focus to the Export button", () => {
     renderGrid();
-    const trigger = screen.getByRole("button", { name: /Export/ });
+    const trigger = screen.getByRole("button", { name: /Save image/ });
     fireEvent.click(trigger);
     fireEvent.keyDown(screen.getAllByRole("menuitem")[0]!, { key: "Escape" });
     expect(screen.queryByRole("menu")).toBeNull();
@@ -208,7 +219,7 @@ describe("RecordGrid tap actions", () => {
 
   it("closes on a click outside without taking focus from what was clicked", () => {
     renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Save image/ }));
     const other = screen.getByRole("button", { name: "Pin Album 2" });
     other.focus();
     fireEvent.pointerDown(other);
@@ -249,7 +260,7 @@ describe("RecordGrid tap actions", () => {
     expect(screen.queryByAltText("Album 39")).toBeNull();
 
     fireEvent.click(tile("Album 40"));
-    fireEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(tile("Album 1"));
 
     const order = onAlbumsReorder.mock.calls[0]![0].map((a: Album) => a.id);
@@ -259,19 +270,19 @@ describe("RecordGrid tap actions", () => {
 
   it("shows album labels by default on a wide screen and hides them on a narrow one", () => {
     renderGrid(vi.fn(), true);
-    expect(screen.getByRole("button", { name: "Hide Labels" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Labels" })).toBeTruthy();
     cleanup();
 
     renderGrid(vi.fn(), false);
-    expect(screen.getByRole("button", { name: "Show Labels" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Labels" })).toBeTruthy();
   });
 
   it("lets the user override the label default", () => {
     renderGrid(vi.fn(), false);
-    fireEvent.click(screen.getByRole("button", { name: "Show Labels" }));
-    expect(screen.getByRole("button", { name: "Hide Labels" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Hide Labels" }));
-    expect(screen.getByRole("button", { name: "Show Labels" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Labels" }));
+    expect(screen.getByRole("button", { name: "Labels" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Labels" }));
+    expect(screen.getByRole("button", { name: "Labels" })).toBeTruthy();
   });
 });
 
@@ -337,7 +348,7 @@ describe("RecordGrid undo, memory and sized exports", () => {
 
   it("offers the sized exports in the Export menu", () => {
     renderWithUndo();
-    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save image" }));
     const menu = screen.getByRole("menu");
     for (const name of [/Phone wallpaper/, /Desktop wallpaper/, /Square print/]) {
       expect(within(menu).getByRole("menuitem", { name })).toBeTruthy();

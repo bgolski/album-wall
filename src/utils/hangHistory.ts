@@ -5,6 +5,8 @@ export interface HangRecord {
   /** Day it was hung, `YYYY-MM-DD` in the user's time zone. */
   date: string;
   albumIds: string[];
+  /** The saved layout that was marked as on the wall, when it was one. */
+  layoutId?: string;
 }
 
 /** Most walls remembered per collection; the oldest are forgotten first. */
@@ -36,7 +38,8 @@ export function isHangRecord(value: unknown): value is HangRecord {
     typeof record.date === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
     Array.isArray(record.albumIds) &&
-    record.albumIds.every((id) => typeof id === "string")
+    record.albumIds.every((id) => typeof id === "string") &&
+    (record.layoutId === undefined || typeof record.layoutId === "string")
   );
 }
 
@@ -85,14 +88,20 @@ export function localDay(now: Date): string {
  * @param hangs Records, oldest first.
  * @param albumIds Albums on the wall, in order.
  * @param now The moment it was hung.
+ * @param layoutId The saved layout marked as on the wall, if it was one.
  * @returns The new records, oldest first.
  */
-export function addHang(hangs: HangRecord[], albumIds: string[], now: Date): HangRecord[] {
+export function addHang(
+  hangs: HangRecord[],
+  albumIds: string[],
+  now: Date,
+  layoutId?: string
+): HangRecord[] {
   const date = localDay(now);
   const kept = hangs.filter((hang) => hang.date !== date);
-  return [...kept, { date, albumIds: [...albumIds] }]
-    .sort((x, y) => x.date.localeCompare(y.date))
-    .slice(-MAX_HANGS);
+  const record: HangRecord = { date, albumIds: [...albumIds] };
+  if (layoutId) record.layoutId = layoutId;
+  return [...kept, record].sort((x, y) => x.date.localeCompare(y.date)).slice(-MAX_HANGS);
 }
 
 /**

@@ -11,8 +11,10 @@ import {
   parseLayouts,
   renameLayout,
   serializeLayouts,
+  unionLayouts,
   type SavedLayout,
 } from "@/utils/layoutStore";
+import { useAccountSync } from "./useAccountSync";
 
 type LayoutStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -85,6 +87,25 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
   const [layouts, setLayouts] = useState<SavedLayout[]>(() => parseLayouts(read(storage, key)));
   const [exportedAt, setExportedAt] = useState<string | null>(() => read(storage, exportedKey));
 
+  // Signed in, layouts are also kept in the visitor's account and come back on any device.
+  const sync = useAccountSync({
+    kind: "layouts",
+    collection: collectionName,
+    items: layouts,
+    apply: (next: SavedLayout[]) => {
+      try {
+        storage?.setItem(key, serializeLayouts(next));
+      } catch {
+        // Shown from the account copy even when this browser cannot keep it.
+      }
+      setLayouts(next);
+    },
+    parse: parseLayouts,
+    serialize: serializeLayouts,
+    union: unionLayouts,
+    storage,
+  });
+
   const commit = (next: SavedLayout[]): string | null => {
     if (!storage) return NO_STORAGE;
     try {
@@ -93,6 +114,7 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
       return STORAGE_FULL;
     }
     setLayouts(next);
+    sync.push(next);
     return null;
   };
 
@@ -105,11 +127,19 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
     }
   };
 
-  const save = (name: string, wall: SharedWallState) => {
-    const problem = attempt(() => addLayout(layouts, name, wall, now(), newId()));
-    if (!problem) askToKeepStorage();
-    return problem;
+  /** Saves the wall under a name; answers the problem, or the saved layout. */
+  const saveLayout = (
+    name: string,
+    wall: SharedWallState
+  ): { problem: string; layout?: undefined } | { problem: null; layout: SavedLayout } => {
+    let next: SavedLayout[] = [];
+    const problem = attempt(() => (next = addLayout(layouts, name, wall, now(), newId())));
+    if (problem) return { problem };
+    askToKeepStorage();
+    return { problem: null, layout: next[next.length - 1]! };
   };
+
+  const save = (name: string, wall: SharedWallState) => saveLayout(name, wall).problem;
 
   const rename = (id: string, name: string) => attempt(() => renameLayout(layouts, id, name));
 
@@ -150,5 +180,5 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
     layouts.length > 0 &&
     (exportedAt === null || layouts.some((layout) => layout.savedAt > exportedAt));
 
-  return { layouts, save, rename, remove, importText, exportText, needsBackup };
+  return { layouts, save, saveLayout, rename, remove, importText, exportText, needsBackup };
 }

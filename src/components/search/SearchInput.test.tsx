@@ -99,4 +99,34 @@ describe("SearchInput", () => {
     const { button } = setup();
     expect(button.getAttribute("aria-busy")).not.toBe("true");
   });
+
+  it("offers folders only to someone who made folders of their own", () => {
+    const account = {
+      username: "vinylfan",
+      busy: false,
+      status: "idle" as const,
+      error: null,
+      onSignIn: vi.fn(),
+      onSignOut: vi.fn(),
+    };
+    const props = {
+      username: "vinylfan",
+      isPending: false,
+      usernameError: null,
+      onUsernameChange: vi.fn(),
+      onLoadCollection: vi.fn(),
+      onFolderChange: vi.fn(),
+      account,
+    };
+    const builtIn = [
+      { id: 0, name: "All", count: 75 },
+      { id: 1, name: "Uncategorized", count: 75 },
+    ];
+    const { rerender } = render(<SearchInput {...props} folders={builtIn} />);
+    expect(screen.queryByLabelText("Folder")).toBeNull();
+    rerender(
+      <SearchInput {...props} folders={[...builtIn, { id: 7, name: "Wall picks", count: 9 }]} />
+    );
+    expect(screen.getByLabelText("Folder")).toBeTruthy();
+  });
 });

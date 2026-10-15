@@ -3,10 +3,10 @@ import { loadWall } from "./support";
 
 test("saving the wall as an image downloads a PNG", async ({ page }) => {
   await loadWall(page);
-  await page.getByRole("button", { name: /Export/ }).click();
+  await page.getByRole("button", { name: /Save image/ }).click();
 
   const download = page.waitForEvent("download");
-  await page.getByRole("menuitem", { name: "Share or Save Image" }).click();
+  await page.getByRole("menuitem", { name: "Wall as shown" }).click();
 
   expect((await download).suggestedFilename()).toBe("someone_album_wall.png");
   await expect(page.getByText("Image saved.")).toBeVisible();
@@ -17,10 +17,10 @@ test.describe("on a phone", () => {
 
   test("saves the wall at full size, not at the size the phone shows it", async ({ page }) => {
     await loadWall(page);
-    await page.getByRole("button", { name: /Export/ }).click();
+    await page.getByRole("button", { name: /Save image/ }).click();
 
     const download = page.waitForEvent("download");
-    await page.getByRole("menuitem", { name: "Share or Save Image" }).click();
+    await page.getByRole("menuitem", { name: "Wall as shown" }).click();
 
     const png = await (await download).createReadStream().then(async (stream) => {
       const chunks: Buffer[] = [];

@@ -40,8 +40,8 @@ export function WelcomeDialog({ onTryDemo, onClose }: WelcomeDialogProps) {
           New to Album Wall?
         </h2>
         <p className="mb-5 text-ink">
-          Enter your Discogs username to turn your collection into a wall. Want a look first? Try a
-          demo wall of well-known albums.
+          Sign in with Discogs, or enter a username, to turn a collection into a wall. Want a look
+          first? Try a demo wall of well-known albums.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row-reverse">
           <button
@@ -56,7 +56,7 @@ export function WelcomeDialog({ onTryDemo, onClose }: WelcomeDialogProps) {
             onClick={onClose}
             className="rounded-control bg-raised px-4 py-2 text-ink hover:bg-line"
           >
-            I&apos;ll use my username
+            Use my collection
           </button>
         </div>
       </div>

@@ -98,8 +98,11 @@ export async function getUserCollection(
       });
     } catch (error) {
       if (signal?.aborted) throw error;
-      if (timedOut) throw new Error(TIMEOUT_MESSAGE);
-      throw new Error("No response from the Discogs proxy. Please check your network connection.");
+      if (timedOut) throw new DiscogsProxyError(TIMEOUT_MESSAGE, 0);
+      throw new DiscogsProxyError(
+        "No response from the Discogs proxy. Please check your network connection.",
+        0
+      );
     }
 
     let responseBody: DiscogsProxyResponse | null = null;
@@ -108,7 +111,7 @@ export async function getUserCollection(
       responseBody = (await response.json()) as DiscogsProxyResponse;
     } catch {
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-      if (timedOut) throw new Error(TIMEOUT_MESSAGE);
+      if (timedOut) throw new DiscogsProxyError(TIMEOUT_MESSAGE, 0);
       responseBody = null;
     }
 
@@ -122,19 +125,23 @@ export async function getUserCollection(
       }
 
       if (response.status === 404) {
-        throw new Error(`User "${username}" not found on Discogs`);
+        throw new DiscogsProxyError(`User "${username}" not found on Discogs`, 404);
       }
 
       if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again in a few minutes.");
+        throw new DiscogsProxyError("Rate limit exceeded. Please try again in a few minutes.", 429);
       }
 
       if (response.status >= 500) {
-        throw new Error("Discogs proxy error. Please try again later.");
+        throw new DiscogsProxyError(
+          "Discogs proxy error. Please try again later.",
+          response.status
+        );
       }
 
-      throw new Error(
-        `Discogs proxy error: ${response.status} - ${response.statusText || "Unknown error"}`
+      throw new DiscogsProxyError(
+        `Discogs proxy error: ${response.status} - ${response.statusText || "Unknown error"}`,
+        response.status
       );
     }
 

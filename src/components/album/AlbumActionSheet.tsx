@@ -4,6 +4,8 @@ import type { CoverProfile } from "@/utils/coverProfile";
 import { oklabToHex } from "@/utils/gradientTargets";
 import { namedMainColors } from "@/utils/colorName";
 import { formatDay } from "@/utils/hangHistory";
+import { useAlbumImage } from "@/hooks/useAlbumImage";
+import { TILE_COVER_SIZE } from "@/utils/imageProxy";
 
 interface AlbumActionSheetProps {
   album: Album;
@@ -25,9 +27,9 @@ interface AlbumActionSheetProps {
 }
 
 /**
- * Shows an album's details with the actions that are awkward as touch gestures: pin, unpin and
- * move (pick the album up, then tap another one to swap places). Closes on Escape or a tap
- * outside the panel.
+ * Shows an album's cover and details with the actions that are awkward as touch gestures: pin,
+ * unpin and swap (pick the album up, then tap another one to swap places). Closes on Escape, the
+ * close button or a tap outside the panel.
  */
 export function AlbumActionSheet({
   album,
@@ -43,6 +45,7 @@ export function AlbumActionSheet({
   onStartFromColor,
 }: AlbumActionSheetProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const { imageSource, coverMissing, handleImageError } = useAlbumImage(album, TILE_COVER_SIZE);
 
   useEffect(() => {
     panelRef.current?.querySelector<HTMLElement>("button")?.focus();
@@ -76,15 +79,46 @@ export function AlbumActionSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-ink">{title}</h2>
-          <p className="text-ink">{album.artist}</p>
-          {release && <p className="text-sm text-muted">{release}</p>}
-          {kinds && <p className="text-sm text-muted">{kinds}</p>}
+          <div className="flex items-start gap-3">
+            {!coverMissing && (
+              // eslint-disable-next-line @next/next/no-img-element -- a small cover from the same source as the tile
+              <img
+                src={imageSource}
+                alt=""
+                width={80}
+                height={80}
+                className="h-20 w-20 shrink-0 rounded-tile bg-raised object-cover shadow-sm"
+                onError={handleImageError}
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold text-ink">{title}</h2>
+              <p className="text-ink">{album.artist}</p>
+              {release && <p className="text-sm text-muted">{release}</p>}
+              {kinds && <p className="text-sm text-muted">{kinds}</p>}
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-ink"
+              onClick={onClose}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+              >
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
           {lastHungOn !== undefined && (
             <p className="text-sm text-muted">
-              {lastHungOn
-                ? `Last on the wall ${formatDay(lastHungOn)}`
-                : "Not on a wall you marked as hung yet"}
+              {lastHungOn ? `Last on the wall ${formatDay(lastHungOn)}` : "Not on your wall yet"}
             </p>
           )}
           {colorProfile !== undefined && (
@@ -123,7 +157,7 @@ export function AlbumActionSheet({
             </button>
           )}
           <button type="button" className={actionClass} onClick={onMove} disabled={isPinned}>
-            {isPinned ? "Move (unpin first)" : "Move: then tap another album to swap"}
+            {isPinned ? "Unpin to swap it" : "Swap with another album"}
           </button>
           {album.discogsUrl && (
             <a
@@ -135,9 +169,6 @@ export function AlbumActionSheet({
               Open in Discogs
             </a>
           )}
-          <button type="button" className={actionClass} onClick={onClose}>
-            Close
-          </button>
         </div>
       </div>
     </div>

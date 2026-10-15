@@ -40,12 +40,11 @@ export function PoolDisplay({
   return (
     <div className="rounded-panel bg-panel p-4 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold text-ink">
-          Remaining Records (
-          <span aria-live="polite">
+        <h2 className="flex flex-wrap items-baseline gap-x-2 text-lg font-bold text-ink sm:text-xl">
+          <span>Not on the wall</span>
+          <span aria-live="polite" className="text-base font-normal text-muted">
             {isFiltering ? `${visibleAlbums.length} of ${albums.length}` : albums.length} albums
           </span>
-          )
         </h2>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
           {hasHistory && (
@@ -66,7 +65,7 @@ export function PoolDisplay({
       {visibleAlbums.length === 0 && (
         <p className="py-6 text-center text-muted">No albums match &ldquo;{query.trim()}&rdquo;.</p>
       )}
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 md:gap-4 lg:grid-cols-8">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 md:grid-cols-6 md:gap-4 lg:grid-cols-8">
         <SortableContext
           items={visibleAlbums.map((album) => `album-${album.id}`)}
           strategy={rectSwappingStrategy}

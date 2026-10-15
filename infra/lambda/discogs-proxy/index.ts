@@ -2,12 +2,22 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { ShareInputError, parseShareRequest, storeSharedWall } from "./share";
 import {
+  IdentityCache,
+  SavedInputError,
+  collectionName,
+  deleteAllSaved,
+  loadSaved,
+  parseSavedRequest,
+  storeSaved,
+} from "./saved";
+import {
   AccessToken,
   Consumer,
   DISCOGS_API,
   SignInError,
   USER_AGENT,
   finishSignIn,
+  getIdentity,
   isAllowedCallback,
   isTokenValue,
   readAccessHeader,
@@ -716,10 +726,62 @@ async function listFolders(username: string, access: AccessToken) {
   }
 }
 
+const identities = new IdentityCache(async (token, secret) =>
+  getIdentity(await getConsumer(), { token, secret })
+);
+
+/**
+ * A signed-in visitor's saved layouts and wall history: `GET /saved?collection=` reads a
+ * collection's, `POST /saved` with `{ collection, kind, data }` saves one kind, and
+ * `POST /saved/delete` removes everything. Only the Discogs account the sign-in belongs to is
+ * ever read or written.
+ *
+ * @param event Function URL request.
+ * @param method HTTP method.
+ * @param path Request path without a trailing slash.
+ * @returns The saved data, when it was saved, or an error.
+ */
+async function savedWalls(event: LambdaEvent, method: string, path: string) {
+  const table = process.env.SAVED_TABLE_NAME;
+  if (!table) return jsonResponse(404, { error: "Saving walls to an account is not set up." });
+  const headers = event.headers ?? {};
+  const access = readAccessHeader(headers.authorization ?? headers.Authorization);
+  if (!access) {
+    return jsonResponse(401, { code: "signed-out", error: "Sign in with Discogs to save walls." });
+  }
+
+  let user: string;
+  try {
+    user = await identities.userFor(access.token, access.secret);
+  } catch (error) {
+    return signInErrorResponse(error);
+  }
+
+  try {
+    if (method === "GET") {
+      const collection = collectionName(event.queryStringParameters?.collection);
+      if (!collection) return jsonResponse(400, { error: "Missing or invalid collection." });
+      return jsonResponse(200, await loadSaved(dynamoClient, table, user, collection));
+    }
+    if (path.endsWith("/saved/delete")) {
+      return jsonResponse(200, { deleted: await deleteAllSaved(dynamoClient, table, user) });
+    }
+    const body = event.isBase64Encoded
+      ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
+      : (event.body ?? "");
+    const updatedAt = await storeSaved(dynamoClient, table, user, parseSavedRequest(body));
+    return jsonResponse(200, { updatedAt });
+  } catch (error) {
+    if (error instanceof SavedInputError) return jsonResponse(400, { error: error.message });
+    console.error("Error with saved walls:", describeError(error));
+    return jsonResponse(503, { error: "Saved walls are not available right now." });
+  }
+}
+
 /**
  * Lambda Function URL handler for the Discogs collection proxy, which also signs visitors in with
- * Discogs (`POST /oauth/start`, `POST /oauth/finish`), lists their folders (`GET /folders`) and
- * makes short share links (`POST /share`).
+ * Discogs (`POST /oauth/start`, `POST /oauth/finish`), lists their folders (`GET /folders`), keeps
+ * their saved walls (`/saved`) and makes short share links (`POST /share`).
  *
  * @param event Function URL request event with query parameters.
  * @returns Normalized album payload or a descriptive error response.
@@ -734,6 +796,12 @@ export async function handler(event: LambdaEvent) {
 
   if (method === "POST" && path.endsWith("/oauth/start")) return startOAuth(event);
   if (method === "POST" && path.endsWith("/oauth/finish")) return finishOAuth(event);
+  if (
+    (method === "GET" && path.endsWith("/saved")) ||
+    (method === "POST" && (path.endsWith("/saved") || path.endsWith("/saved/delete")))
+  ) {
+    return savedWalls(event, method, path);
+  }
 
   if (method !== "GET") {
     return jsonResponse(405, {

@@ -73,8 +73,21 @@ describe("loading a shared wall link", () => {
     expect(
       (document.querySelector("#grid-container") as HTMLElement).style.gridTemplateColumns
     ).toContain("repeat(3");
+    expect(screen.getByRole("link", { name: "someone" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load another collection" }));
     expect((screen.getByLabelText("Discogs username") as HTMLInputElement).value).toBe("someone");
     expect(getUserCollection).toHaveBeenCalledTimes(1);
+  });
+
+  it("folds the username form into one line once the wall shows, and opens it again", async () => {
+    await loadByHand(5);
+    expect(screen.queryByLabelText("Discogs username")).toBeNull();
+    expect(screen.queryByText(/Enter your Discogs username/)).toBeNull();
+    expect(screen.getByText(/5 albums/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load another collection" }));
+    expect(screen.getByLabelText("Discogs username")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load Collection" }));
+    await waitFor(() => expect(screen.queryByLabelText("Discogs username")).toBeNull());
   });
 
   it("ignores shared albums that are no longer in the collection", async () => {
@@ -122,7 +135,7 @@ describe("changing the wall size", () => {
     await loadByHand(40);
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 1" }));
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 20" }));
-    fireEvent.click(screen.getByRole("button", { name: "Configure Grid" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
 
     setRows(2);
     await waitFor(() => expect(wallIds()).toHaveLength(16));
@@ -141,7 +154,7 @@ describe("changing the wall size", () => {
   it("keeps pins on albums that stay on the wall when it shrinks", async () => {
     await loadByHand(40);
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 3" }));
-    fireEvent.click(screen.getByRole("button", { name: "Configure Grid" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
     setRows(3);
     await waitFor(() => expect(wallIds()).toHaveLength(24));
     expect(pinnedIds()).toEqual([3]);
@@ -149,7 +162,7 @@ describe("changing the wall size", () => {
 
   it("restores the default size and unpins albums that leave the wall", async () => {
     await loadByHand(40);
-    fireEvent.click(screen.getByRole("button", { name: "Configure Grid" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
     setRows(5);
     await waitFor(() => expect(wallIds()).toHaveLength(40));
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 40" }));
@@ -162,7 +175,7 @@ describe("changing the wall size", () => {
 
   it("shows every album when the wall is larger than the collection", async () => {
     await loadByHand(10);
-    fireEvent.click(screen.getByRole("button", { name: "Configure Grid" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
     setRows(8);
     await waitFor(() => expect(wallIds()).toHaveLength(10));
     expect(wallIds()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);

@@ -22,18 +22,18 @@ describe("CollectionManager empty collection", () => {
 
   it("says the user has no records once an empty collection has loaded", () => {
     render(<CollectionManager {...baseProps} loadedUsername="someone" />);
-    expect(screen.getByText("No records yet")).toBeTruthy();
-    expect(screen.getByText(/someone has no records in their Discogs collection/)).toBeTruthy();
+    expect(screen.getByText("No records here yet")).toBeTruthy();
+    expect(screen.getByText(/someone has no records in this Discogs collection/)).toBeTruthy();
   });
 
   it("shows nothing before any collection has been loaded", () => {
     render(<CollectionManager {...baseProps} />);
-    expect(screen.queryByText("No records yet")).toBeNull();
+    expect(screen.queryByText("No records here yet")).toBeNull();
   });
 
   it("shows the error instead of the empty message when loading fails", () => {
     render(<CollectionManager {...baseProps} loadedUsername="someone" error="Boom" />);
-    expect(screen.queryByText("No records yet")).toBeNull();
+    expect(screen.queryByText("No records here yet")).toBeNull();
     expect(screen.getByText("Boom")).toBeTruthy();
   });
 });

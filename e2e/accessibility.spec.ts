@@ -1,10 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { loadWall } from "./support";
+import { loadWall, stubNetwork } from "./support";
 
 async function expectNoViolations(page: Page) {
   const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
   const summary = results.violations.map(
     (violation) =>
@@ -50,7 +50,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("gradient builder", async ({ page }) => {
       await loadWall(page);
-      await page.getByRole("button", { name: "Sort by Color" }).click();
+      await page.getByRole("button", { name: "Color" }).click();
       await expect(page.getByRole("button", { name: "Build wall" })).toBeVisible();
       // Let the pressed button finish changing color before checking contrast.
       await page.evaluate(() =>
@@ -62,14 +62,75 @@ for (const colorScheme of ["light", "dark"] as const) {
     test("layouts panel with wall history", async ({ page }) => {
       await loadWall(page);
       await page.getByRole("button", { name: "Layouts" }).click();
-      await page.getByRole("button", { name: "I hung the current wall" }).click();
-      await expect(page.getByText(/1 wall remembered/)).toBeVisible();
+      await page.getByLabel("Name for the current wall").fill("Autumn");
+      await page.getByRole("checkbox", { name: "It's on my wall now" }).check();
+      await page.getByRole("button", { name: "Save current wall" }).click();
+      await page.getByRole("button", { name: /^Backup/ }).click();
+      await expect(page.getByText(/On your wall since/)).toBeVisible();
       await expectNoViolations(page);
     });
 
     test("export menu", async ({ page }) => {
       await loadWall(page);
-      await page.getByRole("button", { name: /Export/ }).click();
+      await page.getByRole("button", { name: /Save image/ }).click();
+      await expectNoViolations(page);
+    });
+
+    test("wall size panel", async ({ page }) => {
+      await loadWall(page);
+      await page.getByRole("button", { name: "Wall size" }).click();
+      await expect(page.getByRole("heading", { name: "Wall size" })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    for (const [name, status, body] of [
+      ["no such user", 404, { error: 'User "someone" not found on Discogs' }],
+      ["Discogs not answering", 502, { error: "Discogs server error. Please try again later." }],
+      ["private collection", 403, { code: "private", error: "Private." }],
+    ] as const) {
+      test(`load error: ${name}`, async ({ page }) => {
+        await stubNetwork(page);
+        await page.route(
+          (url) => url.searchParams.has("username"),
+          (route) =>
+            route.fulfill({
+              status,
+              contentType: "application/json",
+              headers: { "Access-Control-Allow-Origin": "*" },
+              body: JSON.stringify(body),
+            })
+        );
+        await page.goto("./");
+        await page.getByLabel("Discogs username").fill("someone");
+        await page.getByRole("button", { name: "Load Collection" }).click();
+        await expect(page.getByRole("alert")).toBeVisible();
+        await expectNoViolations(page);
+      });
+    }
+  });
+
+  test.describe(`accessibility on a phone in ${colorScheme} mode`, () => {
+    test.use({ colorScheme, viewport: { width: 360, height: 780 }, hasTouch: true });
+
+    test("loaded wall", async ({ page }) => {
+      await loadWall(page);
+      await expectNoViolations(page);
+    });
+
+    test("gradient builder sheet", async ({ page }) => {
+      await loadWall(page);
+      await page.getByRole("button", { name: "Color" }).click();
+      await expect(page.getByRole("button", { name: "Build wall" })).toBeVisible();
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((animation) => animation.finished))
+      );
+      await expectNoViolations(page);
+    });
+
+    test("album action sheet", async ({ page }) => {
+      await loadWall(page);
+      await page.locator("[data-album-id]").first().click();
+      await expect(page.getByRole("dialog")).toBeVisible();
       await expectNoViolations(page);
     });
   });

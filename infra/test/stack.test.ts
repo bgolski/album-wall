@@ -92,7 +92,7 @@ describe("short share links", () => {
   it("serves links from an ARM function with capped concurrency behind CloudFront", () => {
     stack.hasResourceProperties("AWS::Lambda::Function", {
       Architectures: ["arm64"],
-      ReservedConcurrentExecutions: 3,
+      ReservedConcurrentExecutions: 10,
       MemorySize: 1024,
     });
     stack.hasResourceProperties("AWS::CloudFront::Distribution", {
@@ -185,5 +185,44 @@ describe("cover images", () => {
       }),
     });
     stack.resourceCountIs("AWS::CloudFront::Distribution", 1);
+  });
+});
+
+describe("saved walls and edge answers", () => {
+  const stack = template();
+
+  it("keeps saved walls in a free provisioned table keyed by account and item", () => {
+    stack.hasResourceProperties("AWS::DynamoDB::Table", {
+      KeySchema: [
+        { AttributeName: "user", KeyType: "HASH" },
+        { AttributeName: "item", KeyType: "RANGE" },
+      ],
+      ProvisionedThroughput: { ReadCapacityUnits: 2, WriteCapacityUnits: 2 },
+    });
+    stack.hasResourceProperties("AWS::Lambda::Function", {
+      Environment: { Variables: Match.objectLike({ SAVED_TABLE_NAME: Match.anyValue() }) },
+    });
+  });
+
+  it("answers everything but short links at the edge, so scanners never run the function", () => {
+    stack.hasResourceProperties("AWS::CloudFront::Function", {
+      FunctionCode: Match.stringLikeRegexp("/w/"),
+    });
+    stack.hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({
+        DefaultCacheBehavior: Match.objectLike({
+          FunctionAssociations: [Match.objectLike({ EventType: "viewer-request" })],
+        }),
+      }),
+    });
+  });
+
+  it("alarms on throttling only when it is heavy", () => {
+    const alarms = Object.values(stack.findResources("AWS::CloudWatch::Alarm")).map(
+      (alarm) => alarm.Properties as { MetricName: string; Threshold: number }
+    );
+    for (const alarm of alarms.filter((a) => a.MetricName === "Throttles")) {
+      expect(alarm.Threshold).toBeGreaterThanOrEqual(20);
+    }
   });
 });

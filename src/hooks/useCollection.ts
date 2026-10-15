@@ -28,7 +28,27 @@ const SIGNED_OUT_MESSAGE =
 const FOLDER_KEY_PREFIX = "album-wall:folder:";
 
 /** Why a load failed, when the app can say more than the message. */
-export type CollectionErrorKind = "private" | "private-shared" | null;
+export type CollectionErrorKind =
+  "private" | "private-shared" | "signed-out" | "not-found" | "busy" | "unavailable" | null;
+
+/**
+ * Sorts a failed load by what the visitor can do about it.
+ *
+ * @param error What the load threw.
+ * @returns The kind, or null when it is something else.
+ */
+export function collectionErrorKind(error: unknown): CollectionErrorKind {
+  const code = proxyErrorCode(error);
+  if (code === "private") return "private";
+  if (code === "signed-out") return "signed-out";
+  const status = (error as { status?: unknown } | null)?.status;
+  if (typeof status !== "number") return null;
+  if (status === 404) return "not-found";
+  if (status === 429) return "busy";
+  // No answer at all (status 0), a timeout or a server error: worth trying again later.
+  if (status === 0 || status === 408 || status >= 500) return "unavailable";
+  return null;
+}
 
 function subscribeToNothing() {
   return () => {};
@@ -211,12 +231,13 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
           const code = proxyErrorCode(err);
           if (code === "signed-out" && session) {
             onSignedOut?.();
+            setErrorKind("signed-out");
             setError(SIGNED_OUT_MESSAGE);
           } else if (code === "private" && linkedState && !own) {
             setErrorKind("private-shared");
             setError(PRIVATE_SHARED_WALL_MESSAGE);
           } else {
-            setErrorKind(code === "private" ? "private" : null);
+            setErrorKind(collectionErrorKind(err));
             setError(errorMessage);
           }
         }

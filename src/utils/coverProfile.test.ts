@@ -59,21 +59,46 @@ describe("coverProfile", () => {
     [2, 5, 8].forEach((i) => near(profile.regions[i], black));
   });
 
-  it("only lets a small colorful spot win once it covers a tenth of the cover", () => {
-    const small = coverProfile(
+  it("lets a colorful spot win over a big grey area only once it is big enough to stand out", () => {
+    const tiny = coverProfile(
       image(10, 10, (x, y) => (y * 10 + x < 9 ? RED : GREY)),
       10,
       10
     )!;
-    near(small.color, grey);
-    expect(small.palette.map((entry) => entry.share)).toEqual([0.91, 0.09]);
-    const large = coverProfile(
+    near(tiny.color, grey);
+    expect(tiny.palette.map((entry) => entry.share)).toEqual([0.91, 0.09]);
+    const small = coverProfile(
       image(10, 10, (x, y) => (y * 10 + x < 12 ? RED : GREY)),
       10,
       10
     )!;
+    near(small.color, grey);
+    expect(small.palette.map((entry) => entry.share)).toEqual([0.88, 0.12]);
+    const large = coverProfile(
+      image(10, 10, (x, y) => (y * 10 + x < 20 ? RED : GREY)),
+      10,
+      10
+    )!;
     near(large.color, red);
-    expect(large.palette.map((entry) => entry.share)).toEqual([0.88, 0.12]);
+    expect(large.palette.map((entry) => entry.share)).toEqual([0.8, 0.2]);
+  });
+
+  it("picks the bigger of two grey areas, whatever faint tint the photo gives the smaller one", () => {
+    // A cream area too faintly tinted to read as a color, beside a bigger black one.
+    const CREAM: Pixel = [222, 214, 196, 255];
+    const NEAR_BLACK: Pixel = [20, 20, 22, 255];
+    const blackBigger = coverProfile(
+      image(10, 10, (x) => (x < 6 ? NEAR_BLACK : CREAM)),
+      10,
+      10
+    )!;
+    expect(blackBigger.color.l).toBeLessThan(0.3);
+    const creamBigger = coverProfile(
+      image(10, 10, (x) => (x < 4 ? NEAR_BLACK : CREAM)),
+      10,
+      10
+    )!;
+    expect(creamBigger.color.l).toBeGreaterThan(0.8);
   });
 
   it("splits a cover that is not square into a 3 by 3 grid", () => {
