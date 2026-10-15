@@ -205,10 +205,10 @@ describe("LayoutsPanel", () => {
     expect(screen.getByText(/On your wall since/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Mark Autumn as on my wall" })).toBeNull();
 
-    // Saving with "It's on my wall now" moves the badge to the new layout.
-    fireEvent.click(screen.getByRole("checkbox", { name: "It's on my wall now" }));
+    // Marking another layout moves the badge to it.
     saveAs("Winter");
-    expect(screen.getByText('Saved "Winter". It\'s on your wall.')).toBeTruthy();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Mark Winter as on my wall" }));
     const rows = within(screen.getByRole("list", { name: "Saved layouts" })).getAllByRole(
       "listitem"
     );

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { GradientPanel, describeBuild, type GradientBuildSummary } from "./GradientPanel";
 
 afterEach(cleanup);
@@ -63,7 +63,7 @@ describe("GradientPanel", () => {
       true,
       false
     );
-    expect(screen.getByRole("status").textContent).toMatch(/closely/);
+    expect(screen.getByRole("status").textContent).toBe("Wall built");
     expect(screen.getByRole("button", { name: "Top to bottom" }).getAttribute("aria-pressed")).toBe(
       "true"
     );
@@ -149,18 +149,61 @@ describe("GradientPanel", () => {
   });
 });
 
+describe("option explanations", () => {
+  it("explains each option beside it, and tells screen readers", () => {
+    panel({ canPreferRested: true });
+    const apart = screen.getByRole("switch", { name: "Space out artists" });
+    expect(apart.getAttribute("aria-describedby")).toBeTruthy();
+    expect(document.getElementById(apart.getAttribute("aria-describedby")!)!.textContent).toMatch(
+      /same artist/
+    );
+    const about = screen.getByRole("button", { name: "About Avoid recent walls" });
+    expect(about.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(about);
+    expect(about.getAttribute("aria-expanded")).toBe("true");
+    // Escape closes the explanation and is marked handled, so the panel around it stays open.
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    act(() => void document.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+    expect(about.getAttribute("aria-expanded")).toBe("false");
+  });
+});
+
+describe("build notice", () => {
+  it("sends the result to a short notice instead of keeping it in the panel", async () => {
+    const onNotice = vi.fn();
+    render(
+      <GradientPanel
+        isVisible
+        rows={4}
+        columns={8}
+        pending={0}
+        total={10}
+        onBuild={() => summary}
+        onNotice={onNotice}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Build wall" }));
+    await waitFor(() => expect(onNotice).toHaveBeenCalledWith("Wall built"));
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+});
+
 describe("describeBuild", () => {
-  it("says how closely the wall matches", () => {
-    expect(describeBuild({ ...summary, match: "fair" })).toMatch(/fairly well/);
-    expect(describeBuild({ ...summary, match: "loose" })).toMatch(/few covers in these colors/);
+  it("says just that the wall is built when it matches, and when it only matches loosely", () => {
+    expect(describeBuild({ ...summary, match: "close" })).toBe("Wall built");
+    expect(describeBuild({ ...summary, match: "fair" })).toBe("Wall built");
+    expect(describeBuild({ ...summary, match: "loose" })).toBe(
+      "Wall built, loosely: few covers in these colors"
+    );
   });
 
   it("names how many covers are the color when a one-color wall matches loosely", () => {
-    expect(describeBuild({ ...summary, match: "loose", coversOfColor: 2 })).toMatch(
-      /only 2 of your covers are close to this color/
+    expect(describeBuild({ ...summary, match: "loose", coversOfColor: 2 })).toBe(
+      "Wall built, loosely: only 2 covers near this color"
     );
-    expect(describeBuild({ ...summary, match: "loose", coversOfColor: 0 })).toMatch(
-      /none of your covers are close to this color/
+    expect(describeBuild({ ...summary, match: "loose", coversOfColor: 0 })).toBe(
+      "Wall built, loosely: no covers near this color"
     );
   });
 
@@ -171,8 +214,9 @@ describe("describeBuild", () => {
       artistConflicts: 2,
       keepArtistsApart: true,
     });
-    expect(text).toMatch(/1 cover has no readable color and was only used/);
-    expect(text).toMatch(/2 pairs of covers by the same artist still touch/);
+    expect(text).toBe(
+      "Wall built, 1 cover without a readable color; 2 same-artist pairs still touch"
+    );
   });
 
   it("says nothing about artists when the rule is off", () => {
@@ -206,11 +250,11 @@ describe("GradientPanel suggestions", () => {
 describe("GradientPanel and wall history", () => {
   it("offers preferring records not hung recently only when there is history", async () => {
     const onBuild = panel({ canPreferRested: true });
-    fireEvent.click(screen.getByRole("switch", { name: "Prefer records not hung recently" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Avoid recent walls" }));
     await build();
     expect(onBuild.mock.calls[0]![2]).toBe(true);
     cleanup();
     panel();
-    expect(screen.queryByRole("switch", { name: "Prefer records not hung recently" })).toBeNull();
+    expect(screen.queryByRole("switch", { name: "Avoid recent walls" })).toBeNull();
   });
 });

@@ -41,11 +41,9 @@ describe("RecordGrid showing each album once", () => {
     expect(shownIds()).toEqual(["1", "2", "3"]);
     fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
 
-    fireEvent.click(screen.getByRole("switch", { name: /^Show each album once/ }));
+    fireEvent.click(screen.getByRole("switch", { name: "One copy per album" }));
     expect(shownIds()).toEqual(["1", "2"]);
-    expect(
-      screen.getByText(/Setting aside 1 extra pressing: Utopia \(Clean\) \(Travis Scott\)/)
-    ).toBeTruthy();
+    expect(screen.getByText("1 extra copy set aside")).toBeTruthy();
 
     // A shuffle reorders what is shown and keeps the hidden pressing in the collection.
     fireEvent.click(screen.getByRole("button", { name: /Shuffle/ }));
@@ -67,6 +65,6 @@ describe("RecordGrid showing each album once", () => {
       <RecordGrid username="no-pressings" albums={albums.slice(0, 2)} onAlbumsReorder={vi.fn()} />
     );
     fireEvent.click(screen.getByRole("button", { name: "Wall size" }));
-    expect(screen.queryByRole("switch", { name: /^Show each album once/ })).toBeNull();
+    expect(screen.queryByRole("switch", { name: "One copy per album" })).toBeNull();
   });
 });

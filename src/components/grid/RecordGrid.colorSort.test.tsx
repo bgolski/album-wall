@@ -111,7 +111,7 @@ describe("RecordGrid sort by color", () => {
     expect(albums.filter((album) => album.id % 2 === 1).every((album) => wall.has(album.id))).toBe(
       true
     );
-    expect(screen.getByText(/^Built the wall/)).toBeTruthy();
+    expect(screen.getByText(/^Wall built/)).toBeTruthy();
   });
 
   it("keeps a pinned album where it is", async () => {

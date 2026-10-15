@@ -386,7 +386,6 @@ export function RecordGrid({
               onSelect={move.selectAlbum}
               moveSourceId={movingAlbum?.id ?? sheetAlbum?.id ?? null}
               showAlbumLabels={showAlbumLabels}
-              lastHung={history.lastHung}
             />
           </div>
 
@@ -428,6 +427,7 @@ export function RecordGrid({
               suggestions={gradient.suggestions}
               summary={gradient.summary}
               canPreferRested={history.hangs.length > 0}
+              onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
             />
           </DockedPanel>
         </div>

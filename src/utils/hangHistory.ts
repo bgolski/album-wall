@@ -1,5 +1,3 @@
-import type { Album } from "@/types";
-
 /** One wall the user hung: the day, and the albums on it in wall order. */
 export interface HangRecord {
   /** Day it was hung, `YYYY-MM-DD` in the user's time zone. */
@@ -129,21 +127,6 @@ export function lastHung(hangs: HangRecord[]): Map<string, string> {
   const last = new Map<string, string>();
   for (const hang of hangs) for (const id of hang.albumIds) last.set(id, hang.date);
   return last;
-}
-
-/**
- * Albums in the order to offer when looking for records that have rested longest: never hung
- * first (in their usual order), then by the day they were last hung, oldest first.
- *
- * @param albums Albums in their usual order.
- * @param last Album id to the last day it was hung.
- * @returns The albums, reordered.
- */
-export function orderByRest(albums: Album[], last: ReadonlyMap<string, string>): Album[] {
-  return albums
-    .map((album, index) => ({ album, index, day: last.get(String(album.id)) ?? "" }))
-    .sort((x, y) => x.day.localeCompare(y.day) || x.index - y.index)
-    .map(({ album }) => album);
 }
 
 /**

@@ -42,7 +42,7 @@ test("Sort by Color builds a wall for a gradient from the whole demo collection"
 
   await page.getByRole("button", { name: /Rainbow/ }).click();
   await page.getByRole("button", { name: "Build wall" }).click();
-  await expect(page.getByText(/^Built the wall/)).toBeVisible();
+  await expect(page.getByText(/^Wall built/)).toBeVisible();
   const rainbow = await wallIds(page);
   expect(rainbow).not.toEqual(before);
   expect(measuringRequests).toEqual([]);
@@ -52,9 +52,9 @@ test("Sort by Color builds a wall for a gradient from the whole demo collection"
   expect(await wallIds(page)).toEqual(before);
 
   // With the artist rule on, no two covers by the same artist touch.
-  await page.getByRole("switch", { name: /same artist/ }).check();
+  await page.getByRole("switch", { name: "Space out artists" }).check();
   await page.getByRole("button", { name: "Build wall" }).click();
-  await expect(page.getByText(/^Built the wall/)).toBeVisible();
+  await expect(page.getByText(/^Wall built/)).toBeVisible();
   const apart = await wallIds(page);
   const columns = 8;
   for (let index = 0; index < apart.length; index += 1) {

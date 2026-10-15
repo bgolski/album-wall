@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { Album } from "@/types";
 import {
   MAX_HANGS,
   addHang,
@@ -8,7 +7,6 @@ import {
   lastHung,
   localDay,
   mergeHangs,
-  orderByRest,
   parseHangs,
   recentlyHungCost,
   serializeHangs,
@@ -63,7 +61,7 @@ describe("hang history", () => {
     ]);
   });
 
-  it("knows when each album was last hung, and offers never-hung then longest-rested first", () => {
+  it("knows when each album was last hung", () => {
     const hangs = [
       { date: "2026-08-01", albumIds: ["1", "2"] },
       { date: "2026-10-01", albumIds: ["2", "3"] },
@@ -71,8 +69,6 @@ describe("hang history", () => {
     const last = lastHung(hangs);
     expect(last.get("1")).toBe("2026-08-01");
     expect(last.get("2")).toBe("2026-10-01");
-    const albums: Album[] = [1, 2, 3, 4, 5].map((id) => ({ id, title: "t", artist: "a" }));
-    expect(orderByRest(albums, last).map((album) => album.id)).toEqual([4, 5, 1, 2, 3]);
   });
 
   it("charges recently hung albums more, halving for each older wall", () => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { wallSize } from "@/utils/wallSize";
 import type { Album } from "@/types";
+import { InfoTip } from "@/components/ui/InfoTip";
 
 interface GridDimensionsConfigProps {
   isVisible: boolean;
@@ -121,27 +122,30 @@ export function GridDimensionsConfig({
       {/* Only offered when the collection has more than one pressing of an album. */}
       {pressings && pressings.groups.length > 0 && (
         <div className="mt-3">
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
-              role="switch"
-              checked={pressings.once}
-              onChange={(event) => pressings.setOnce(event.target.checked)}
-              className="h-4 w-4 accent-accent"
+          <span className="flex items-center gap-1">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                role="switch"
+                checked={pressings.once}
+                onChange={(event) => pressings.setOnce(event.target.checked)}
+                aria-describedby="one-copy-tip"
+                className="h-4 w-4 accent-accent"
+              />
+              One copy per album
+            </label>
+            <InfoTip
+              id="one-copy-tip"
+              label="One copy per album"
+              text="Shows each album once, even if you own several copies."
             />
-            Show each album once (set aside extra pressings of the same album)
-          </label>
-          <p className="mt-1 text-xs text-muted">
-            {pressings.once
-              ? `Setting aside ${pressings.hidden.length} extra ${
-                  pressings.hidden.length === 1 ? "pressing" : "pressings"
-                }: ${pressings.hidden.map((album) => `${album.title} (${album.artist})`).join(", ")}.`
-              : `${pressings.groups.length} ${
-                  pressings.groups.length === 1 ? "album appears" : "albums appear"
-                } more than once: ${pressings.groups
-                  .map((set) => `${set[0]!.title} (${set.length})`)
-                  .join(", ")}. Matching is by artist and title, so check the list.`}
-          </p>
+          </span>
+          {pressings.once && (
+            <p className="mt-1 text-xs text-muted">
+              {pressings.hidden.length} extra {pressings.hidden.length === 1 ? "copy" : "copies"}{" "}
+              set aside
+            </p>
+          )}
         </div>
       )}
     </div>

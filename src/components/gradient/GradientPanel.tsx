@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { oklabToHex } from "@/utils/gradientTargets";
+import { InfoTip } from "@/components/ui/InfoTip";
 import { wallSize } from "@/utils/wallSize";
 import { wallTargets, type WallGradient } from "./buildGradientWall";
 import type { SuggestedGradient } from "./suggestGradients";
@@ -34,6 +35,8 @@ interface GradientPanelProps {
   suggestions?: SuggestedGradient[];
   /** One sentence about the collection's colors. */
   summary?: string;
+  /** Shows a short message that goes away on its own; without it the message stays in the panel. */
+  onNotice?: (message: string) => void;
 }
 
 const PRESETS: { name: string; colors: string[] }[] = [
@@ -83,36 +86,27 @@ const chipClass =
  * @returns One or two sentences for the status line.
  */
 export function describeBuild(summary: GradientBuildSummary): string {
-  const loose =
-    summary.coversOfColor !== null
-      ? `Built the wall, but only loosely: ${
-          summary.coversOfColor === 0
-            ? "none of your covers are"
-            : `only ${summary.coversOfColor} of your covers ${summary.coversOfColor === 1 ? "is" : "are"}`
-        } close to this color.`
-      : "Built the wall, but only loosely: the collection has few covers in these colors.";
-  const parts = [
-    summary.match === "close"
-      ? "Built the wall. The covers match the gradient closely."
-      : summary.match === "fair"
-        ? "Built the wall. The covers follow the gradient fairly well."
-        : loose,
-  ];
+  const parts = ["Wall built"];
+  if (summary.match === "loose") {
+    parts.push(
+      summary.coversOfColor === null
+        ? "loosely: few covers in these colors"
+        : summary.coversOfColor === 0
+          ? "loosely: no covers near this color"
+          : `loosely: only ${summary.coversOfColor} ${summary.coversOfColor === 1 ? "cover" : "covers"} near this color`
+    );
+  }
   if (summary.unmeasured > 0) {
     parts.push(
-      `${summary.unmeasured} ${summary.unmeasured === 1 ? "cover has" : "covers have"} no readable color and ${
-        summary.unmeasured === 1 ? "was" : "were"
-      } only used where nothing else fit.`
+      `${summary.unmeasured} ${summary.unmeasured === 1 ? "cover" : "covers"} without a readable color`
     );
   }
   if (summary.keepArtistsApart && summary.artistConflicts > 0) {
     parts.push(
-      `${summary.artistConflicts} ${
-        summary.artistConflicts === 1 ? "pair" : "pairs"
-      } of covers by the same artist still touch; the collection has too few other covers to separate them.`
+      `${summary.artistConflicts} same-artist ${summary.artistConflicts === 1 ? "pair" : "pairs"} still touch`
     );
   }
-  return parts.join(" ");
+  return parts.length === 1 ? "Wall built" : `${parts[0]}, ${parts.slice(1).join("; ")}`;
 }
 
 /**
@@ -131,6 +125,7 @@ export function GradientPanel({
   summary = "",
   canPreferRested = false,
   start,
+  onNotice,
 }: GradientPanelProps) {
   const id = useId();
   const [colors, setColors] = useState<string[]>(start?.colors ?? PRESETS[0]!.colors);
@@ -176,7 +171,13 @@ export function GradientPanel({
     setBuilding(true);
     try {
       const built = await onBuild({ colors, angle }, keepApart, canPreferRested && preferRested);
-      setMessage(describeBuild({ ...built, keepArtistsApart: keepApart }));
+      const result = describeBuild({ ...built, keepArtistsApart: keepApart });
+      if (onNotice) {
+        setMessage(null);
+        onNotice(result);
+      } else {
+        setMessage(result);
+      }
     } finally {
       setBuilding(false);
     }
@@ -385,38 +386,54 @@ export function GradientPanel({
         </figure>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            role="switch"
-            checked={keepApart}
-            onChange={(event) => setKeepApart(event.target.checked)}
-            className="h-4 w-4 accent-accent"
-          />
-          Keep covers by the same artist from touching
-        </label>
-        {canPreferRested && (
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <span className="flex items-center gap-1">
           <label className="flex items-center gap-2 text-sm text-ink">
             <input
               type="checkbox"
               role="switch"
-              checked={preferRested}
-              onChange={(event) => setPreferRested(event.target.checked)}
+              checked={keepApart}
+              onChange={(event) => setKeepApart(event.target.checked)}
+              aria-describedby={`${id}-apart-tip`}
               className="h-4 w-4 accent-accent"
             />
-            Prefer records not hung recently
+            Space out artists
           </label>
+          <InfoTip
+            id={`${id}-apart-tip`}
+            label="Space out artists"
+            text="Keeps the same artist's covers apart."
+          />
+        </span>
+        {canPreferRested && (
+          <span className="flex items-center gap-1">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                role="switch"
+                checked={preferRested}
+                onChange={(event) => setPreferRested(event.target.checked)}
+                aria-describedby={`${id}-rested-tip`}
+                className="h-4 w-4 accent-accent"
+              />
+              Avoid recent walls
+            </label>
+            <InfoTip
+              id={`${id}-rested-tip`}
+              label="Avoid recent walls"
+              text="Favors records you haven't hung lately."
+            />
+          </span>
         )}
-        <button
-          type="button"
-          disabled={measuring || building}
-          onClick={() => void handleBuild()}
-          className="rounded-control bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Build wall
-        </button>
       </div>
+      <button
+        type="button"
+        disabled={measuring || building}
+        onClick={() => void handleBuild()}
+        className="mt-4 w-full rounded-control bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+      >
+        Build wall
+      </button>
       <p role="status" className="mt-2 text-sm text-muted">
         {measuring
           ? `Reading cover colors... ${total - pending} of ${total}`

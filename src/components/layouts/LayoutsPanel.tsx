@@ -49,7 +49,6 @@ export function LayoutsPanel({
     { ...storageOptions, ...(history ? { history } : {}) }
   );
   const [name, setName] = useState("");
-  const [onWallNow, setOnWallNow] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
@@ -81,13 +80,7 @@ export function LayoutsPanel({
       return;
     }
     setName("");
-    if (onWallNow && history) {
-      setOnWallNow(false);
-      const marked = history.markHung(layout.wall.wallAlbumIds, layout.id);
-      setMessage(marked ?? `Saved "${layout.name}". It's on your wall.`);
-    } else {
-      setMessage(`Saved "${layout.name}".`);
-    }
+    setMessage(`Saved "${layout.name}".`);
   };
 
   const handleApply = (layout: SavedLayout) => {
@@ -218,17 +211,6 @@ export function LayoutsPanel({
           Save current wall
         </button>
       </form>
-      {history && (
-        <label className="mt-2 flex items-center gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            checked={onWallNow}
-            onChange={(event) => setOnWallNow(event.target.checked)}
-            className="h-4 w-4 accent-accent"
-          />
-          It&apos;s on my wall now
-        </label>
-      )}
 
       {message && (
         <p role="status" className="mt-3 text-sm text-ink">

@@ -63,8 +63,8 @@ for (const colorScheme of ["light", "dark"] as const) {
       await loadWall(page);
       await page.getByRole("button", { name: "Layouts" }).click();
       await page.getByLabel("Name for the current wall").fill("Autumn");
-      await page.getByRole("checkbox", { name: "It's on my wall now" }).check();
       await page.getByRole("button", { name: "Save current wall" }).click();
+      await page.getByRole("button", { name: "Mark Autumn as on my wall" }).click();
       await page.getByRole("button", { name: /^Backup/ }).click();
       await expect(page.getByText(/On your wall since/)).toBeVisible();
       await expectNoViolations(page);
