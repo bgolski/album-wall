@@ -1,13 +1,13 @@
 import { coverProfile, type CoverProfile } from "./coverProfile";
-import { getProxiedImageUrl, TILE_COVER_SIZE } from "./imageProxy";
+import { coverSources } from "./coverSource";
+import { getProxiedImageUrl, getServiceImageUrl, TILE_COVER_SIZE } from "./imageProxy";
 
 /** Side of the small copy of a cover that is measured, in pixels. */
 const SAMPLE_SIZE = 64;
 
 /** Measures one copy of a cover: its profile, `null` when its pixels are not readable, or `"unavailable"` when it did not load. */
 function measureCopy(
-  coverUrl: string,
-  copySize: number,
+  copyUrl: string,
   timeoutMs: number
 ): Promise<CoverProfile | null | "unavailable"> {
   return new Promise((resolve) => {
@@ -44,16 +44,16 @@ function measureCopy(
         finish(null); // pixels are not readable
       }
     };
-    image.src = getProxiedImageUrl(coverUrl, { size: copySize });
+    image.src = copyUrl;
   });
 }
 
 /**
  * Measures a cover's profile (its most noticeable color, palette and region colors) from a small
- * copy of it. The copy comes through the image proxy, which
- * allows reading its pixels, and is normally a couple of kilobytes. The proxy sometimes refuses a
- * size for a cover it serves at another, so a copy that does not load is retried at the tile size
- * the wall already shows, which the browser has usually kept.
+ * copy of it, normally a couple of kilobytes. The copy comes from the app's image service, or
+ * else the third-party image proxy; both allow reading its pixels. That proxy sometimes refuses a
+ * size for a cover it serves at another, so a copy from it that does not load is retried at the
+ * tile size the wall already shows, which the browser has usually kept.
  *
  * @param coverUrl Original cover address.
  * @param timeoutMs How long to wait for each copy before giving up on it.
@@ -64,8 +64,16 @@ export async function readCoverProfile(
   timeoutMs = 8000
 ): Promise<CoverProfile | null> {
   if (!coverUrl) return null;
-  for (const copySize of [SAMPLE_SIZE, TILE_COVER_SIZE]) {
-    const outcome = await measureCopy(coverUrl, copySize, timeoutMs);
+  const sources = coverSources();
+  const copies = [
+    sources.includes("service") ? getServiceImageUrl(coverUrl, { size: SAMPLE_SIZE }) : null,
+    ...(sources.includes("proxy")
+      ? [SAMPLE_SIZE, TILE_COVER_SIZE].map((size) => getProxiedImageUrl(coverUrl, { size }))
+      : []),
+  ];
+  for (const copyUrl of copies) {
+    if (!copyUrl) continue;
+    const outcome = await measureCopy(copyUrl, timeoutMs);
     if (outcome !== "unavailable") return outcome;
   }
   return null;

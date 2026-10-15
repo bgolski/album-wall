@@ -1,16 +1,17 @@
 import { useState, useSyncExternalStore } from "react";
-import { coverSource, subscribeToCoverSource, type CoverSource } from "@/utils/coverSource";
+import { ALL_COVER_SOURCES, coverSources, subscribeToCoverSource } from "@/utils/coverSource";
 
-const startOnProxy = (): CoverSource => "proxy";
+const startWithEverySource = () => ALL_COVER_SOURCES;
 
 /**
  * Tells the visitor when covers are loading straight from their hosts because the image proxy
  * is not responding, and what that means. It can be dismissed for the rest of the visit.
  */
 export function CoverSourceNotice() {
-  const source = useSyncExternalStore(subscribeToCoverSource, coverSource, startOnProxy);
+  const sources = useSyncExternalStore(subscribeToCoverSource, coverSources, startWithEverySource);
   const [dismissed, setDismissed] = useState(false);
-  if (source !== "direct" || dismissed) return null;
+  // Covers the app's image service does not serve go to the proxy next, then load directly.
+  if (sources.includes("proxy") || dismissed) return null;
 
   return (
     <div

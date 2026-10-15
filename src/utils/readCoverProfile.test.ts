@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readCoverProfile } from "./readCoverProfile";
+import { reportCoverLoad, resetCoverSource } from "./coverSource";
 
 // jsdom does not load images or draw canvases, so both are replaced with small stand-ins.
 class FakeImage {
@@ -37,6 +38,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetCoverSource();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -106,5 +108,28 @@ describe("readCoverProfile", () => {
     small.onload?.();
     await vi.advanceTimersByTimeAsync(100);
     expect(await result).toBeNull();
+  });
+
+  it("reads a Discogs cover from the app's image service first, then the proxy", async () => {
+    const result = readCoverProfile("https://i.discogs.com/abc/R-1-1.jpeg");
+    const service = FakeImage.last!;
+    expect(service.src).toContain("albumwall.bradleygolski.com/img?");
+    expect(service.src).toContain("&w=64");
+    service.onerror!();
+    await Promise.resolve();
+    const proxy = FakeImage.last!;
+    expect(proxy.src).toContain("images.weserv.nl");
+    expect(proxy.src).toContain("w=64");
+    proxy.onload!();
+    expect((await result)!.color.l).toBeCloseTo(1, 3);
+  });
+
+  it("uses only the image service while the proxy is being skipped", async () => {
+    for (let i = 0; i < 4; i += 1) reportCoverLoad("proxy", false);
+    const result = readCoverProfile("https://i.discogs.com/abc/R-1-1.jpeg");
+    const service = FakeImage.last!;
+    service.onerror!();
+    expect(await result).toBeNull();
+    expect(FakeImage.last).toBe(service);
   });
 });

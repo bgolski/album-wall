@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "@testing-library/react";
 import { drawWall, type ImageLoader } from "./drawWall";
 import { reportCoverLoad, resetCoverSource } from "./coverSource";
-import { getProxiedImageUrl } from "./imageProxy";
+import { getProxiedImageUrl, getServiceImageUrl } from "./imageProxy";
 import type { Album } from "@/types";
 
 afterEach(() => {
@@ -122,6 +122,30 @@ describe("drawWall", () => {
       "placeholder",
       getProxiedImageUrl("https://x/1.jpg"),
       "https://x/1.jpg",
+    ]);
+  });
+
+  it("asks the app's image service first for a cover it serves, then the proxy", async () => {
+    setup();
+    const cover = "https://i.discogs.com/abc/R-1-1.jpeg";
+    const loads: string[] = [];
+    const { left } = await drawWall({
+      grid: wall([1]),
+      albums: [album(1, cover)],
+      scale: 1,
+      background: "#000",
+      placeholder: "placeholder",
+      loadImage: async (src) => {
+        loads.push(src);
+        return src === "placeholder" || src === cover ? image(src) : null;
+      },
+    });
+    expect(left).toBe(0);
+    expect(loads).toEqual([
+      "placeholder",
+      getServiceImageUrl(cover),
+      getProxiedImageUrl(cover),
+      cover,
     ]);
   });
 

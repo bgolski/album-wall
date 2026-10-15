@@ -1,6 +1,6 @@
 import type { Album } from "@/types";
-import { coverSource } from "./coverSource";
-import { getProxiedImageUrl } from "./imageProxy";
+import { coverSources } from "./coverSource";
+import { coverAddresses } from "./imageProxy";
 
 // Longest wait for one cover before it is left out of the image.
 const LOAD_TIMEOUT_MS = 8000;
@@ -65,7 +65,7 @@ export async function drawWall(options: {
 
   const byId = new Map(albums.map((album) => [String(album.id), album]));
   const tiles = Array.from(grid.querySelectorAll<HTMLElement>("[data-album-id]"));
-  const viaProxy = coverSource() === "proxy";
+  const sources = coverSources();
   const placeholderImage = await loadImage(placeholder);
 
   let left = 0;
@@ -74,7 +74,7 @@ export async function drawWall(options: {
       const album = byId.get(tile.dataset.albumId ?? "");
       const cover = album?.cover_image || album?.coverUrl;
       if (!cover) return placeholderImage;
-      for (const src of viaProxy ? [getProxiedImageUrl(cover), cover] : [cover]) {
+      for (const { src } of coverAddresses(cover, sources)) {
         const image = await loadImage(src);
         if (image) return image;
       }

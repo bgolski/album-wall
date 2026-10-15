@@ -41,8 +41,9 @@ describe("cost guardrails", () => {
   });
 
   it("alarms on unusual traffic, errors and throttling, notifying the alerts topic", () => {
-    // Three for the Discogs proxy and three for the short link page.
-    stack.resourceCountIs("AWS::CloudWatch::Alarm", 6);
+    // Three each for the Discogs proxy, the short link page and the cover image service; staying
+    // within the ten alarms CloudWatch includes for free.
+    stack.resourceCountIs("AWS::CloudWatch::Alarm", 9);
     for (const metric of ["Invocations", "Errors", "Throttles"]) {
       stack.hasResourceProperties("AWS::CloudWatch::Alarm", {
         MetricName: metric,
@@ -81,7 +82,7 @@ describe("short share links", () => {
     stack.hasResourceProperties("AWS::CloudFront::Distribution", {
       DistributionConfig: Match.objectLike({
         PriceClass: "PriceClass_100",
-        CacheBehaviors: [Match.objectLike({ PathPattern: "/w/*.jpg" })],
+        CacheBehaviors: Match.arrayWith([Match.objectLike({ PathPattern: "/w/*.jpg" })]),
       }),
     });
   });
@@ -116,5 +117,57 @@ describe("short share links", () => {
     });
     const policies = JSON.stringify(stack.findResources("AWS::IAM::Policy"));
     expect(policies).not.toContain("dynamodb:DeleteTable");
+  });
+});
+
+describe("cover images", () => {
+  const stack = template();
+
+  it("resizes covers in an ARM function with capped concurrency and short-lived logs", () => {
+    stack.hasResourceProperties("AWS::Lambda::Function", {
+      Architectures: ["arm64"],
+      ReservedConcurrentExecutions: 10,
+      Timeout: 12,
+      Description: Match.stringLikeRegexp("cover images"),
+    });
+    stack.hasResourceProperties("AWS::Logs::LogGroup", { RetentionInDays: 14 });
+  });
+
+  it("lets only CloudFront call the function", () => {
+    stack.hasResourceProperties("AWS::Lambda::Url", { AuthType: "AWS_IAM" });
+    stack.hasResourceProperties("AWS::CloudFront::OriginAccessControl", {
+      OriginAccessControlConfig: Match.objectLike({ OriginAccessControlOriginType: "lambda" }),
+    });
+    stack.hasResourceProperties("AWS::Lambda::Permission", {
+      Action: "lambda:InvokeFunctionUrl",
+      Principal: "cloudfront.amazonaws.com",
+    });
+    stack.hasResourceProperties("AWS::Lambda::Permission", {
+      Action: "lambda:InvokeFunction",
+      Principal: "cloudfront.amazonaws.com",
+      InvokedViaFunctionUrl: true,
+    });
+  });
+
+  it("serves /img on the short link distribution, cached by cover address and width", () => {
+    stack.hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({
+        Aliases: ["albumwall.bradleygolski.com"],
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({ PathPattern: "/img", AllowedMethods: ["GET", "HEAD"] }),
+        ]),
+      }),
+    });
+    stack.hasResourceProperties("AWS::CloudFront::CachePolicy", {
+      CachePolicyConfig: Match.objectLike({
+        MaxTTL: 31536000,
+        ParametersInCacheKeyAndForwardedToOrigin: Match.objectLike({
+          QueryStringsConfig: { QueryStringBehavior: "whitelist", QueryStrings: ["url", "w"] },
+          HeadersConfig: { HeaderBehavior: "none" },
+          CookiesConfig: { CookieBehavior: "none" },
+        }),
+      }),
+    });
+    stack.resourceCountIs("AWS::CloudFront::Distribution", 1);
   });
 });

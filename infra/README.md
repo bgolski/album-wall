@@ -1,12 +1,15 @@
 # Album Wall Infrastructure
 
-This workspace contains the AWS CDK app and Lambda source for the Discogs proxy used by the static frontend.
+This workspace contains the AWS CDK app and Lambda sources for the static frontend: the Discogs proxy, short share links and the cover image service.
 
 ## What it deploys
 
 - `album-wall` CDK stack in `us-east-1`
 - public Lambda Function URL for the Discogs proxy
 - IAM permissions for the Lambda to read Discogs credentials from SSM Parameter Store
+- short share links: a DynamoDB table, the link page function and a CloudFront distribution on `albumwall.bradleygolski.com`
+- cover images: a function that resizes allowed covers (Discogs, Cover Art Archive) to 64, 320 or 600 pixel WebP, served by the same distribution at `/img?url=<cover>&w=<width>` and cached for a year
+- a $1 monthly budget and CloudWatch alarms on each function's invocations, errors and throttles
 
 ## Local commands
 

@@ -8,20 +8,32 @@ afterEach(() => {
   act(() => resetCoverSource());
 });
 
-const failProxy = () =>
+const fail = (source: "service" | "proxy") =>
   act(() => {
-    for (let i = 0; i < 4; i += 1) reportCoverLoad("proxy", false);
+    for (let i = 0; i < 4; i += 1) reportCoverLoad(source, false);
   });
+const failBoth = () => {
+  fail("service");
+  fail("proxy");
+};
 
 describe("CoverSourceNotice", () => {
-  it("shows nothing while the image proxy works", () => {
+  it("shows nothing while the image proxy works, even with the app's image service down", () => {
     render(<CoverSourceNotice />);
     expect(screen.queryByText(/loading directly/)).toBeNull();
+    fail("service");
+    expect(screen.queryByText(/loading directly/)).toBeNull();
+  });
+
+  it("explains when the proxy is down, as covers the image service does not serve load directly", () => {
+    render(<CoverSourceNotice />);
+    fail("proxy");
+    expect(screen.getByText(/loading directly because the image service/)).toBeTruthy();
   });
 
   it("explains when covers load directly, and can be dismissed", () => {
     render(<CoverSourceNotice />);
-    failProxy();
+    failBoth();
     expect(screen.getByText(/loading directly because the image service/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByText(/loading directly/)).toBeNull();
@@ -29,7 +41,7 @@ describe("CoverSourceNotice", () => {
 
   it("goes away when the proxy is back", () => {
     render(<CoverSourceNotice />);
-    failProxy();
+    failBoth();
     act(() => resetCoverSource());
     expect(screen.queryByText(/loading directly/)).toBeNull();
   });

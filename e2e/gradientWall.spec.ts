@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { stubNetwork } from "./support";
+import { IMAGE_SERVICE, stubNetwork } from "./support";
 
 // The demo ships each cover's profile, so the gradient builder needs no measuring on it.
 const demo = JSON.parse(readFileSync("public/demo/collection.json", "utf8")) as {
@@ -21,7 +21,9 @@ test("Sort by Color builds a wall for a gradient from the whole demo collection"
   await stubNetwork(page);
   const measuringRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("images.weserv.nl") && request.url().includes("w=64&")) {
+    const url = request.url();
+    const proxied = url.includes("images.weserv.nl") || IMAGE_SERVICE.test(url);
+    if (proxied && /[?&]w=64(&|$)/.test(url)) {
       measuringRequests.push(request.url());
     }
   });

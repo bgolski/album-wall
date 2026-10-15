@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { Album, SharedWallState } from "@/types";
 import { diffWalls, type WallPosition } from "@/utils/diffWalls";
-import { DEFAULT_PLACEHOLDER_IMAGE, getProxiedImageUrl } from "@/utils/imageProxy";
+import { coverSources } from "@/utils/coverSource";
+import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 import { orderWallSteps, type WallStep } from "@/utils/wallSteps";
 
 interface LayoutCompareProps {
@@ -78,7 +79,8 @@ export function LayoutCompare({ currentWall, target, name, albumsById }: LayoutC
   const cover = (id: string | undefined) => {
     const album = id ? albumsById.get(id) : undefined;
     const url = album?.cover_image || album?.coverUrl;
-    return url ? getProxiedImageUrl(url, { size: 96 }) : DEFAULT_PLACEHOLDER_IMAGE;
+    if (!url) return DEFAULT_PLACEHOLDER_IMAGE;
+    return coverAddresses(url, coverSources(), { size: 96 })[0]!.src;
   };
 
   const describe = (step: WallStep) => {

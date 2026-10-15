@@ -2,23 +2,19 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useAlbumImage } from "./useAlbumImage";
 import { Album } from "@/types";
-
-// Mock the image proxy utilities
-vi.mock("@/utils/imageProxy", () => ({
-  getProxiedImageUrl: vi.fn(),
-  DEFAULT_PLACEHOLDER_IMAGE: "placeholder.png",
-}));
-
-import { getProxiedImageUrl, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
-import { coverSource, reportCoverLoad, resetCoverSource } from "@/utils/coverSource";
+import {
+  getProxiedImageUrl,
+  getServiceImageUrl,
+  DEFAULT_PLACEHOLDER_IMAGE,
+} from "@/utils/imageProxy";
+import { coverSources, reportCoverLoad, resetCoverSource } from "@/utils/coverSource";
 
 afterEach(() => {
   act(() => resetCoverSource());
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
 });
 
+// The image service serves Discogs covers; other hosts go through the proxy.
 const albumWithCover: Album = {
   id: 1,
   title: "Album With Cover",
@@ -39,12 +35,19 @@ const albumWithoutCover: Album = {
   artist: "Artist",
 };
 
+const discogsAlbum: Album = {
+  id: 4,
+  title: "Discogs Album",
+  artist: "Artist",
+  cover_image: "https://i.discogs.com/abc/R-4-1.jpeg",
+};
+
+const proxied = (url: string) => getProxiedImageUrl(url);
+
 describe("useAlbumImage hook", () => {
-  it("sets proxied image URL when album has a cover_image", () => {
-    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
+  it("starts with the proxied copy for a cover the image service does not serve", () => {
     const { result } = renderHook(() => useAlbumImage(albumWithCover));
-    expect(getProxiedImageUrl).toHaveBeenCalledWith(albumWithCover.cover_image);
-    expect(result.current.imageSource).toBe("proxied.png");
+    expect(result.current.imageSource).toBe(proxied(albumWithCover.cover_image!));
     expect(result.current.imageError).toBe(false);
   });
 
@@ -55,14 +58,11 @@ describe("useAlbumImage hook", () => {
   });
 
   it("uses coverUrl when cover_image is absent", () => {
-    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied2.png");
     const { result } = renderHook(() => useAlbumImage(albumWithCoverUrl));
-    expect(getProxiedImageUrl).toHaveBeenCalledWith(albumWithCoverUrl.coverUrl);
-    expect(result.current.imageSource).toBe("proxied2.png");
+    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.coverUrl!));
   });
 
   it("tries the cover's own address when the proxied copy fails, then the placeholder", () => {
-    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
     const { result } = renderHook(() => useAlbumImage(albumWithCover));
     act(() => result.current.handleImageError());
     expect(result.current.imageError).toBe(false);
@@ -73,26 +73,31 @@ describe("useAlbumImage hook", () => {
     expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
   });
 
-  it("useEffect updates imageSource when album prop changes", () => {
-    vi.mocked(getProxiedImageUrl).mockReturnValueOnce("proxied.png");
+  it("tries the image service, then the proxy, then the original for a Discogs cover", () => {
+    const cover = discogsAlbum.cover_image!;
+    const { result } = renderHook(() => useAlbumImage(discogsAlbum, 320));
+    expect(result.current.imageSource).toBe(getServiceImageUrl(cover, { size: 320 }));
+    act(() => result.current.handleImageError());
+    expect(result.current.imageSource).toBe(getProxiedImageUrl(cover, { size: 320 }));
+    act(() => result.current.handleImageError());
+    expect(result.current.imageSource).toBe(cover);
+  });
+
+  it("updates imageSource when album prop changes", () => {
     const { result, rerender } = renderHook(({ album }) => useAlbumImage(album), {
       initialProps: { album: albumWithCover },
     });
-    expect(result.current.imageSource).toBe("proxied.png");
-    vi.mocked(getProxiedImageUrl).mockReturnValueOnce("proxied2.png");
+    expect(result.current.imageSource).toBe(proxied(albumWithCover.cover_image!));
     rerender({ album: albumWithCoverUrl });
-    expect(result.current.imageSource).toBe("proxied2.png");
+    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.coverUrl!));
   });
 });
 
 describe("useAlbumImage with a changing album", () => {
   it("shows the placeholder after an image fails, then a fresh image for the next album", () => {
-    vi.mocked(getProxiedImageUrl).mockImplementation((url: string) => `proxied:${url}`);
     const { result, rerender } = renderHook(({ album }) => useAlbumImage(album), {
       initialProps: { album: albumWithCover },
     });
-    expect(result.current.imageSource).toBe("proxied:http://example.com/cover.jpg");
-
     act(() => result.current.handleImageError());
     act(() => result.current.handleImageError());
     expect(result.current.imageError).toBe(true);
@@ -100,11 +105,10 @@ describe("useAlbumImage with a changing album", () => {
 
     rerender({ album: albumWithCoverUrl });
     expect(result.current.imageError).toBe(false);
-    expect(result.current.imageSource).toBe(`proxied:${albumWithCoverUrl.coverUrl}`);
+    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.coverUrl!));
   });
 
   it("uses the placeholder for an album with no cover and recovers when one appears", () => {
-    vi.mocked(getProxiedImageUrl).mockImplementation((url: string) => `proxied:${url}`);
     const bare: Album = { id: 9, title: "Bare", artist: "A" };
     const { result, rerender } = renderHook(({ album }) => useAlbumImage(album), {
       initialProps: { album: bare },
@@ -115,42 +119,52 @@ describe("useAlbumImage with a changing album", () => {
 
     rerender({ album: albumWithCover });
     expect(result.current.imageError).toBe(false);
-    expect(result.current.imageSource).toBe("proxied:http://example.com/cover.jpg");
+    expect(result.current.imageSource).toBe(proxied(albumWithCover.cover_image!));
   });
 });
 
-describe("useAlbumImage when the image proxy is down", () => {
-  it("gives up on the proxy for new covers after four tiles fail through it", () => {
-    vi.mocked(getProxiedImageUrl).mockImplementation((url: string) => `proxied:${url}`);
-    const tiles = [1, 2, 3, 4].map((id) =>
+describe("useAlbumImage when an image service is down", () => {
+  const tiles = (count: number, host: string) =>
+    Array.from({ length: count }, (_, i) =>
       renderHook(() =>
-        useAlbumImage({ ...albumWithCover, id, cover_image: `http://example.com/${id}.jpg` })
+        useAlbumImage({ ...albumWithCover, id: i + 1, cover_image: `${host}/${i + 1}.jpg` })
       )
     );
-    expect(coverSource()).toBe("proxy");
-    tiles.forEach(({ result }) => act(() => result.current.handleImageError()));
-    expect(coverSource()).toBe("direct");
+
+  it("gives up on the proxy for new covers after four tiles fail through it", () => {
+    const wall = tiles(4, "http://example.com");
+    wall.forEach(({ result }) => act(() => result.current.handleImageError()));
+    expect(coverSources()).toEqual(["service", "direct"]);
     // Each failed tile has already moved on to its cover's own address.
-    expect(tiles[0]!.result.current.imageSource).toBe("http://example.com/1.jpg");
+    expect(wall[0]!.result.current.imageSource).toBe("http://example.com/1.jpg");
   });
 
-  it("goes straight to the cover's own address once the page has given up on the proxy", () => {
-    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
+  it("skips the image service for new covers after four tiles fail through it", () => {
+    const wall = tiles(4, "https://i.discogs.com");
+    wall.forEach(({ result }) => act(() => result.current.handleImageError()));
+    expect(coverSources()).toEqual(["proxy", "direct"]);
+    expect(wall[0]!.result.current.imageSource).toBe(proxied("https://i.discogs.com/1.jpg"));
+    const { result } = renderHook(() => useAlbumImage(discogsAlbum));
+    expect(result.current.imageSource).toBe(proxied(discogsAlbum.cover_image!));
+  });
+
+  it("goes straight to the cover's own address once the page has given up on both", () => {
     act(() => {
+      for (let i = 0; i < 4; i += 1) reportCoverLoad("service", false);
       for (let i = 0; i < 4; i += 1) reportCoverLoad("proxy", false);
     });
-    const { result } = renderHook(() => useAlbumImage(albumWithCover));
-    expect(result.current.imageSource).toBe(albumWithCover.cover_image);
+    const { result } = renderHook(() => useAlbumImage(discogsAlbum));
+    expect(result.current.imageSource).toBe(discogsAlbum.cover_image);
   });
 
   it("keeps a cover that already loaded when the page switches", () => {
-    vi.mocked(getProxiedImageUrl).mockReturnValue("proxied.png");
-    const { result } = renderHook(() => useAlbumImage(albumWithCover));
+    const { result } = renderHook(() => useAlbumImage(discogsAlbum));
+    const loaded = result.current.imageSource;
     act(() => result.current.handleImageLoad());
     act(() => {
-      for (let i = 0; i < 4; i += 1) reportCoverLoad("proxy", false);
+      for (let i = 0; i < 4; i += 1) reportCoverLoad("service", false);
     });
-    expect(coverSource()).toBe("direct");
-    expect(result.current.imageSource).toBe("proxied.png");
+    expect(coverSources()).toEqual(["proxy", "direct"]);
+    expect(result.current.imageSource).toBe(loaded);
   });
 });

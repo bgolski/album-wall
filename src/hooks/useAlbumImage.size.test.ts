@@ -1,39 +1,29 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useAlbumImage } from "./useAlbumImage";
-import { getProxiedImageUrl } from "@/utils/imageProxy";
+import { getProxiedImageUrl, getServiceImageUrl } from "@/utils/imageProxy";
 import type { Album } from "@/types";
-
-vi.mock("@/utils/imageProxy", () => ({
-  getProxiedImageUrl: vi.fn((url: string, options?: { size?: number }) =>
-    options?.size ? `${url}?size=${options.size}` : url
-  ),
-  DEFAULT_PLACEHOLDER_IMAGE: "placeholder.png",
-}));
 
 const album: Album = {
   id: 1,
   title: "Test record",
   artist: "Test artist",
-  cover_image: "https://example.com/cover.jpg",
+  cover_image: "https://i.discogs.com/abc/R-1-1.jpeg",
 };
 
-afterEach(() => vi.clearAllMocks());
-
 describe("wall artwork sizing", () => {
-  it("requests a tile-sized image and memoizes the URL across unchanged rerenders", () => {
+  it("requests a tile-sized image and keeps the URL across unchanged rerenders", () => {
     const { result, rerender } = renderHook(() => useAlbumImage(album, 320));
-    expect(result.current.imageSource).toBe("https://example.com/cover.jpg?size=320");
-    expect(getProxiedImageUrl).toHaveBeenCalledWith(album.cover_image, {
-      size: 320,
-    });
+    const first = result.current.imageSource;
+    expect(first).toBe(getServiceImageUrl(album.cover_image!, { size: 320 }));
+    expect(first).toContain("w=320");
     rerender();
-    expect(getProxiedImageUrl).toHaveBeenCalledTimes(1);
+    expect(result.current.imageSource).toBe(first);
   });
 
-  it("keeps the original image when no tile size is supplied", () => {
+  it("asks for the largest copy when no tile size is supplied", () => {
     const { result } = renderHook(() => useAlbumImage(album));
-    expect(result.current.imageSource).toBe(album.cover_image);
-    expect(getProxiedImageUrl).toHaveBeenCalledWith(album.cover_image);
+    expect(result.current.imageSource).toBe(getServiceImageUrl(album.cover_image!));
+    expect(getProxiedImageUrl(album.cover_image!)).not.toContain("&w=");
   });
 });

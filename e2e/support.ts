@@ -1,10 +1,13 @@
 import { expect, type Page } from "@playwright/test";
 
 // A tiny valid PNG, so cover images load without reaching the network.
-const PIXEL = Buffer.from(
+export const PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64"
 );
+
+/** Requests to the app's own cover image service. */
+export const IMAGE_SERVICE = /albumwall\.bradleygolski\.com\/img\?/;
 
 export const albums = Array.from({ length: 40 }, (_, index) => ({
   id: index + 1,
@@ -41,6 +44,14 @@ export async function stubNetwork(page: Page) {
   );
   await page.route(/images\.weserv\.nl/, (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PIXEL })
+  );
+  await page.route(IMAGE_SERVICE, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: PIXEL,
+    })
   );
 }
 

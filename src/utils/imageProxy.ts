@@ -1,8 +1,21 @@
+import type { CoverSource } from "./coverSource";
+
 /**
- * Utilities for routing remote album artwork through a proxy service and falling back to a
- * built-in placeholder when no usable image is available.
+ * Utilities for routing remote album artwork through the app's own image service or a
+ * third-party proxy, and falling back to a built-in placeholder when no usable image is available.
  */
 
+/**
+ * The app's own cover image service (`?url=<cover>&w=<width>`), which serves resized copies of
+ * covers that pages may read. An empty value turns it off.
+ */
+const IMAGE_SERVICE =
+  process.env.NEXT_PUBLIC_IMAGE_SERVICE_URL ?? "https://albumwall.bradleygolski.com/img";
+
+/** Widths the image service makes; a request is rounded up to the next one. */
+const SERVICE_WIDTHS = [64, 320, 600];
+
+/** Third-party resizing proxy, used when the image service cannot serve a cover. */
 const IMAGE_PROXY = "https://images.weserv.nl/?url=";
 
 /**
@@ -41,4 +54,63 @@ export function getProxiedImageUrl(url: string, options: { size?: number } = {})
   }
 
   return baseUrl;
+}
+
+/** Whether the image service fetches covers from this address (Discogs and Cover Art Archive). */
+function isServiceHost(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return (
+      protocol === "https:" &&
+      (hostname === "i.discogs.com" ||
+        hostname === "st.discogs.com" ||
+        hostname === "coverartarchive.org" ||
+        hostname === "archive.org" ||
+        hostname.endsWith(".archive.org"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Address of a cover's copy from the app's image service: square, at the smallest width it makes
+ * that is at least `size` (the largest when no size is given).
+ *
+ * @param url Original cover address.
+ * @param options.size Desired square size in pixels.
+ * @returns The service address, or null when the service is off or does not serve this host.
+ */
+export function getServiceImageUrl(url: string, options: { size?: number } = {}): string | null {
+  if (!IMAGE_SERVICE || !isServiceHost(url)) return null;
+  const width =
+    SERVICE_WIDTHS.find((width) => options.size != null && width >= options.size) ??
+    SERVICE_WIDTHS[SERVICE_WIDTHS.length - 1];
+  return `${IMAGE_SERVICE}?url=${encodeURIComponent(url)}&w=${width}`;
+}
+
+/**
+ * Where to load a cover from, best first, for the sources the page is using.
+ *
+ * @param url Original cover address.
+ * @param sources Sources to use, in order (see `coverSources`).
+ * @param options.size Desired square size in pixels; the original size when omitted.
+ * @returns Each address with the source it comes from.
+ */
+export function coverAddresses(
+  url: string,
+  sources: readonly CoverSource[],
+  options: { size?: number } = {}
+): { src: string; source: CoverSource }[] {
+  if (!url) return [];
+  const sized = options.size != null ? { size: options.size } : {};
+  return sources.flatMap((source) => {
+    const src =
+      source === "service"
+        ? getServiceImageUrl(url, sized)
+        : source === "proxy"
+          ? getProxiedImageUrl(url, sized)
+          : url;
+    return src ? [{ src, source }] : [];
+  });
 }

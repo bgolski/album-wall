@@ -12,6 +12,7 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 
 const DISCOGS_TOKEN_PARAMETER_NAME = "/album-wall/discogs-token";
@@ -40,6 +41,13 @@ const LIVE_APP_URL = "https://bradleygolski.com/album-wall/";
 // a monthly fee), so the certificate is validated by a CNAME added there by hand, and the domain
 // is a CNAME (DNS only) to the distribution.
 const SHARE_DOMAIN = "albumwall.bradleygolski.com";
+// Cover images are served on the same domain, under this path (the app asks for
+// https://<domain>/img?url=...&w=...).
+const COVER_IMAGE_PATH = "/img";
+// Fresh covers are resized when a wall first loads, many at once; throttled requests fall back to
+// the third-party proxy in the app, so the throttle alarm only fires on sustained throttling.
+const COVER_IMAGE_CONCURRENCY = 10;
+const HOURLY_COVER_THROTTLE_ALARM = 100;
 
 /**
  * Root infrastructure stack for album-wall AWS resources.
@@ -106,9 +114,10 @@ export class AlbumWallStack extends cdk.Stack {
       },
     });
 
-    const sharePageFunction = this.addShortLinks(discogsProxyFunction);
+    const { sharePage: sharePageFunction, distribution } = this.addShortLinks(discogsProxyFunction);
+    const coverImageFunction = this.addCoverImages(distribution);
 
-    this.addCostGuardrails(discogsProxyFunction, sharePageFunction);
+    this.addCostGuardrails(discogsProxyFunction, sharePageFunction, coverImageFunction);
 
     new cdk.CfnOutput(this, "DiscogsProxyFunctionUrl", {
       value: functionUrl.url,
@@ -138,7 +147,7 @@ export class AlbumWallStack extends cdk.Stack {
    * front of it (default domain, pictures cached for a year).
    *
    * @param proxy The Discogs proxy, which stores shared walls (`POST /share`).
-   * @returns The share page function, for alarms.
+   * @returns The share page function, for alarms, and the distribution, which also serves covers.
    */
   private addShortLinks(proxy: lambdaNodejs.NodejsFunction) {
     const table = new dynamodb.Table(this, "SharedWallsTable", {
@@ -234,7 +243,72 @@ export class AlbumWallStack extends cdk.Stack {
       description: "CloudFront domain the short link domain points to (CNAME, DNS only).",
     });
 
-    return sharePage;
+    return { sharePage, distribution };
+  }
+
+  /**
+   * The app's own cover image service, replacing a third-party resizing proxy: a function that
+   * fetches covers from an allowlist of hosts and returns square WebP copies at the few sizes the
+   * app uses, readable by pages (CORS `*`), behind the short link distribution with each copy
+   * cached for a year by address and width. Only CloudFront may call the function (origin access
+   * control), and its concurrency is capped.
+   *
+   * @param distribution The short link distribution, which serves covers under `/img`.
+   * @returns The cover image function, for alarms.
+   */
+  private addCoverImages(distribution: cloudfront.Distribution) {
+    const coverImage = new lambdaNodejs.NodejsFunction(this, "CoverImageFunction", {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      entry: "lambda/cover-image/index.ts",
+      handler: "handler",
+      description: "Album-wall cover images: allowed covers resized for the app.",
+      timeout: cdk.Duration.seconds(12),
+      memorySize: 1024,
+      reservedConcurrentExecutions: COVER_IMAGE_CONCURRENCY,
+      logGroup: new logs.LogGroup(this, "CoverImageLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+      bundling: {
+        target: "node22",
+        // sharp has native parts: install the Linux ARM build whatever machine deploys.
+        nodeModules: ["sharp"],
+        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
+      },
+    });
+
+    const origin = origins.FunctionUrlOrigin.withOriginAccessControl(
+      coverImage.addFunctionUrl({ authType: lambda.FunctionUrlAuthType.AWS_IAM })
+    );
+    // Function URLs need both permissions; the origin grants only lambda:InvokeFunctionUrl.
+    coverImage.addPermission("CloudFrontInvoke", {
+      principal: new iam.ServicePrincipal("cloudfront.amazonaws.com"),
+      action: "lambda:InvokeFunction",
+      sourceArn: distribution.distributionArn,
+      invokedViaFunctionUrl: true,
+    });
+    const cachePolicy = new cloudfront.CachePolicy(this, "CoverImageCachePolicy", {
+      comment: "Album Wall cover images, by cover address and width",
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.allowList("url", "w"),
+      headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      minTtl: cdk.Duration.seconds(0),
+      defaultTtl: cdk.Duration.days(1),
+      maxTtl: cdk.Duration.days(365),
+    });
+    distribution.addBehavior(COVER_IMAGE_PATH, origin, {
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+      cachePolicy,
+    });
+
+    new cdk.CfnOutput(this, "CoverImageUrl", {
+      value: `https://${SHARE_DOMAIN}${COVER_IMAGE_PATH}`,
+      description: "Cover image service (?url=<cover address>&w=64|320|600).",
+    });
+
+    return coverImage;
   }
 
   /**
@@ -245,8 +319,13 @@ export class AlbumWallStack extends cdk.Stack {
    *
    * @param proxy The Discogs proxy function.
    * @param sharePage The short link page function, watched the same way.
+   * @param coverImage The cover image function, watched the same way.
    */
-  private addCostGuardrails(proxy: lambda.IFunction, sharePage: lambda.IFunction) {
+  private addCostGuardrails(
+    proxy: lambda.IFunction,
+    sharePage: lambda.IFunction,
+    coverImage: lambda.IFunction
+  ) {
     // A dynamic reference is resolved by CloudFormation during the deploy (with its execution
     // role), unlike a template parameter, which the CDK deploy role would have to read itself.
     const alertEmail = new cdk.CfnDynamicReference(
@@ -337,6 +416,24 @@ export class AlbumWallStack extends cdk.Stack {
       sharePage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
       0,
       "The short link page hit its concurrency cap, which may mean abuse."
+    );
+    alarm(
+      "CoverImageInvocationsAlarm",
+      coverImage.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
+      DAILY_INVOCATION_ALARM,
+      "The cover image service resized far more covers than usual in a day."
+    );
+    alarm(
+      "CoverImageErrorsAlarm",
+      coverImage.metricErrors({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      HOURLY_ERROR_ALARM,
+      "The cover image service failed many times in an hour."
+    );
+    alarm(
+      "CoverImageThrottlesAlarm",
+      coverImage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      HOURLY_COVER_THROTTLE_ALARM,
+      "The cover image service was throttled many times in an hour, which may mean abuse."
     );
   }
 }
