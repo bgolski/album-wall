@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 
 // Where a short link may send people back to: the live site, the home preview and local builds.
-const APP_ORIGINS = new Set([
+export const APP_ORIGINS = new Set([
   "https://bradleygolski.com",
   "https://bgolski.github.io",
   "https://albumwall.home.bradleygolski.com",

@@ -1,5 +1,6 @@
 import { giveCopiesUniqueIds } from "./uniqueAlbumIds";
 import { Album } from "../types/index";
+import { DiscogsProxyError, DiscogsSession, authorizationHeader } from "./discogsSignIn";
 
 const discogsProxyUrl = process.env.NEXT_PUBLIC_DISCOGS_PROXY_URL;
 
@@ -7,7 +8,16 @@ type DiscogsProxyResponse = {
   username?: string;
   albums?: Album[];
   error?: string;
+  code?: string;
 };
+
+/** How to load a collection beyond the username. */
+export interface CollectionOptions {
+  /** The signed-in visitor; their own access is used instead of the app's shared token. */
+  session?: DiscogsSession | null;
+  /** A collection folder of the signed-in visitor; 0 or none is the whole collection. */
+  folderId?: number;
+}
 
 // The proxy reports a user with no records as an error; the app treats it as an empty collection.
 const EMPTY_COLLECTION_PATTERN = /has no vinyl records/i;
@@ -36,10 +46,15 @@ export function validateDiscogsUsername(username: string): boolean {
  *
  * @param username Discogs username whose collection should be loaded.
  * @param signal Optional AbortSignal to cancel the fetch.
+ * @param options The signed-in visitor and folder, when there are.
  * @returns Albums sorted by Discogs artist order for the user's collection.
  * @throws Error when the username is invalid, proxy config is missing, or the proxy returns a failure.
  */
-export async function getUserCollection(username: string, signal?: AbortSignal): Promise<Album[]> {
+export async function getUserCollection(
+  username: string,
+  signal?: AbortSignal,
+  options: CollectionOptions = {}
+): Promise<Album[]> {
   if (!username.trim()) {
     throw new Error("Username cannot be empty");
   }
@@ -56,6 +71,11 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
 
   const requestUrl = new URL(discogsProxyUrl);
   requestUrl.searchParams.set("username", username);
+  if (options.session && options.folderId) {
+    requestUrl.searchParams.set("folder", String(options.folderId));
+  }
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (options.session) headers.Authorization = authorizationHeader(options.session);
 
   // One timer covers both the request and reading its body; a caller's own signal still wins.
   const controller = new AbortController();
@@ -73,9 +93,7 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
     try {
       response = await fetch(requestUrl.toString(), {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+        headers,
         signal: controller.signal,
       });
     } catch (error) {
@@ -100,7 +118,7 @@ export async function getUserCollection(username: string, signal?: AbortSignal):
       }
 
       if (responseBody?.error) {
-        throw new Error(responseBody.error);
+        throw new DiscogsProxyError(responseBody.error, response.status, responseBody.code);
       }
 
       if (response.status === 404) {

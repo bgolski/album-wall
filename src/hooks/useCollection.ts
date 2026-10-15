@@ -15,11 +15,20 @@ import { readCachedCollection, writeCachedCollection } from "@/utils/collectionC
 import { useUndoHistory } from "@/hooks/useUndoHistory";
 import { DEMO_USERNAME, parseDemoCollection } from "@/utils/demoCollection";
 import { getBasePath } from "@/utils/basePath";
+import { DiscogsSession, proxyErrorCode } from "@/utils/discogsSignIn";
 
 const VALIDATION_ERROR_MESSAGE =
   "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
 const DEMO_MISSING_MESSAGE = "The demo wall is not available right now.";
 const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
+const PRIVATE_SHARED_WALL_MESSAGE =
+  "This wall was shared from a private Discogs collection, so only its owner can open it here. If it is yours, sign in with Discogs. Otherwise ask them for a saved image of the wall, or to make their collection public on Discogs.";
+const SIGNED_OUT_MESSAGE =
+  "Your Discogs sign-in has ended, so you have been signed out. Sign in again to load this collection.";
+const FOLDER_KEY_PREFIX = "album-wall:folder:";
+
+/** Why a load failed, when the app can say more than the message. */
+export type CollectionErrorKind = "private" | "private-shared" | null;
 
 function subscribeToNothing() {
   return () => {};
@@ -57,12 +66,45 @@ function getStorage(name: "localStorage" | "sessionStorage"): Storage | null {
   }
 }
 
+function sameName(a: string, b: string) {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * The folder the signed-in visitor chose last time on this device.
+ *
+ * @param username The signed-in visitor.
+ * @returns The folder id, 0 (the whole collection) when none was chosen.
+ */
+function loadFolderChoice(username: string): number {
+  try {
+    const value = Number(getStorage("localStorage")?.getItem(`${FOLDER_KEY_PREFIX}${username}`));
+    return Number.isInteger(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveFolderChoice(username: string, folderId: number) {
+  try {
+    const storage = getStorage("localStorage");
+    const key = `${FOLDER_KEY_PREFIX}${username}`;
+    if (folderId) storage?.setItem(key, String(folderId));
+    else storage?.removeItem(key);
+  } catch {
+    // Not remembered.
+  }
+}
+
 /**
  * Manages Discogs username input, collection loading state, and album ordering updates.
  *
+ * @param session The visitor signed in with Discogs, if any: their own access loads private
+ *   collections and their folders.
+ * @param onSignedOut Called when Discogs no longer accepts the visitor's sign-in.
  * @returns Collection state plus actions for loading, retrying, reordering and undoing.
  */
-export function useCollection() {
+export function useCollection(session: DiscogsSession | null = null, onSignedOut?: () => void) {
   const [albums, setAlbums] = useState<Album[]>([]);
   // What the user typed; until they type, the box shows the name from a share link, or the name
   // loaded last time on this device.
@@ -79,6 +121,14 @@ export function useCollection() {
   const [loadCount, setLoadCount] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<CollectionErrorKind>(null);
+  // The signed-in visitor's chosen folder (per visitor); undefined until they choose one here.
+  const [chosenFolder, setChosenFolder] = useState<{ username: string; id: number } | null>(null);
+  const folderId = !session
+    ? 0
+    : chosenFolder && sameName(chosenFolder.username, session.username)
+      ? chosenFolder.id
+      : loadFolderChoice(session.username.toLowerCase());
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [sharedWallState, setSharedWallState] = useState<SharedWallState | null>(null);
   const [demoAlbums, setDemoAlbums] = useState<Album[] | null>(null);
@@ -91,6 +141,7 @@ export function useCollection() {
    */
   const clearErrors = () => {
     setError(null);
+    setErrorKind(null);
     setUsernameError(null);
   };
 
@@ -101,9 +152,15 @@ export function useCollection() {
    * @param usernameToLoad Username whose collection should be loaded.
    * @param linkedState Parsed shared wall state, if the load originated from a share link.
    * @param fresh Skip the recently loaded copy and ask Discogs again.
+   * @param folder Folder to load when this is the signed-in visitor's own collection.
    */
   const loadCollectionForUsername = useCallback(
-    async (usernameToLoad: string, linkedState: SharedWallState | null = null, fresh = false) => {
+    async (
+      usernameToLoad: string,
+      linkedState: SharedWallState | null = null,
+      fresh = false,
+      folder = folderId
+    ) => {
       if (!usernameToLoad.trim()) return;
 
       if (!validateDiscogsUsername(usernameToLoad)) {
@@ -111,7 +168,14 @@ export function useCollection() {
         return;
       }
 
-      clearErrors();
+      setError(null);
+      setErrorKind(null);
+      setUsernameError(null);
+      const own = session !== null && sameName(session.username, usernameToLoad);
+      // A folder is only loaded for the signed-in visitor's own collection; a shared wall always
+      // opens with the whole collection, which holds every folder's records.
+      const loadFolder = own && !linkedState ? folder : 0;
+      const cacheKey = loadFolder ? `${usernameToLoad}#${loadFolder}` : usernameToLoad;
       const localStore = getStorage("localStorage");
       const savedState = localStore ? loadSavedWall(localStore, usernameToLoad) : null;
       const wallState =
@@ -124,10 +188,14 @@ export function useCollection() {
           const cached =
             fresh || !sessionStore
               ? null
-              : readCachedCollection(sessionStore, usernameToLoad, Date.now());
-          const collection = cached ?? (await getUserCollection(usernameToLoad));
+              : readCachedCollection(sessionStore, cacheKey, Date.now());
+          const collection =
+            cached ??
+            (await (session
+              ? getUserCollection(usernameToLoad, undefined, { session, folderId: loadFolder })
+              : getUserCollection(usernameToLoad)));
           if (!cached && sessionStore) {
-            writeCachedCollection(sessionStore, usernameToLoad, collection, Date.now());
+            writeCachedCollection(sessionStore, cacheKey, collection, Date.now());
           }
           setAlbums(
             wallState && wallState.username === usernameToLoad
@@ -140,12 +208,48 @@ export function useCollection() {
           if (localStore) saveLastUsername(localStore, usernameToLoad);
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : GENERIC_ERROR_MESSAGE;
-          setError(errorMessage);
+          const code = proxyErrorCode(err);
+          if (code === "signed-out" && session) {
+            onSignedOut?.();
+            setError(SIGNED_OUT_MESSAGE);
+          } else if (code === "private" && linkedState && !own) {
+            setErrorKind("private-shared");
+            setError(PRIVATE_SHARED_WALL_MESSAGE);
+          } else {
+            setErrorKind(code === "private" ? "private" : null);
+            setError(errorMessage);
+          }
         }
       });
     },
-    [startTransition, clearHistory]
+    [startTransition, clearHistory, session, folderId, onSignedOut]
   );
+
+  /**
+   * Chooses a folder of the signed-in visitor's collection, and loads it when their collection is
+   * the one entered.
+   *
+   * @param id Folder id; 0 is the whole collection.
+   */
+  const chooseFolder = (id: number) => {
+    if (!session) return;
+    setChosenFolder({ username: session.username, id });
+    saveFolderChoice(session.username.toLowerCase(), id);
+    if (sameName(username, session.username)) {
+      setSharedWallState(null);
+      void loadCollectionForUsername(session.username, null, false, id);
+    }
+  };
+
+  /**
+   * Loads the signed-in visitor's own collection (straight after signing in).
+   *
+   * @param name Their Discogs username.
+   */
+  const loadOwnCollection = (name: string) => {
+    setTypedUsername(name);
+    void loadCollectionForUsername(name);
+  };
 
   /**
    * Validates the current username and loads the user's Discogs collection.
@@ -230,6 +334,7 @@ export function useCollection() {
       setLoadCount((count) => count + 1);
       clearHistory();
       setError(null);
+      setErrorKind(null);
       setUsernameError(null);
     },
     [demoAlbums, clearHistory]
@@ -285,6 +390,8 @@ export function useCollection() {
     isPending,
     error:
       error ?? (linkedIsDemo && demoStatus === "done" && !demoAlbums ? DEMO_MISSING_MESSAGE : null),
+    errorKind,
+    folderId,
     usernameError,
     demoAvailable: demoAlbums !== null,
     canUndo: history.canUndo,
@@ -296,5 +403,7 @@ export function useCollection() {
     forgetUndo,
     retry,
     loadDemo,
+    chooseFolder,
+    loadOwnCollection,
   };
 }

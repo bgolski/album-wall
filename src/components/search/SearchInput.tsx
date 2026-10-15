@@ -1,5 +1,8 @@
 import { AppHeader } from "../layout/AppHeader";
 import { SubmitButton } from "../ui/SubmitButton";
+import { FolderPicker } from "./FolderPicker";
+import type { DiscogsAccountProps } from "../account/DiscogsAccount";
+import type { DiscogsFolder } from "@/utils/discogsSignIn";
 
 interface SearchInputProps {
   username: string;
@@ -8,6 +11,11 @@ interface SearchInputProps {
   onUsernameChange: (value: string) => void;
   onLoadCollection: () => void;
   onTryDemo?: (() => void) | undefined;
+  account?: DiscogsAccountProps | undefined;
+  /** The signed-in visitor's folders, offered while their own username is entered. */
+  folders?: DiscogsFolder[];
+  folderId?: number;
+  onFolderChange?: (folderId: number) => void;
 }
 
 /**
@@ -20,7 +28,16 @@ export function SearchInput({
   onUsernameChange,
   onLoadCollection,
   onTryDemo,
+  account,
+  folders = [],
+  folderId = 0,
+  onFolderChange,
 }: SearchInputProps) {
+  const showFolders =
+    folders.length > 1 &&
+    onFolderChange !== undefined &&
+    account?.username != null &&
+    username.trim().toLowerCase() === account.username.toLowerCase();
   const inputClassName = `w-full rounded-control bg-raised border px-4 py-2 text-ink focus:outline-hidden focus:border-accent md:flex-1 md:rounded-r-none ${
     usernameError ? "border-danger" : "border-line"
   }`;
@@ -34,7 +51,7 @@ export function SearchInput({
 
   return (
     <div className="mb-8 text-center">
-      <AppHeader onTryDemo={onTryDemo} demoDisabled={isPending} />
+      <AppHeader onTryDemo={onTryDemo} demoDisabled={isPending} account={account} />
 
       <div className="flex flex-col items-center">
         <form
@@ -66,6 +83,15 @@ export function SearchInput({
           >
             {usernameError}
           </p>
+        )}
+
+        {showFolders && (
+          <FolderPicker
+            folders={folders}
+            folderId={folderId}
+            disabled={isPending}
+            onChange={onFolderChange}
+          />
         )}
       </div>
     </div>

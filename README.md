@@ -9,7 +9,7 @@ I collect vinyl and hang part of the collection on a wall, swapping records ever
 ## What it does
 
 - **Try it without an account.** First-time visitors are offered a demo wall of 96 well-known albums, with covers loaded from the Cover Art Archive. The demo link stays in the header.
-- **Load a Discogs collection** by username.
+- **Load a Discogs collection** by username, or **sign in with Discogs** to load your own private collection or one of its folders. The sign-in key stays in your browser; the proxy passes it to Discogs and keeps nothing.
 - **Rearrange by dragging** records between the wall and the pool, or tap a record to move or swap it.
 - **Pin** records so that shuffling and swapping leave them in place. **Shuffle** only moves unpinned records, and **Undo** steps back.
 - **Sort** by artist or genre, change the grid size, and hide the labels.
@@ -37,7 +37,7 @@ Captured from the static build using `scripts/capture-case-study.ts` (the revisi
 ## How it is built
 
 - **Frontend:** a Next.js, React and TypeScript app exported as static files and hosted on GitHub Pages. Tailwind CSS handles styling, [dnd-kit](https://dndkit.com/) the drag and drop, and html2canvas the image export.
-- **Discogs proxy:** the browser cannot call the Discogs API with credentials, so a small AWS Lambda behind a Function URL fetches collections. The Discogs credentials live in AWS SSM Parameter Store and never reach the client. The Lambda runs with reserved concurrency of 5. The stack is defined with the AWS CDK in [`infra/`](infra/README.md).
+- **Discogs proxy:** the browser cannot call the Discogs API with credentials, so a small AWS Lambda behind a Function URL fetches collections. The Discogs credentials live in AWS SSM Parameter Store and never reach the client. Signing in uses Discogs' OAuth 1.0a through the same proxy: the visitor's access token is kept in their browser and sent with their requests, and the proxy signs them with the app's consumer secret without storing anything ([details](infra/README.md#sign-in-with-discogs)). The Lambda runs with reserved concurrency of 5. The stack is defined with the AWS CDK in [`infra/`](infra/README.md).
 - **Cover images:** Discogs serves covers without the CORS header a page needs to read their pixels, which saving an image and measuring colors both do. A second Lambda (arm64, [sharp](https://sharp.pixelplumbing.com/)) fetches covers from Discogs and the Cover Art Archive only, and returns square WebP copies at 64, 320 or 600 pixels with `Access-Control-Allow-Origin: *`. It sits behind the short link CloudFront distribution at `/img`, which caches each copy for a year by cover address and width; only CloudFront may call it (origin access control). Covers from other hosts, or any the service cannot fetch, go through the public [images.weserv.nl](https://images.weserv.nl/) proxy instead.
 - **Deployment:** every push to `main` runs a GitHub Actions workflow that deploys the CDK stack, builds the static site with the proxy URL it produces, checks the build output and publishes to GitHub Pages. AWS access uses GitHub OIDC, so there is no stored access key.
 - **Demo data:** a JSON list of 96 albums in `public/demo/collection.json`. Only the cover images load from outside the app, from the Cover Art Archive.

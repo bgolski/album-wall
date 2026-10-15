@@ -4,13 +4,19 @@ import { AppContainer } from "./layout/AppContainer";
 import { SearchInput } from "./search/SearchInput";
 import { CollectionManager } from "./collection/CollectionManager";
 import { WelcomeDialog } from "./search/WelcomeDialog";
+import { useEffect } from "react";
 import { useCollection } from "@/hooks/useCollection";
 import { useWelcome } from "@/hooks/useWelcome";
+import { useDiscogsSignIn } from "@/hooks/useDiscogsSignIn";
+import { useDiscogsFolders } from "@/hooks/useDiscogsFolders";
 
 /**
  * Top-level client component that wires collection state to the search and display flows.
  */
 export default function AlbumWallApp() {
+  const discogs = useDiscogsSignIn();
+  const { session, signOut } = discogs;
+  const folders = useDiscogsFolders(session);
   const {
     albums,
     username,
@@ -19,6 +25,8 @@ export default function AlbumWallApp() {
     sharedWallState,
     isPending,
     error,
+    errorKind,
+    folderId,
     usernameError,
     demoAvailable,
     canUndo,
@@ -29,8 +37,27 @@ export default function AlbumWallApp() {
     forgetUndo,
     retry,
     loadDemo,
-  } = useCollection();
+    chooseFolder,
+    loadOwnCollection,
+  } = useCollection(session, signOut);
   const welcome = useWelcome(demoAvailable, albums.length > 0);
+
+  // Straight after signing in, load the visitor's own collection.
+  const { justSignedIn } = discogs;
+  useEffect(() => {
+    if (justSignedIn) loadOwnCollection(justSignedIn);
+    // Only when a sign-in finishes; loadOwnCollection changes with every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justSignedIn]);
+
+  const account = {
+    username: session?.username ?? null,
+    busy: isPending,
+    status: discogs.status,
+    error: discogs.error,
+    onSignIn: () => void discogs.signIn(),
+    onSignOut: signOut,
+  };
 
   const tryDemo = () => {
     welcome.dismiss();
@@ -46,6 +73,10 @@ export default function AlbumWallApp() {
         onUsernameChange={handleUsernameChange}
         onLoadCollection={loadCollection}
         onTryDemo={demoAvailable ? tryDemo : undefined}
+        account={account}
+        folders={folders}
+        folderId={folderId}
+        onFolderChange={chooseFolder}
       />
 
       <CollectionManager
@@ -56,6 +87,8 @@ export default function AlbumWallApp() {
         sharedWallState={sharedWallState}
         isPending={isPending}
         error={error}
+        errorKind={errorKind}
+        onSignIn={session ? undefined : account.onSignIn}
         onAlbumsReorder={handleAlbumsReorder}
         canUndo={canUndo}
         onUndo={undo}

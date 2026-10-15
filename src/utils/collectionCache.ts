@@ -71,3 +71,27 @@ export function writeCachedCollection(
     return false;
   }
 }
+
+/**
+ * Removes the recently loaded copies of a user's collection and its folders, so nothing loaded
+ * while signed in stays behind after signing out.
+ *
+ * @param storage Session storage.
+ * @param username Whose copies to remove.
+ */
+export function clearCachedCollections(
+  storage: Pick<Storage, "key" | "length" | "removeItem">,
+  username: string
+) {
+  const key = `album-wall:collection:${username.trim().toLowerCase()}`;
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index++) {
+      const candidate = storage.key(index);
+      if (candidate === key || candidate?.startsWith(`${key}#`)) keys.push(candidate);
+    }
+    for (const candidate of keys) storage.removeItem(candidate);
+  } catch {
+    // Storage is blocked; nothing was kept.
+  }
+}

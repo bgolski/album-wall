@@ -1,8 +1,21 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { ShareInputError, parseShareRequest, storeSharedWall } from "./share";
+import {
+  AccessToken,
+  Consumer,
+  DISCOGS_API,
+  SignInError,
+  USER_AGENT,
+  finishSignIn,
+  isAllowedCallback,
+  isTokenValue,
+  readAccessHeader,
+  signedHeaders,
+  startSignIn,
+} from "./oauth";
 
-const BASE_URL = "https://api.discogs.com";
+const BASE_URL = DISCOGS_API;
 const COLLECTION_PAGE_SIZE = 100;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
@@ -53,6 +66,7 @@ type Album = {
 
 type LambdaEvent = {
   rawPath?: string;
+  headers?: Record<string, string | undefined> | null;
   body?: string | null;
   isBase64Encoded?: boolean;
   queryStringParameters?: Record<string, string | undefined> | null;
@@ -260,18 +274,22 @@ async function makeRequestWithRetry<T>(
  * Fetches a single page from the Discogs collection endpoint.
  *
  * @param username Discogs username whose collection should be loaded.
- * @param token Discogs personal token used for authenticated requests.
+ * @param headers Builds the request headers (a signed-in request needs a new nonce each time).
  * @param page Collection page number to fetch.
  * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
+ * @param folderId Collection folder; 0 is the whole collection.
  * @returns One page of the Discogs collection response.
  */
 async function fetchCollectionPage(
   username: string,
-  token: string,
+  headers: () => Record<string, string>,
   page: number,
-  deadline: number
+  deadline: number,
+  folderId = 0
 ): Promise<DiscogsCollectionResponse> {
-  const requestUrl = new URL(`${BASE_URL}/users/${username}/collection/folders/0/releases`);
+  const requestUrl = new URL(
+    `${BASE_URL}/users/${username}/collection/folders/${folderId}/releases`
+  );
 
   requestUrl.searchParams.set("per_page", String(COLLECTION_PAGE_SIZE));
   requestUrl.searchParams.set("sort", "artist");
@@ -282,10 +300,7 @@ async function fetchCollectionPage(
 
     try {
       response = await fetch(requestUrl, {
-        headers: {
-          Authorization: `Discogs token=${token}`,
-          "User-Agent": "album-wall-discogs-proxy/1.0",
-        },
+        headers: headers(),
         signal: AbortSignal.timeout(
           Math.min(REQUEST_TIMEOUT_MS, Math.max(deadline - Date.now(), 1))
         ),
@@ -313,12 +328,61 @@ async function fetchCollectionPage(
 }
 
 /**
+ * Reads the app's consumer key and secret.
+ *
+ * @returns The consumer key and secret.
+ */
+async function getConsumer(): Promise<Consumer> {
+  const keyName = process.env.DISCOGS_CONSUMER_KEY_PARAMETER_NAME;
+  const secretName = process.env.DISCOGS_CONSUMER_SECRET_PARAMETER_NAME;
+  if (!keyName || !secretName) {
+    throw new SignInError("Signing in with Discogs is not set up.", 404);
+  }
+  const [key, secret] = await Promise.all([
+    getSecureParameter(keyName),
+    getSecureParameter(secretName),
+  ]);
+  return { key, secret };
+}
+
+/**
+ * Request headers for Discogs: signed as the visitor when they signed in, otherwise with the
+ * app's shared token.
+ *
+ * @param access The visitor's access token, when signed in.
+ * @returns A function that builds the headers for one request.
+ */
+async function getRequestHeaders(
+  access: AccessToken | null
+): Promise<() => Record<string, string>> {
+  if (access) {
+    const consumer = await getConsumer();
+    return () => signedHeaders(consumer, access);
+  }
+
+  const tokenParameterName = process.env.DISCOGS_TOKEN_PARAMETER_NAME;
+
+  if (!tokenParameterName) {
+    throw new Error("Lambda is missing DISCOGS_TOKEN_PARAMETER_NAME.");
+  }
+
+  const token = await getSecureParameter(tokenParameterName);
+  return () => ({ Authorization: `Discogs token=${token}`, "User-Agent": USER_AGENT });
+}
+
+/**
  * Fetches and normalizes a user's Discogs collection into the frontend album shape.
  *
  * @param username Discogs username whose collection should be loaded.
+ * @param access The visitor's access token, when signed in.
+ * @param folderId Collection folder; 0 is the whole collection.
  * @returns Normalized album array sorted by Discogs artist order.
  */
-async function getUserCollection(username: string): Promise<Album[]> {
+async function getUserCollection(
+  username: string,
+  access: AccessToken | null = null,
+  folderId = 0
+): Promise<Album[]> {
   if (!username.trim()) {
     throw new Error("Username cannot be empty");
   }
@@ -329,15 +393,9 @@ async function getUserCollection(username: string): Promise<Album[]> {
     );
   }
 
-  const tokenParameterName = process.env.DISCOGS_TOKEN_PARAMETER_NAME;
-
-  if (!tokenParameterName) {
-    throw new Error("Lambda is missing DISCOGS_TOKEN_PARAMETER_NAME.");
-  }
-
   const deadline = Date.now() + TIME_BUDGET_MS;
-  const token = await getSecureParameter(tokenParameterName);
-  const firstPage = await fetchCollectionPage(username, token, 1, deadline);
+  const headers = await getRequestHeaders(access);
+  const firstPage = await fetchCollectionPage(username, headers, 1, deadline, folderId);
   const allReleases = [...(firstPage.releases || [])];
   const totalPages = Math.max(firstPage.pagination?.pages || 1, 1);
   const totalItems = firstPage.pagination?.items ?? allReleases.length;
@@ -356,7 +414,7 @@ async function getUserCollection(username: string): Promise<Album[]> {
       (_, offset) => first + offset
     );
     const responses = await Promise.all(
-      pages.map((page) => fetchCollectionPage(username, token, page, deadline))
+      pages.map((page) => fetchCollectionPage(username, headers, page, deadline, folderId))
     );
     for (const pageResponse of responses) allReleases.push(...(pageResponse.releases || []));
   }
@@ -387,13 +445,30 @@ async function getUserCollection(username: string): Promise<Album[]> {
  *
  * @param error Failure thrown while fetching or normalizing the collection.
  * @param username Username associated with the request.
+ * @param signedIn Whether the request was made as a signed-in visitor.
  * @returns Consistent JSON error response for the frontend.
  */
-function mapErrorToResponse(error: unknown, username: string) {
+function mapErrorToResponse(error: unknown, username: string, signedIn = false) {
   const statusCode =
     error instanceof Error && "statusCode" in error
       ? Number((error as Error & { statusCode?: number }).statusCode)
       : undefined;
+
+  if (statusCode === 403) {
+    return jsonResponse(403, {
+      code: "private",
+      error: signedIn
+        ? `Discogs does not let this account see that collection or folder.`
+        : `The collection of "${username}" is private on Discogs. Its owner can sign in with Discogs to load it.`,
+    });
+  }
+
+  if (statusCode === 401 && signedIn) {
+    return jsonResponse(401, {
+      code: "signed-out",
+      error: "Your Discogs sign-in has ended. Please sign in again.",
+    });
+  }
 
   if (statusCode === 404) {
     return jsonResponse(404, {
@@ -470,7 +545,134 @@ async function createShortLink(event: LambdaEvent) {
 }
 
 /**
- * Lambda Function URL handler for the Discogs collection proxy, which also
+ * Describes an error for the logs without anything it might carry from a request: only its kind,
+ * message (always written by this proxy) and status.
+ *
+ * @param error The error.
+ * @returns A short description.
+ */
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return "Unknown error";
+  // Errors without a status come from elsewhere (the network, the runtime); only their kind is
+  // kept, in case their text repeats part of a request.
+  const statusCode = (error as DiscogsError).statusCode;
+  if (!statusCode) return error.name;
+  return `${error.name}: ${error.message} (${statusCode})`;
+}
+
+/**
+ * Reads a JSON request body.
+ *
+ * @param event Function URL request.
+ * @returns The parsed body, or null when it is missing or not a JSON object.
+ */
+function readJsonBody(event: LambdaEvent): Record<string, unknown> | null {
+  const text = event.isBase64Encoded
+    ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
+    : (event.body ?? "");
+  if (text.length > 4000) return null;
+  try {
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Answers a sign-in failure.
+ *
+ * @param error The failure.
+ * @returns A JSON error response.
+ */
+function signInErrorResponse(error: unknown) {
+  if (error instanceof SignInError) {
+    if (error.statusCode >= 500) console.error("Discogs sign-in failed:", describeError(error));
+    return jsonResponse(error.statusCode, { error: error.message });
+  }
+  console.error("Discogs sign-in failed:", describeError(error));
+  return jsonResponse(500, { error: "Signing in with Discogs failed. Please try again." });
+}
+
+/**
+ * Starts a Discogs sign-in (`POST /oauth/start` with `{ callback }`).
+ *
+ * @param event Function URL request.
+ * @returns The Discogs approval page plus the request token and secret for the browser to hold.
+ */
+async function startOAuth(event: LambdaEvent) {
+  const callback = readJsonBody(event)?.callback;
+  if (!isAllowedCallback(callback)) {
+    return jsonResponse(400, { error: "Sign-in is only possible from the Album Wall app." });
+  }
+  try {
+    return jsonResponse(200, await startSignIn(await getConsumer(), callback));
+  } catch (error) {
+    return signInErrorResponse(error);
+  }
+}
+
+/**
+ * Finishes a Discogs sign-in (`POST /oauth/finish` with `{ token, secret, verifier }`).
+ *
+ * @param event Function URL request.
+ * @returns The visitor's access token and secret, for their browser to keep, and their username.
+ */
+async function finishOAuth(event: LambdaEvent) {
+  const body = readJsonBody(event);
+  const { token, secret, verifier } = body ?? {};
+  if (!isTokenValue(token) || !isTokenValue(secret) || !isTokenValue(verifier)) {
+    return jsonResponse(400, { error: "The sign-in could not be finished. Please try again." });
+  }
+  try {
+    return jsonResponse(200, await finishSignIn(await getConsumer(), { token, secret }, verifier));
+  } catch (error) {
+    return signInErrorResponse(error);
+  }
+}
+
+/**
+ * Lists the signed-in visitor's collection folders (`GET /folders?username=`).
+ *
+ * @param username The visitor's Discogs username.
+ * @param access The visitor's access token.
+ * @returns `{ folders: [{ id, name, count }] }`, or an error.
+ */
+async function listFolders(username: string, access: AccessToken) {
+  try {
+    const headers = signedHeaders(await getConsumer(), access);
+    let response: Response;
+    try {
+      response = await fetch(`${BASE_URL}/users/${username}/collection/folders`, {
+        headers,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      throw httpError("Discogs took too long to respond.", 504);
+    }
+    if (!response.ok) throw httpError("Discogs could not list the folders.", response.status);
+    const body = (await response.json()) as {
+      folders?: { id?: unknown; name?: unknown; count?: unknown }[];
+    };
+    const folders = (body.folders ?? [])
+      .filter((folder) => Number.isInteger(folder.id) && typeof folder.name === "string")
+      .map((folder) => ({
+        id: folder.id as number,
+        name: folder.name as string,
+        count: Number.isInteger(folder.count) ? (folder.count as number) : 0,
+      }));
+    return jsonResponse(200, { folders });
+  } catch (error) {
+    console.error("Error listing Discogs folders:", describeError(error));
+    return mapErrorToResponse(error, username, true);
+  }
+}
+
+/**
+ * Lambda Function URL handler for the Discogs collection proxy, which also signs visitors in with
+ * Discogs (`POST /oauth/start`, `POST /oauth/finish`), lists their folders (`GET /folders`) and
  * makes short share links (`POST /share`).
  *
  * @param event Function URL request event with query parameters.
@@ -478,10 +680,14 @@ async function createShortLink(event: LambdaEvent) {
  */
 export async function handler(event: LambdaEvent) {
   const method = event.requestContext?.http?.method ?? "GET";
+  const path = event.rawPath?.replace(/\/+$/, "") ?? "";
 
-  if (method === "POST" && event.rawPath?.replace(/\/+$/, "").endsWith("/share")) {
+  if (method === "POST" && path.endsWith("/share")) {
     return createShortLink(event);
   }
+
+  if (method === "POST" && path.endsWith("/oauth/start")) return startOAuth(event);
+  if (method === "POST" && path.endsWith("/oauth/finish")) return finishOAuth(event);
 
   if (method !== "GET") {
     return jsonResponse(405, {
@@ -497,15 +703,45 @@ export async function handler(event: LambdaEvent) {
     });
   }
 
+  const headers = event.headers ?? {};
+  const access = readAccessHeader(headers.authorization ?? headers.Authorization);
+  if (access === undefined) {
+    return jsonResponse(401, {
+      code: "signed-out",
+      error: "Your Discogs sign-in could not be read. Please sign in again.",
+    });
+  }
+
+  if (path.endsWith("/folders")) {
+    if (!access)
+      return jsonResponse(401, { code: "signed-out", error: "Sign in to list folders." });
+    if (!validateDiscogsUsername(username)) {
+      return jsonResponse(400, { error: "Invalid username format." });
+    }
+    return listFolders(username, access);
+  }
+
+  const folderText = event.queryStringParameters?.folder ?? "0";
+  const folderId = /^\d{1,10}$/.test(folderText) ? Number(folderText) : -1;
+  if (folderId < 0 || folderId > 2 ** 31) {
+    return jsonResponse(400, { error: "Invalid folder." });
+  }
+  if (folderId !== 0 && !access) {
+    return jsonResponse(401, {
+      code: "signed-out",
+      error: "Sign in with Discogs to load a folder.",
+    });
+  }
+
   try {
-    const albums = await getUserCollection(username);
+    const albums = await getUserCollection(username, access, folderId);
 
     return jsonResponse(200, {
       username,
       albums,
     });
   } catch (error) {
-    console.error("Error loading Discogs collection:", error);
-    return mapErrorToResponse(error, username);
+    console.error("Error loading Discogs collection:", describeError(error));
+    return mapErrorToResponse(error, username, access !== null);
   }
 }

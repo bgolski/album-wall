@@ -111,7 +111,8 @@ export class AlbumWallStack extends cdk.Stack {
       cors: {
         allowedOrigins: ALLOWED_FRONTEND_ORIGINS,
         allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.POST],
-        allowedHeaders: ["content-type"],
+        // "authorization" carries a signed-in visitor's Discogs access token.
+        allowedHeaders: ["content-type", "authorization"],
       },
     });
 

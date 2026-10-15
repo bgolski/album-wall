@@ -52,6 +52,22 @@ describe("cost guardrails", () => {
     }
   });
 
+  it("lets the app send a signed-in visitor's token to the proxy, from its own sites only", () => {
+    stack.hasResourceProperties("AWS::Lambda::Url", {
+      AuthType: "NONE",
+      Cors: Match.objectLike({
+        AllowHeaders: ["content-type", "authorization"],
+        AllowOrigins: Match.arrayWith(["https://bradleygolski.com"]),
+      }),
+    });
+  });
+
+  it("lets the proxy read the Discogs consumer key and secret for signing in", () => {
+    const policies = JSON.stringify(stack.findResources("AWS::IAM::Policy"));
+    expect(policies).toContain("discogs-consumer-key");
+    expect(policies).toContain("discogs-consumer-secret");
+  });
+
   it("caps the proxy's concurrency so abuse is throttled rather than billed", () => {
     stack.hasResourceProperties("AWS::Lambda::Function", { ReservedConcurrentExecutions: 5 });
   });
