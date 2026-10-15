@@ -40,7 +40,18 @@ type DiscogsRelease = {
     cover_image?: string;
     artists?: DiscogsArtist[];
     genres?: string[];
+    styles?: string[];
+    year?: number;
+    labels?: { name: string }[];
+    formats?: DiscogsFormat[];
   };
+  date_added?: string;
+};
+
+type DiscogsFormat = {
+  name?: string;
+  text?: string;
+  descriptions?: string[];
 };
 
 type DiscogsCollectionResponse = {
@@ -61,7 +72,11 @@ type Album = {
   discogsUrl?: string | undefined;
   artist: string;
   genre?: string[];
+  styles?: string[];
   year?: string;
+  label?: string;
+  format?: string[];
+  dateAdded?: string;
 };
 
 type LambdaEvent = {
@@ -193,6 +208,32 @@ function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
   }
 
   return `https://www.discogs.com/release/${releaseId}`;
+}
+
+/**
+ * Lists a release's format details, such as "LP", "Album", "Reissue" or a vinyl color, once each
+ * in Discogs order. The format name itself ("Vinyl") says nothing on a record wall.
+ *
+ * @param formats Discogs format entries for the release.
+ * @returns Descriptions and free text of every format, without repeats.
+ */
+function extractFormatDetails(formats?: DiscogsFormat[]): string[] {
+  const details = (formats ?? []).flatMap((format) => [
+    ...(format.descriptions ?? []),
+    ...(format.text ? [format.text] : []),
+  ]);
+  return [...new Set(details.map((detail) => detail.trim()).filter(Boolean))];
+}
+
+/**
+ * Normalizes the time a record was added to the collection to an ISO timestamp in UTC.
+ *
+ * @param dateAdded Discogs `date_added`, such as "2017-03-14T10:45:25-07:00".
+ * @returns The ISO timestamp, or an empty string when it is missing or unreadable.
+ */
+function normalizeDateAdded(dateAdded?: string): string {
+  const time = dateAdded ? Date.parse(dateAdded) : NaN;
+  return Number.isNaN(time) ? "" : new Date(time).toISOString();
 }
 
 type DiscogsError = Error & { statusCode?: number; retryAfterMs?: number; timedOut?: boolean };
@@ -435,7 +476,12 @@ async function getUserCollection(
       discogsUrl: getDiscogsReleaseUrl(release),
       artist: extractArtistName(basicInfo.artists),
       genre: basicInfo.genres || [],
-      year: "",
+      styles: basicInfo.styles || [],
+      // Discogs gives 0 when the year is unknown.
+      year: basicInfo.year ? String(basicInfo.year) : "",
+      label: basicInfo.labels?.[0]?.name ? cleanArtistName(basicInfo.labels[0].name) : "",
+      format: extractFormatDetails(basicInfo.formats),
+      dateAdded: normalizeDateAdded(release.date_added),
     };
   });
 }

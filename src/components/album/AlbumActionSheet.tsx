@@ -55,7 +55,9 @@ export function AlbumActionSheet({
   }, [onClose]);
 
   const title = album.title || "Untitled album";
-  const details = [album.year, album.genre?.join(", ")].filter(Boolean).join(" · ");
+  const release = [album.year, album.label].filter(Boolean).join(" · ");
+  // Genres first, then the finer styles Discogs files the record under.
+  const kinds = [album.genre?.join(", "), album.styles?.join(", ")].filter(Boolean).join(" · ");
   const actionClass =
     "w-full rounded-control bg-raised px-4 py-3 text-left text-ink hover:bg-line disabled:opacity-50";
 
@@ -76,7 +78,8 @@ export function AlbumActionSheet({
         <div className="mb-4">
           <h2 className="text-lg font-bold text-ink">{title}</h2>
           <p className="text-ink">{album.artist}</p>
-          {details && <p className="text-sm text-muted">{details}</p>}
+          {release && <p className="text-sm text-muted">{release}</p>}
+          {kinds && <p className="text-sm text-muted">{kinds}</p>}
           {lastHungOn !== undefined && (
             <p className="text-sm text-muted">
               {lastHungOn

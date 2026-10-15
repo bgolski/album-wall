@@ -17,7 +17,11 @@ export const albums = Array.from({ length: 40 }, (_, index) => ({
   discogsUrl: `https://www.discogs.com/release/${index + 1}`,
   artist: `Artist ${index + 1}`,
   genre: ["Rock"],
+  styles: ["Hard Rock", "Blues Rock"],
   year: "1999",
+  label: `Label ${index + 1}`,
+  format: ["LP", "Album"],
+  dateAdded: "2024-05-01T12:00:00.000Z",
 }));
 
 export async function stubNetwork(page: Page) {

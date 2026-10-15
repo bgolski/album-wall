@@ -316,6 +316,74 @@ describe("response fields", () => {
   });
 });
 
+describe("record details", () => {
+  async function albumsFor(releases: unknown[]) {
+    jest
+      .mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ pagination: { pages: 1 }, releases }), { status: 200 })
+      );
+    const handler = await loadHandler();
+    const resp = await handler(makeEvent({ username: "detailsuser" }));
+    expect(resp.statusCode).toBe(200);
+    return bodyOf(resp).albums;
+  }
+
+  it("passes through styles, year, label, format details and date added", async () => {
+    const [album] = await albumsFor([
+      {
+        id: 7,
+        date_added: "2017-03-14T10:45:25-07:00",
+        basic_information: {
+          id: 70,
+          title: "Back in Black",
+          artists: [{ name: "AC/DC" }],
+          genres: ["Rock"],
+          styles: ["Hard Rock", "Blues Rock"],
+          year: 1980,
+          labels: [{ name: "Albert Productions (2)" }, { name: "Atlantic" }],
+          formats: [
+            { name: "Vinyl", qty: "1", text: "Red", descriptions: ["LP", "Album", "Reissue"] },
+            { name: "Vinyl", qty: "1", descriptions: ["LP"] },
+          ],
+        },
+      },
+    ]);
+
+    expect(album.styles).toEqual(["Hard Rock", "Blues Rock"]);
+    expect(album.year).toBe("1980");
+    expect(album.label).toBe("Albert Productions");
+    expect(album.format).toEqual(["LP", "Album", "Reissue", "Red"]);
+    expect(album.dateAdded).toBe("2017-03-14T17:45:25.000Z");
+  });
+
+  it("gives empty values when Discogs leaves them out or does not know the year", async () => {
+    const [missing, unknownYear] = await albumsFor([
+      { id: 8, basic_information: { id: 80, title: "Bare", artists: [{ name: "Someone" }] } },
+      {
+        id: 9,
+        date_added: "not a date",
+        basic_information: {
+          id: 90,
+          title: "Undated",
+          artists: [{ name: "Someone" }],
+          year: 0,
+          labels: [],
+          formats: [{ name: "Vinyl", qty: "1" }],
+        },
+      },
+    ]);
+
+    for (const album of [missing, unknownYear]) {
+      expect(album.styles).toEqual([]);
+      expect(album.year).toBe("");
+      expect(album.label).toBe("");
+      expect(album.format).toEqual([]);
+      expect(album.dateAdded).toBe("");
+    }
+  });
+});
+
 /* -------------------------------------------------- */
 /*  error handling                                     */
 /* -------------------------------------------------- */

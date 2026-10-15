@@ -9,7 +9,15 @@ export interface Album {
   discogsUrl?: string;
   artist: string;
   genre?: string[];
+  /** Discogs styles, finer than genres (such as "Hard Rock" or "Neo Soul"). */
+  styles?: string[];
   year?: string;
+  /** The first record label, without the number Discogs adds to tell labels apart. */
+  label?: string;
+  /** Format details such as "LP", "Album", "Reissue" or a vinyl color. */
+  format?: string[];
+  /** When the record was added to the Discogs collection, as an ISO timestamp. */
+  dateAdded?: string;
   error?: boolean;
   /** The cover's color when it is already known, such as the demo's precomputed colors. */
   color?: CoverColor;
@@ -29,7 +37,12 @@ export interface DiscogsRelease {
       join?: string;
     }[];
     genres?: string[];
+    styles?: string[];
+    year?: number;
+    labels?: { name: string }[];
+    formats?: { name?: string; text?: string; descriptions?: string[] }[];
   };
+  date_added?: string;
 }
 
 export interface DiscogsCollectionResponse {

@@ -17,6 +17,9 @@ describe("parseDemoCollection", () => {
       )
     ).toBe(true);
     expect(result?.every((item) => item.genre?.length && item.year)).toBe(true);
+    // Styles come from Discogs where it links the album; there is no made-up date added.
+    expect(result?.filter((item) => item.styles?.length).length).toBeGreaterThanOrEqual(90);
+    expect(result?.some((item) => item.dateAdded)).toBe(false);
   });
 
   it("rejects invalid envelopes", () => {

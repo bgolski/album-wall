@@ -33,7 +33,11 @@ for (const colorScheme of ["light", "dark"] as const) {
     test("album action sheet", async ({ page }) => {
       await loadWall(page);
       await page.locator("[data-album-id]").first().click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+      const sheet = page.getByRole("dialog");
+      await expect(sheet).toBeVisible();
+      // The details from Discogs are part of what is checked.
+      await expect(sheet.getByText(/^1999 · Label \d+$/)).toBeVisible();
+      await expect(sheet.getByText("Rock · Hard Rock, Blues Rock")).toBeVisible();
       await expectNoViolations(page);
     });
 
