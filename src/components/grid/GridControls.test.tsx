@@ -63,13 +63,14 @@ describe("GridControls", () => {
       within(group)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["By hand", "Artist", "Genre", "Color", "Shuffle"]);
+    ).toEqual(["By hand", "Artist", "Genre", "Year", "Color", "Shuffle"]);
   });
 
   it.each([
     ["none", "By hand"],
     ["artist", "Artist"],
     ["genre", "Genre"],
+    ["year", "Year"],
     ["color", "Color"],
   ] as const)("marks the %s sort as pressed and the others as not pressed", (option, label) => {
     renderControls({ sortOption: option });
@@ -77,7 +78,7 @@ describe("GridControls", () => {
     const modes = within(group)
       .getAllByRole("button")
       .filter((button) => button.hasAttribute("aria-pressed"));
-    expect(modes).toHaveLength(4);
+    expect(modes).toHaveLength(5);
     for (const button of modes) {
       expect(button.getAttribute("aria-pressed")).toBe(
         button.textContent === label ? "true" : "false"

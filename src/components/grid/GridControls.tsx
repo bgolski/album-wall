@@ -28,12 +28,15 @@ interface GridControlsProps {
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   /** The image size menu, drawn under the Save image button. */
   exportMenu?: ReactNode;
+  /** One-tap choices for the open Arrange mode, drawn under the controls. */
+  arrangeChoices?: ReactNode;
 }
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "none", label: "By hand" },
   { value: "artist", label: "Artist" },
   { value: "genre", label: "Genre" },
+  { value: "year", label: "Year" },
   { value: "color", label: "Color" },
 ];
 
@@ -109,6 +112,7 @@ export function GridControls({
   exportMenuId,
   exportButtonRef,
   exportMenu,
+  arrangeChoices,
 }: GridControlsProps) {
   const panelButtonClass = (open: boolean) =>
     `${buttonClass} ${open ? "bg-line ring-2 ring-inset ring-accent" : "bg-raised hover:bg-line"}`;
@@ -118,7 +122,7 @@ export function GridControls({
       <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:gap-x-6">
         <ControlGroup id="arrange-heading" label="Arrange">
           <div className="flex gap-1.5 sm:gap-2">
-            <div className="grid flex-1 grid-cols-4 gap-0.5 rounded-control bg-raised p-0.5 lg:flex lg:flex-none">
+            <div className="grid flex-1 grid-cols-3 gap-0.5 sm:grid-cols-5 rounded-control bg-raised p-0.5 lg:flex lg:flex-none">
               {SORT_OPTIONS.map((option) => (
                 <button
                   key={option.value}
@@ -278,6 +282,7 @@ export function GridControls({
           </div>
         </ControlGroup>
       </div>
+      {arrangeChoices}
       {sortStatus && (
         <p role="status" className="mt-3 text-sm text-muted">
           {sortStatus}

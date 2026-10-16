@@ -8,6 +8,7 @@ import { useGridExport } from "@/hooks/useGridExport";
 import { useAlbumShuffle } from "@/hooks/useAlbumShuffle";
 import { useAlbumLabels } from "@/hooks/useAlbumLabels";
 import { useGradientBuilder } from "@/hooks/useGradientBuilder";
+import { useGroupBuilder } from "@/hooks/useGroupBuilder";
 import { useMoveMode } from "@/hooks/useMoveMode";
 import { useWallDrag, DRAG_INSTRUCTIONS } from "@/hooks/useWallDrag";
 import { useRememberWall } from "@/hooks/useRememberWall";
@@ -25,6 +26,7 @@ import { CoverSourceNotice } from "./CoverSourceNotice";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
 import { LayoutsPanel } from "../layouts/LayoutsPanel";
 import { GradientPanel } from "../gradient/GradientPanel";
+import { GroupChoices } from "../arrange/GroupPanel";
 import { ExportDropdown } from "./ExportDropdown";
 import { DockedPanel } from "./DockedPanel";
 import { WallDisplay } from "./WallDisplay";
@@ -36,7 +38,7 @@ import { Toast } from "../ui/Toast";
 const PANEL_LABELS: Record<WallPanel, string> = {
   size: "Wall size",
   layouts: "Layouts",
-  color: "Sort by Color",
+  arrange: "Arrange",
 };
 
 interface RecordGridProps {
@@ -112,21 +114,11 @@ export function RecordGrid({
 
   const colorSortActive = sorting.sortOption === "color";
 
-  // Sorting by artist or genre is a view of the wall; Sort by Color changes it only when a
-  // gradient wall is built.
-  const wallAlbums =
-    sorting.sortOption === "none" || colorSortActive
-      ? displayedAlbums
-      : sorting.sortAlbums(displayedAlbums, pinnedAlbums);
-
-  // A change made by hand (drag, move, shuffle) applies to the wall as shown, and becomes the custom
-  // order; otherwise the sort would put the wall straight back.
-  const reorderByHand = (next: Album[]) => {
-    if (sorting.sortOption === "artist" || sorting.sortOption === "genre") {
-      sorting.handleSortChange("none");
-    }
-    onAlbumsReorder(next);
-  };
+  // The wall changes only when an Arrange panel builds one.
+  const wallAlbums = displayedAlbums;
+  const reorderByHand = onAlbumsReorder;
+  const groupMode =
+    sorting.sortOption === "none" || sorting.sortOption === "color" ? null : sorting.sortOption;
   const history = useHangHistory(username);
   const restCost = useMemo(() => recentlyHungCost(history.hangs), [history.hangs]);
   const gradient = useGradientBuilder({
@@ -137,6 +129,14 @@ export function RecordGrid({
     pinnedAlbums,
     onAlbumsReorder,
     active: colorSortActive,
+  });
+  const groups = useGroupBuilder({
+    albums,
+    rows,
+    columns,
+    pinnedAlbums,
+    onAlbumsReorder,
+    mode: groupMode,
   });
   const move = useMoveMode({
     displayedAlbums: wallAlbums,
@@ -185,11 +185,11 @@ export function RecordGrid({
    * @param option Sort mode selected from the control bar.
    */
   const handleSortChange = (option: typeof sorting.sortOption) => {
-    // Sorts are views of the wall (By hand returns to the user's own order), and Color opens the
-    // gradient builder (again, if it was closed), so choosing one does not reorder the collection.
+    // Color opens its panel (again, if it was closed); the other modes show their choices in the
+    // toolbar. Choosing a mode does not reorder the collection.
     sorting.handleSortChange(option);
-    if (option === "color") panels.open("color");
-    else if (panels.panel === "color") panels.close();
+    if (option === "color") panels.open("arrange");
+    else if (panels.panel === "arrange") panels.close();
   };
 
   /**
@@ -212,7 +212,7 @@ export function RecordGrid({
    */
   const applyWall = (wall: SharedWallState) => {
     sorting.handleSortChange("none");
-    if (panels.panel === "color") panels.close();
+    if (panels.panel === "arrange") panels.close();
     updateGridDimensions(wall.rows, wall.columns);
     replacePinnedAlbums(wall.pinnedAlbumIds);
     onAlbumsReorder(orderAlbumsBySharedWall(albums, wall));
@@ -224,9 +224,6 @@ export function RecordGrid({
    */
   const handleUndo = () => {
     if (!onUndo?.()) return;
-    // A sort would reapply itself to the restored order; the gradient builder stays open so the
-    // wall can be tried again.
-    if (!colorSortActive) sorting.handleSortChange("none");
     move.cancelMove();
     exportHooks.setStatus({ message: "Undid the last change.", tone: "info" });
   };
@@ -252,8 +249,19 @@ export function RecordGrid({
         <GridControls
           sortOption={sorting.sortOption}
           areAllPinned={areAllPinned(displayedAlbums)}
-          showAlbumLabels={showAlbumLabels ?? false}
+          showAlbumLabels={showAlbumLabels}
           onSortChange={handleSortChange}
+          arrangeChoices={
+            groupMode && (
+              <GroupChoices
+                key={groupMode}
+                mode={groupMode}
+                choices={groups.choices}
+                onBuild={groups.build}
+                onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
+              />
+            )
+          }
           onToggleDimensionsConfig={() => panels.toggle("size")}
           onToggleLayouts={() => panels.toggle("layouts")}
           showLayouts={panels.panel === "layouts"}
@@ -336,7 +344,7 @@ export function RecordGrid({
                     colors: [hex, hex],
                     note: `Starting from a color on ${sheetAlbum.title || "this album"}. Choose Build wall.`,
                   }));
-                  panels.open("color");
+                  panels.open("arrange");
                   move.closeSheet();
                 },
               }
@@ -418,7 +426,7 @@ export function RecordGrid({
             <GradientPanel
               key={gradientStart?.id ?? 0}
               start={gradientStart ?? undefined}
-              isVisible={panels.panel === "color" && colorSortActive}
+              isVisible={panels.panel === "arrange" && colorSortActive}
               rows={rows}
               columns={columns}
               pending={gradient.pending}

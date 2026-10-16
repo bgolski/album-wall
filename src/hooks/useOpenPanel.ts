@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 /** The panels that open beside the wall, one at a time. */
-export type WallPanel = "size" | "layouts" | "color";
+export type WallPanel = "size" | "layouts" | "arrange";
 
 /**
  * Keeps at most one wall panel open. Closing a panel puts focus back on whatever opened it, and

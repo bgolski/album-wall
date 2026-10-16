@@ -29,14 +29,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("RecordGrid after a sort", () => {
-  it("keeps a move made by hand instead of sorting it away, and returns to Custom Order", () => {
+describe("RecordGrid after arranging", () => {
+  it("sorts by artist A to Z, and keeps a move made by hand", () => {
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
     );
     render(<Wall initial={albums} />);
     fireEvent.click(screen.getByRole("button", { name: "Artist" }));
+    expect(wallArtists()).toEqual(["Delta", "Alpha", "Charlie", "Bravo"]);
+    fireEvent.click(screen.getByRole("button", { name: "A to Z" }));
     expect(wallArtists()).toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
 
     // Move Alpha onto Delta's spot with the album sheet's Move.
@@ -45,8 +47,5 @@ describe("RecordGrid after a sort", () => {
     fireEvent.click(screen.getByRole("group", { name: "Album 1 by Delta" }));
 
     expect(wallArtists()).toEqual(["Delta", "Bravo", "Charlie", "Alpha"]);
-    expect(screen.getByRole("button", { name: "By hand" }).getAttribute("aria-pressed")).toBe(
-      "true"
-    );
   });
 });

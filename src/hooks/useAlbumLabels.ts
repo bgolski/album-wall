@@ -1,33 +1,12 @@
-import { useState, useSyncExternalStore } from "react";
-
-const WIDE_SCREEN_QUERY = "(min-width: 768px)";
-
-function subscribeToWideScreen(onChange: () => void) {
-  const query = window.matchMedia(WIDE_SCREEN_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-function getWideScreen() {
-  return window.matchMedia(WIDE_SCREEN_QUERY).matches;
-}
-
-function getNoScreen() {
-  return null;
-}
+import { useState } from "react";
 
 /**
- * Whether album labels show under the covers: on wide screens by default, off on narrow ones,
- * until the user toggles them.
+ * Whether album labels show under the covers: off until the user turns them on.
  *
- * @returns Whether labels show (`null` before the screen is known) and a toggle.
+ * @returns Whether labels show, and a toggle.
  */
 export function useAlbumLabels() {
-  const [labelsOverride, setLabelsOverride] = useState<boolean | null>(null);
-  const wideScreen = useSyncExternalStore(subscribeToWideScreen, getWideScreen, getNoScreen);
-  const showAlbumLabels = labelsOverride ?? wideScreen;
-
-  const toggleAlbumLabels = () => setLabelsOverride(!(showAlbumLabels ?? false));
-
+  const [showAlbumLabels, setShowAlbumLabels] = useState(false);
+  const toggleAlbumLabels = () => setShowAlbumLabels((shown) => !shown);
   return { showAlbumLabels, toggleAlbumLabels };
 }
