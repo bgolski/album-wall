@@ -73,7 +73,7 @@ export function SearchInput({
   if (shown) {
     return (
       <div className="mb-4 text-center">
-        <AppHeader onTryDemo={onTryDemo} demoDisabled={isPending} account={account} compact />
+        <AppHeader account={account} compact />
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-panel bg-panel px-4 py-2 shadow-sm">
           <p className="text-ink">
             {shown.isDemo ? (
