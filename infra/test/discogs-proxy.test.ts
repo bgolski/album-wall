@@ -59,6 +59,37 @@ describe("cleanArtistName", () => {
 /*  handler — method validation                        */
 /* -------------------------------------------------- */
 
+describe("cache headers", () => {
+  async function respond(query: Record<string, string>, headers: Record<string, string> = {}) {
+    global.fetch = jest.fn().mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            pagination: { pages: 1 },
+            releases: [
+              { id: 1, basic_information: { id: 10, title: "T", artists: [{ name: "A" }] } },
+            ],
+          }),
+          { status: 200 }
+        )
+    ) as unknown as typeof fetch;
+    const handler = await loadHandler();
+    return handler({ ...makeEvent(query), headers });
+  }
+
+  it("lets CloudFront keep a public collection for five minutes", async () => {
+    const resp = await respond({ username: "publicuser" });
+    expect(resp.statusCode).toBe(200);
+    expect(resp.headers["cache-control"]).toBe("public, max-age=300");
+  });
+
+  it("never lets an error be kept", async () => {
+    const resp = await respond({});
+    expect(resp.statusCode).toBe(400);
+    expect(resp.headers["cache-control"]).toBe("no-store");
+  });
+});
+
 describe("method validation", () => {
   it.each(["POST", "PUT", "DELETE", "PATCH"])("returns 405 for %s", async (method) => {
     const handler = await loadHandler();
@@ -355,6 +386,33 @@ describe("record details", () => {
     expect(album.label).toBe("Albert Productions");
     expect(album.format).toEqual(["LP", "Album", "Reissue", "Red"]);
     expect(album.dateAdded).toBe("2017-03-14T17:45:25.000Z");
+  });
+
+  it("passes through the master id, and leaves it out when Discogs has none", async () => {
+    const [withMaster, zero, absent] = await albumsFor([
+      {
+        id: 11,
+        basic_information: {
+          id: 110,
+          master_id: 5555,
+          title: "Utopia",
+          artists: [{ name: "Todd Rundgren" }],
+        },
+      },
+      {
+        id: 12,
+        basic_information: {
+          id: 120,
+          master_id: 0,
+          title: "Bootleg",
+          artists: [{ name: "Someone" }],
+        },
+      },
+      { id: 13, basic_information: { id: 130, title: "Plain", artists: [{ name: "Someone" }] } },
+    ]);
+    expect(withMaster.masterId).toBe(5555);
+    expect(zero).not.toHaveProperty("masterId");
+    expect(absent).not.toHaveProperty("masterId");
   });
 
   it("gives empty values when Discogs leaves them out or does not know the year", async () => {

@@ -189,4 +189,65 @@ describe("useCoverColors", () => {
     expect(read).toHaveBeenCalledTimes(2);
     expect(result.current.colors).toEqual({ "1": red, "2": blue });
   });
+
+  describe("with a shared profile service", () => {
+    it("takes the profiles the service has and measures only the rest", async () => {
+      const read = reader();
+      const shared = vi.fn(async () => new Map([["https://x/red.jpg", profileOf(red)]]));
+      const albums = [album(1, "https://x/red.jpg"), album(2, "https://x/blue.jpg")];
+      const { result } = renderHook(() =>
+        useCoverColors(albums, true, { read, storage: null, shared })
+      );
+      await waitFor(() => expect(result.current.pending).toBe(0));
+      expect(shared).toHaveBeenCalledWith(
+        ["https://x/blue.jpg", "https://x/red.jpg"],
+        expect.any(AbortSignal)
+      );
+      expect(read.mock.calls.map((call) => call[0])).toEqual(["https://x/blue.jpg"]);
+      expect(result.current.colors).toEqual({ "1": red, "2": blue });
+    });
+
+    it("measures nothing when the service has every cover, and remembers them", async () => {
+      const read = reader();
+      const storage = fakeStorage();
+      const shared = async () =>
+        new Map([
+          ["https://x/red.jpg", profileOf(red)],
+          ["https://x/blue.jpg", profileOf(blue)],
+        ]);
+      const albums = [album(1, "https://x/red.jpg"), album(2, "https://x/blue.jpg")];
+      const { result } = renderHook(() => useCoverColors(albums, true, { read, storage, shared }));
+      await waitFor(() => expect(result.current.pending).toBe(0));
+      expect(read).not.toHaveBeenCalled();
+      expect(storage.data[PROFILE_CACHE_KEY]).toContain("https://x/blue.jpg");
+    });
+
+    it("measures everything here when the service fails", async () => {
+      const read = reader();
+      const shared = vi.fn(() => Promise.reject(new Error("down")));
+      const albums = [album(1, "https://x/red.jpg"), album(2, "https://x/blue.jpg")];
+      const { result } = renderHook(() =>
+        useCoverColors(albums, true, { read, storage: null, shared })
+      );
+      await waitFor(() => expect(result.current.pending).toBe(0));
+      expect(read).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not ask for covers already remembered or shipped with the album", async () => {
+      const read = reader();
+      const shared = vi.fn<(urls: string[]) => Promise<Map<string, CoverProfile>>>(
+        async () => new Map()
+      );
+      const storage = fakeStorage();
+      saveProfileCache(storage, new Map([["https://x/blue.jpg", profileOf(blue)]]));
+      const albums = [
+        album(1, "https://x/red.jpg"),
+        album(2, "https://x/blue.jpg"),
+        album(3, "https://x/shipped.jpg", red),
+      ];
+      const { result } = renderHook(() => useCoverColors(albums, true, { read, storage, shared }));
+      await waitFor(() => expect(result.current.pending).toBe(0));
+      expect(shared.mock.calls[0]![0]).toEqual(["https://x/red.jpg"]);
+    });
+  });
 });

@@ -41,7 +41,7 @@ describe("collection cache", () => {
   it("round-trips a collection under a case-insensitive key", () => {
     const storage = memoryStorage();
     expect(writeCachedCollection(storage, " VinylFan ", albums, NOW)).toBe(true);
-    expect(JSON.parse(storage.data.get(KEY) ?? "")).toEqual({ v: 1, savedAt: NOW, albums });
+    expect(JSON.parse(storage.data.get(KEY) ?? "")).toEqual({ v: 2, savedAt: NOW, albums });
     expect(readCachedCollection(storage, "vinylfan", NOW + 1000)).toEqual(albums);
   });
 
@@ -75,9 +75,11 @@ describe("collection cache", () => {
   it("returns null for damaged entries", () => {
     for (const value of [
       "not json",
-      JSON.stringify({ v: 2, savedAt: NOW, albums }),
-      JSON.stringify({ v: 1, savedAt: "now", albums }),
-      JSON.stringify({ v: 1, savedAt: NOW, albums: "none" }),
+      JSON.stringify({ v: 3, savedAt: NOW, albums }),
+      JSON.stringify({ v: 2, savedAt: "now", albums }),
+      JSON.stringify({ v: 2, savedAt: NOW, albums: "none" }),
+      // A collection cached before master ids were kept is fetched again.
+      JSON.stringify({ v: 1, savedAt: NOW, albums }),
       JSON.stringify(null),
     ]) {
       expect(readCachedCollection(memoryStorage({ [KEY]: value }), "vinylfan", NOW)).toBeNull();

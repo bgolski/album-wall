@@ -7,6 +7,42 @@ const album = (artist: string, title: string): Album => ({ id: nextId++, artist,
 const same = (a: [string, string], b: [string, string]) =>
   pressingKey(album(...a)) === pressingKey(album(...b));
 
+describe("pressingKey with master ids", () => {
+  const withMaster = (artist: string, title: string, masterId?: number): Album => ({
+    id: nextId++,
+    artist,
+    title,
+    ...(masterId ? { masterId } : {}),
+  });
+
+  it("groups pressings by master id even when the titles differ", () => {
+    const first = withMaster("Todd Rundgren", "Utopia", 100);
+    const second = withMaster("Todd Rundgren", "Utopia (Limited Edition Silver Vinyl)", 100);
+    expect(pressingKey(first)).toBe(pressingKey(second));
+    expect(pressingKey(withMaster("Beatles", "Abbey Road", 7))).toBe(
+      pressingKey(withMaster("The Beatles", "Abbey Road (Mono)", 7))
+    );
+  });
+
+  it("keeps self-titled albums by one artist apart when their master ids differ", () => {
+    expect(pressingKey(withMaster("Weezer", "Weezer", 1))).not.toBe(
+      pressingKey(withMaster("Weezer", "Weezer", 2))
+    );
+    const { groups } = showEachAlbumOnce([
+      withMaster("Weezer", "Weezer", 1),
+      withMaster("Weezer", "Weezer", 2),
+      withMaster("Weezer", "Weezer", 3),
+    ]);
+    expect(groups).toEqual([]);
+  });
+
+  it("falls back to artist and title when an album has no master id", () => {
+    expect(pressingKey(withMaster("Nirvana", "Nevermind"))).toBe(
+      pressingKey(withMaster("Nirvana", "Nevermind (180g)"))
+    );
+  });
+});
+
 describe("pressingKey", () => {
   it("treats editions of an album as the same album", () => {
     expect(same(["Travis Scott", "Utopia"], ["Travis Scott", "Utopia"])).toBe(true);

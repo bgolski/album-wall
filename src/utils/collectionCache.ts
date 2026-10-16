@@ -11,7 +11,7 @@ export const COLLECTION_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
  *
  * The key used is `album-wall:collection:` followed by the username
  * trimmed and lower‑cased. The stored value is expected to be a JSON
- * stringified object of the form `{ v: 1, savedAt: number, albums: Album[] }`.
+ * stringified object of the form `{ v: 2, savedAt: number, albums: Album[] }`.
  *
  * Returns the albums array if the entry is present, valid, not from the
  * future, and not older than `maxAgeMs`. Otherwise returns `null`.
@@ -38,7 +38,7 @@ export function readCachedCollection(
   }
   if (typeof data !== "object" || data === null) return null;
   const obj = data as Record<string, unknown>;
-  if (obj.v !== 1) return null;
+  if (obj.v !== 2) return null;
   if (typeof obj.savedAt !== "number") return null;
   if (!Array.isArray(obj.albums)) return null;
   const savedAt = obj.savedAt;
@@ -52,7 +52,7 @@ export function readCachedCollection(
  *
  * The key used is `album-wall:collection:` followed by the username
  * trimmed and lower‑cased. The value stored is a JSON stringified
- * object `{ v: 1, savedAt: now, albums }`.
+ * object `{ v: 2, savedAt: now, albums }`.
  *
  * Returns `true` if the write succeeded, or `false` if storage threw.
  */
@@ -63,7 +63,7 @@ export function writeCachedCollection(
   now: number
 ): boolean {
   const key = `album-wall:collection:${username.trim().toLowerCase()}`;
-  const value = JSON.stringify({ v: 1, savedAt: now, albums });
+  const value = JSON.stringify({ v: 2, savedAt: now, albums });
   try {
     storage.setItem(key, value);
     return true;

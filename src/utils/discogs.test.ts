@@ -338,3 +338,63 @@ describe("getUserCollection with duplicate copies", () => {
     ]);
   });
 });
+
+describe("getUserCollection with a collection cache", () => {
+  const env = {
+    NEXT_PUBLIC_DISCOGS_PROXY_URL: "https://proxy.example/",
+    NEXT_PUBLIC_COLLECTION_CACHE_URL: "https://cache.example/collection",
+  };
+  const ok = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ albums: [{ id: 1, title: "T", artist: "A" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("asks the cache for a public collection", async () => {
+    const { getUserCollection } = await loadDiscogsModule(env);
+    const fetchMock = vi.fn<typeof fetch>(ok);
+    vi.stubGlobal("fetch", fetchMock);
+    await getUserCollection("someone");
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+      "https://cache.example/collection?username=someone",
+    ]);
+  });
+
+  it("asks the proxy itself for a signed-in visitor, who must not get a shared answer", async () => {
+    const { getUserCollection } = await loadDiscogsModule(env);
+    const fetchMock = vi.fn<typeof fetch>(ok);
+    vi.stubGlobal("fetch", fetchMock);
+    await getUserCollection("someone", undefined, {
+      session: { username: "someone", token: "t", secret: "s" },
+      folderId: 5,
+    });
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      "https://proxy.example/?username=someone&folder=5"
+    );
+  });
+
+  it("asks the proxy when the cache cannot be reached", async () => {
+    const { getUserCollection } = await loadDiscogsModule(env);
+    const fetchMock = vi
+      .fn<typeof fetch>(ok)
+      .mockImplementationOnce(() => Promise.reject(new TypeError("offline")))
+      .mockImplementationOnce(ok);
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getUserCollection("someone")).resolves.toHaveLength(1);
+    expect(String(fetchMock.mock.calls[1]![0])).toBe("https://proxy.example/?username=someone");
+  });
+
+  it("does not ask the proxy again when the cache answers with an error", async () => {
+    const { getUserCollection } = await loadDiscogsModule(env);
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ error: "nope" }), { status: 404 }))
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getUserCollection("someone")).rejects.toThrow("nope");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

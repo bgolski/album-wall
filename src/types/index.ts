@@ -18,6 +18,8 @@ export interface Album {
   format?: string[];
   /** When the record was added to the Discogs collection, as an ISO timestamp. */
   dateAdded?: string;
+  /** The Discogs master release shared by every pressing of the album, when there is one. */
+  masterId?: number;
   error?: boolean;
   /** The cover's color when it is already known, such as the demo's precomputed colors. */
   color?: CoverColor;

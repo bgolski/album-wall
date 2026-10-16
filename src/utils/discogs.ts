@@ -3,6 +3,9 @@ import { Album } from "../types/index";
 import { DiscogsProxyError, DiscogsSession, authorizationHeader } from "./discogsSignIn";
 
 const discogsProxyUrl = process.env.NEXT_PUBLIC_DISCOGS_PROXY_URL;
+// Where public collections are kept for a few minutes (a CloudFront address in front of the proxy);
+// loads without a sign-in go there first when it is set.
+const collectionCacheUrl = process.env.NEXT_PUBLIC_COLLECTION_CACHE_URL;
 
 type DiscogsProxyResponse = {
   username?: string;
@@ -69,11 +72,16 @@ export async function getUserCollection(
     throw new Error("Discogs proxy URL is not configured.");
   }
 
-  const requestUrl = new URL(discogsProxyUrl);
-  requestUrl.searchParams.set("username", username);
-  if (options.session && options.folderId) {
-    requestUrl.searchParams.set("folder", String(options.folderId));
-  }
+  const proxyUrl = discogsProxyUrl;
+  const cacheUrl = !options.session && collectionCacheUrl ? collectionCacheUrl : null;
+  const requestUrl = (base: string) => {
+    const url = new URL(base);
+    url.searchParams.set("username", username);
+    if (options.session && options.folderId) {
+      url.searchParams.set("folder", String(options.folderId));
+    }
+    return url.toString();
+  };
   const headers: Record<string, string> = { Accept: "application/json" };
   if (options.session) headers.Authorization = authorizationHeader(options.session);
 
@@ -90,12 +98,17 @@ export async function getUserCollection(
   try {
     let response: Response;
 
+    const send = (base: string) =>
+      fetch(requestUrl(base), { method: "GET", headers, signal: controller.signal });
+
     try {
-      response = await fetch(requestUrl.toString(), {
-        method: "GET",
-        headers,
-        signal: controller.signal,
-      });
+      try {
+        response = await send(cacheUrl ?? proxyUrl);
+      } catch (error) {
+        // The cache is a shortcut: when it cannot be reached, ask the proxy itself.
+        if (!cacheUrl || signal?.aborted || timedOut) throw error;
+        response = await send(proxyUrl);
+      }
     } catch (error) {
       if (signal?.aborted) throw error;
       if (timedOut) throw new DiscogsProxyError(TIMEOUT_MESSAGE, 0);

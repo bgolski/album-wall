@@ -228,6 +228,8 @@ describe("sign-in round trip", () => {
     );
     expect(loaded.statusCode).toBe(200);
     expect(bodyOf(loaded).albums[0].title).toBe("Private Album");
+    // Private records are never kept by CloudFront or a browser.
+    expect(loaded.headers["cache-control"]).toBe("private, no-store");
     const collection = fetchCall(3);
     expect(collection.url).toContain("/users/Collector/collection/folders/5/releases");
     expect(oauthParams(collection.init.headers.Authorization!)).toMatchObject({

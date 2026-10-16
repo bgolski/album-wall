@@ -49,6 +49,9 @@ const SHARE_DOMAIN = "albumwall.bradleygolski.com";
 // Cover images are served on the same domain, under this path (the app asks for
 // https://<domain>/img?url=...&w=...).
 const COVER_IMAGE_PATH = "/img";
+const COLLECTION_PATH = "/collection";
+// Few at once: each request can measure covers, which is the work this function exists to share.
+const COVER_PROFILES_CONCURRENCY = 5;
 // A wall's first load asks for about 50 covers at once (the wall and the pool tiles in view), and
 // covers not yet cached each need the function. Throttled requests fall back to the third-party
 // proxy in the app, and after a few the app stops asking, so the cap has to take a whole wall.
@@ -123,10 +126,17 @@ export class AlbumWallStack extends cdk.Stack {
 
     const { sharePage: sharePageFunction, distribution } = this.addShortLinks(discogsProxyFunction);
     const coverImageFunction = this.addCoverImages(distribution);
+    this.addCollectionCache(distribution, functionUrl);
+    const profileFunction = this.addCoverProfiles();
 
     this.addSavedWalls(discogsProxyFunction);
 
-    this.addCostGuardrails(discogsProxyFunction, sharePageFunction, coverImageFunction);
+    this.addCostGuardrails(
+      discogsProxyFunction,
+      sharePageFunction,
+      coverImageFunction,
+      profileFunction
+    );
 
     new cdk.CfnOutput(this, "DiscogsProxyFunctionUrl", {
       value: functionUrl.url,
@@ -285,6 +295,94 @@ function handler(event) {
   }
 
   /**
+   * Public collections, kept by CloudFront for a few minutes (the proxy says how long) so a
+   * second load of the same collection is answered at the edge without paging through Discogs
+   * again. Only the username is part of the request: a signed-in visitor's own requests go to the
+   * proxy directly, and nothing sent here carries their sign-in to the function.
+   *
+   * @param distribution The distribution on the short link domain.
+   * @param proxyUrl The Discogs proxy's function URL.
+   */
+  private addCollectionCache(distribution: cloudfront.Distribution, proxyUrl: lambda.FunctionUrl) {
+    // The function URL answers CORS itself, for the calling site, so the site is part of the key.
+    const cachePolicy = new cloudfront.CachePolicy(this, "CollectionCachePolicy", {
+      comment: "Album Wall public collections, by username and calling site",
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.allowList("username"),
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList("Origin"),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      minTtl: cdk.Duration.seconds(0),
+      defaultTtl: cdk.Duration.seconds(0),
+      maxTtl: cdk.Duration.minutes(10),
+    });
+    distribution.addBehavior(COLLECTION_PATH, new origins.FunctionUrlOrigin(proxyUrl), {
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+      cachePolicy,
+    });
+
+    new cdk.CfnOutput(this, "CollectionCacheUrl", {
+      value: `https://${SHARE_DOMAIN}${COLLECTION_PATH}`,
+      description: "Cached public collections (?username=<name>); the app's anonymous loads.",
+    });
+  }
+
+  /**
+   * Cover colors measured once for everyone: a table of cover profiles (provisioned capacity
+   * inside the always-free allowance, with a time-to-live that expires profiles a year after they
+   * were measured) and a function that answers a batch of cover addresses from it, measuring a
+   * few that are missing the way the browser would. Only the function writes, and the addresses
+   * it will fetch are the same allowlist as the cover image service.
+   *
+   * @returns The function, for alarms.
+   */
+  private addCoverProfiles() {
+    const table = new dynamodb.Table(this, "CoverProfilesTable", {
+      partitionKey: { name: "url", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PROVISIONED,
+      readCapacity: 10,
+      writeCapacity: 10,
+      timeToLiveAttribute: "ttl",
+      // Everything in it can be measured again.
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    const profiles = new lambdaNodejs.NodejsFunction(this, "CoverProfilesFunction", {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      entry: "lambda/cover-profiles/index.ts",
+      handler: "handler",
+      description: "Album-wall cover colors: kept profiles, and a few measured on demand.",
+      timeout: cdk.Duration.seconds(25),
+      memorySize: 1024,
+      reservedConcurrentExecutions: COVER_PROFILES_CONCURRENCY,
+      environment: { PROFILE_TABLE_NAME: table.tableName },
+      logGroup: new logs.LogGroup(this, "CoverProfilesLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+      bundling: {
+        target: "node22",
+        // sharp has native parts: install the Linux ARM build whatever machine deploys.
+        nodeModules: ["sharp"],
+        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
+      },
+    });
+    table.grantReadWriteData(profiles);
+    const url = profiles.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ALLOWED_FRONTEND_ORIGINS,
+        allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["content-type"],
+      },
+    });
+    new cdk.CfnOutput(this, "CoverProfilesUrl", {
+      value: url.url,
+      description: "Cover color service (POST {urls: [...]}), used by Sort by Color.",
+    });
+    return profiles;
+  }
+
+  /**
    * Signed-in visitors' saved layouts and wall history, so they load on any device: one item per
    * Discogs account, collection and kind, in a table with provisioned capacity inside the
    * always-free allowance (on-demand is not free). Kept until the visitor deletes them.
@@ -381,7 +479,8 @@ function handler(event) {
   private addCostGuardrails(
     proxy: lambda.IFunction,
     sharePage: lambda.IFunction,
-    coverImage: lambda.IFunction
+    coverImage: lambda.IFunction,
+    profiles: lambda.IFunction
   ) {
     // A dynamic reference is resolved by CloudFormation during the deploy (with its execution
     // role), unlike a template parameter, which the CDK deploy role would have to read itself.
@@ -491,6 +590,12 @@ function handler(event) {
       coverImage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
       HOURLY_COVER_THROTTLE_ALARM,
       "The cover image service was throttled many times in an hour, which may mean abuse."
+    );
+    alarm(
+      "CoverProfilesInvocationsAlarm",
+      profiles.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
+      DAILY_INVOCATION_ALARM,
+      "The cover color service ran far more often than usual in a day."
     );
   }
 }

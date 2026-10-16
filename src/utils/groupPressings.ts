@@ -44,12 +44,15 @@ export function baseArtist(artist: string): string {
 }
 
 /**
- * What pressings of one album share.
+ * What pressings of one album share: their Discogs master release when Discogs has one, which
+ * tells apart albums that share a title (several self-titled albums by one artist); otherwise
+ * the artist and the title without edition wording.
  *
  * @param album An album.
  * @returns A key equal for pressings of the same album.
  */
 export function pressingKey(album: Album): string {
+  if (album.masterId) return `master:${album.masterId}`;
   return `${baseArtist(album.artist ?? "")}|${baseTitle(album.title ?? "")}`;
 }
 

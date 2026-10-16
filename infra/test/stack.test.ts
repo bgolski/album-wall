@@ -41,9 +41,9 @@ describe("cost guardrails", () => {
   });
 
   it("alarms on unusual traffic, errors and throttling, notifying the alerts topic", () => {
-    // Three each for the Discogs proxy, the short link page and the cover image service; staying
-    // within the ten alarms CloudWatch includes for free.
-    stack.resourceCountIs("AWS::CloudWatch::Alarm", 9);
+    // Three each for the Discogs proxy, the short link page and the cover image service, and one
+    // for the cover color service; exactly the ten alarms CloudWatch includes for free.
+    stack.resourceCountIs("AWS::CloudWatch::Alarm", 10);
     for (const metric of ["Invocations", "Errors", "Throttles"]) {
       stack.hasResourceProperties("AWS::CloudWatch::Alarm", {
         MetricName: metric,
@@ -180,6 +180,61 @@ describe("cover images", () => {
         ParametersInCacheKeyAndForwardedToOrigin: Match.objectLike({
           QueryStringsConfig: { QueryStringBehavior: "whitelist", QueryStrings: ["url", "w"] },
           HeadersConfig: { HeaderBehavior: "none" },
+          CookiesConfig: { CookieBehavior: "none" },
+        }),
+      }),
+    });
+    stack.resourceCountIs("AWS::CloudFront::Distribution", 1);
+  });
+});
+
+describe("shared cover colors", () => {
+  const stack = template();
+
+  it("keeps profiles in a free provisioned table that expires them", () => {
+    stack.hasResourceProperties("AWS::DynamoDB::Table", {
+      KeySchema: [{ AttributeName: "url", KeyType: "HASH" }],
+      ProvisionedThroughput: { ReadCapacityUnits: 10, WriteCapacityUnits: 10 },
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+    });
+  });
+
+  it("answers from a capped function that only the app's own sites may call", () => {
+    stack.hasResourceProperties("AWS::Lambda::Function", {
+      Description: Match.stringLikeRegexp("cover colors"),
+      ReservedConcurrentExecutions: 5,
+      Architectures: ["arm64"],
+      Environment: { Variables: Match.objectLike({ PROFILE_TABLE_NAME: Match.anyValue() }) },
+    });
+    stack.hasResourceProperties("AWS::Lambda::Url", {
+      AuthType: "NONE",
+      Cors: Match.objectLike({
+        AllowMethods: ["POST"],
+        AllowHeaders: ["content-type"],
+        AllowOrigins: Match.arrayWith(["https://bradleygolski.com"]),
+      }),
+    });
+  });
+});
+
+describe("cached public collections", () => {
+  const stack = template();
+
+  it("serves /collection on the short link distribution, cached by username and calling site", () => {
+    stack.hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({ PathPattern: "/collection", AllowedMethods: ["GET", "HEAD"] }),
+        ]),
+      }),
+    });
+    stack.hasResourceProperties("AWS::CloudFront::CachePolicy", {
+      CachePolicyConfig: Match.objectLike({
+        DefaultTTL: 0,
+        MaxTTL: 600,
+        ParametersInCacheKeyAndForwardedToOrigin: Match.objectLike({
+          QueryStringsConfig: { QueryStringBehavior: "whitelist", QueryStrings: ["username"] },
+          HeadersConfig: { HeaderBehavior: "whitelist", Headers: ["Origin"] },
           CookiesConfig: { CookieBehavior: "none" },
         }),
       }),

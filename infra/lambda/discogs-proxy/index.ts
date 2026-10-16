@@ -37,6 +37,10 @@ const TIME_BUDGET_MS = 25000;
 const PAGE_CONCURRENCY = 4;
 const MAX_COLLECTION_ITEMS = 8000;
 
+// How long CloudFront keeps a public collection: long enough that reloads are quick, short enough
+// that new records show up soon.
+const PUBLIC_CACHE = "public, max-age=300";
+
 type DiscogsArtist = {
   name: string;
   join?: string;
@@ -46,6 +50,8 @@ type DiscogsRelease = {
   id: number;
   basic_information: {
     id?: number;
+    /** The master release that groups every pressing of one album; 0 or missing when none. */
+    master_id?: number;
     title?: string;
     cover_image?: string;
     artists?: DiscogsArtist[];
@@ -87,6 +93,8 @@ type Album = {
   label?: string;
   format?: string[];
   dateAdded?: string;
+  /** Discogs master release shared by every pressing of the album, when there is one. */
+  masterId?: number;
 };
 
 type LambdaEvent = {
@@ -111,13 +119,20 @@ const cachedParameters = new Map<string, string>();
  *
  * @param statusCode HTTP status code to return.
  * @param body JSON-serializable response body.
+ * @param cacheControl Cache-Control for CloudFront and browsers; `no-store` unless told otherwise.
  * @returns Lambda Function URL response payload.
  */
-function jsonResponse(statusCode: number, body: Record<string, unknown>) {
+function jsonResponse(
+  statusCode: number,
+  body: Record<string, unknown>,
+  cacheControl = "no-store"
+) {
   return {
     statusCode,
     headers: {
       "content-type": "application/json",
+      // Nothing is cached unless a response says so: errors and signed-in answers never are.
+      "cache-control": cacheControl,
     },
     body: JSON.stringify(body),
   };
@@ -492,6 +507,7 @@ async function getUserCollection(
       label: basicInfo.labels?.[0]?.name ? cleanArtistName(basicInfo.labels[0].name) : "",
       format: extractFormatDetails(basicInfo.formats),
       dateAdded: normalizeDateAdded(release.date_added),
+      ...(basicInfo.master_id ? { masterId: basicInfo.master_id } : {}),
     };
   });
 }
@@ -850,10 +866,9 @@ export async function handler(event: LambdaEvent) {
   try {
     const albums = await getUserCollection(username, access, folderId);
 
-    return jsonResponse(200, {
-      username,
-      albums,
-    });
+    // A public collection is the same for everyone, so CloudFront may keep it for a few minutes; a
+    // signed-in visitor's answer can hold private records and is never kept.
+    return jsonResponse(200, { username, albums }, access ? "private, no-store" : PUBLIC_CACHE);
   } catch (error) {
     console.error("Error loading Discogs collection:", describeError(error));
     return mapErrorToResponse(error, username, access !== null);
