@@ -8,7 +8,8 @@ interface Settings {
   chosen: Record<string, string>;
 }
 
-const OFF: Settings = { once: false, chosen: {} };
+// Each album shows once unless the person turned that off for the collection.
+const DEFAULT: Settings = { once: true, chosen: {} };
 
 function browserStorage(): PressingStorage | null {
   try {
@@ -21,21 +22,21 @@ function browserStorage(): PressingStorage | null {
 function readSettings(storage: PressingStorage | null, key: string): Settings {
   try {
     const parsed = JSON.parse(storage?.getItem(key) ?? "null") as Partial<Settings> | null;
-    if (!parsed || typeof parsed.once !== "boolean") return OFF;
+    if (!parsed || typeof parsed.once !== "boolean") return DEFAULT;
     const chosen =
       typeof parsed.chosen === "object" && parsed.chosen !== null
         ? (parsed.chosen as Record<string, string>)
         : {};
     return { once: parsed.once, chosen };
   } catch {
-    return OFF;
+    return DEFAULT;
   }
 }
 
 /**
- * "Show each album once" for a collection: when on, the albums shown leave out extra pressings of
+ * "Show each album once" for a collection: on unless turned off. When on, the albums shown leave out extra pressings of
  * the same album (kept at the end of the collection, out of view), and a reorder of what is shown
- * keeps them. The setting and which pressing stands for each album are remembered per collection.
+ * keeps them. Turning it off, and which pressing stands for each album, are remembered per collection.
  *
  * @param collectionName Collection the setting belongs to.
  * @param albums The whole collection in its current order.
