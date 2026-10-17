@@ -20,6 +20,11 @@ interface CoverColorOptions {
   shared?: ((urls: string[], signal: AbortSignal) => Promise<Map<string, CoverProfile>>) | null;
 }
 
+// One function for the app, so it is the same on every render.
+const defaultShared = profileServiceUrl
+  ? (urls: string[], signal: AbortSignal) => fetchSharedProfiles(urls, { signal })
+  : null;
+
 const coverUrlOf = (album: Album) => album.cover_image || album.coverUrl || "";
 
 function defaultStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | null {
@@ -51,14 +56,12 @@ function whenIdle(task: () => void) {
  *          so progress can be shown as `total - pending` of `total`.
  */
 export function useCoverColors(albums: Album[], enabled: boolean, options: CoverColorOptions = {}) {
-  const {
-    read = readCoverProfile,
-    storage,
-    concurrency = 4,
-    shared = profileServiceUrl
-      ? (urls: string[], signal: AbortSignal) => fetchSharedProfiles(urls, { signal })
-      : null,
-  } = options;
+  const { read = readCoverProfile, storage, concurrency = 4, shared = defaultShared } = options;
+  // Asking is read through a ref, so a new function on each render does not start the work again.
+  const sharedRef = useRef(shared);
+  useEffect(() => {
+    sharedRef.current = shared;
+  });
   const [measured, setMeasured] = useState<ReadonlyMap<string, CoverProfile | null>>(new Map());
   // The same results as `measured`, for the measuring loop to consult without waiting for a render.
   const results = useRef(new Map<string, CoverProfile | null>());
@@ -136,13 +139,14 @@ export function useCoverColors(albums: Album[], enabled: boolean, options: Cover
       }
       queue = wanted.filter((url) => !results.current.has(url));
       setMeasured(new Map(results.current));
-      if (!shared || queue.length === 0) {
+      const ask = sharedRef.current;
+      if (!ask || queue.length === 0) {
         next();
         return;
       }
       // Other visitors may already have measured these covers: take what they have, then measure
       // only the rest here. If the service is slow or down, everything is measured here as before.
-      shared(queue, asking.signal)
+      ask(queue, asking.signal)
         .catch(() => new Map<string, CoverProfile>())
         .then((found) => {
           if (cancelled) return;
@@ -159,7 +163,7 @@ export function useCoverColors(albums: Album[], enabled: boolean, options: Cover
       asking.abort();
       if (flushTimer) clearTimeout(flushTimer);
     };
-  }, [enabled, toMeasure, read, storage, concurrency, shared]);
+  }, [enabled, toMeasure, read, storage, concurrency]);
 
   return useMemo(() => {
     const colors: Record<string, CoverColor | null> = {};

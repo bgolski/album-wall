@@ -222,6 +222,27 @@ describe("useCoverColors", () => {
       expect(storage.data[PROFILE_CACHE_KEY]).toContain("https://x/blue.jpg");
     });
 
+    it("asks once for a set of covers even when the asking function is new on every render", async () => {
+      const read = reader();
+      const asked: string[][] = [];
+      const albums = [album(1, "https://x/red.jpg"), album(2, "https://x/blue.jpg")];
+      const { result, rerender } = renderHook(() =>
+        useCoverColors(albums, true, {
+          read,
+          storage: null,
+          shared: async (urls) => {
+            asked.push(urls);
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            return new Map<string, CoverProfile>();
+          },
+        })
+      );
+      rerender();
+      rerender();
+      await waitFor(() => expect(result.current.pending).toBe(0));
+      expect(asked).toHaveLength(1);
+    });
+
     it("measures everything here when the service fails", async () => {
       const read = reader();
       const shared = vi.fn(() => Promise.reject(new Error("down")));
