@@ -61,11 +61,20 @@ jobs:
 
           echo "DISCOGS_PROXY_URL=$DISCOGS_PROXY_URL" >> "$GITHUB_ENV"
 
+          COVER_PROFILES_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$CDK_STACK_NAME" \
+            --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='CoverProfilesUrl'].OutputValue" \
+            --output text)
+          echo "COVER_PROFILES_URL=$COVER_PROFILES_URL" >> "$GITHUB_ENV"
+
       - name: Set base path for GitHub Pages
         run: |
           # Served as a project site at https://bradleygolski.com/album-wall/
           echo "NEXT_PUBLIC_BASE_PATH=/album-wall" >> .env.local
           echo "NEXT_PUBLIC_DISCOGS_PROXY_URL=$DISCOGS_PROXY_URL" >> .env.local
+          echo "NEXT_PUBLIC_COLLECTION_CACHE_URL=https://albumwall.bradleygolski.com/collection" >> .env.local
+          echo "NEXT_PUBLIC_PROFILE_SERVICE_URL=$COVER_PROFILES_URL" >> .env.local
 
       - name: Build with Next.js
         run: npm run build:static
