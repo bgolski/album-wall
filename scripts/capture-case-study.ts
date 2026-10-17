@@ -61,7 +61,7 @@ if (ogOnly) {
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 await page.goto(url);
 
-// 1. Fresh visit: the welcome dialog offers the demo.
+// 1. Fresh visit: sign in or enter a username, or try the demo.
 await page.getByRole("button", { name: "Try the demo", exact: true }).waitFor();
 await page.screenshot({ path: `${out}/01-fresh-visit.png` });
 
@@ -82,31 +82,55 @@ await page.getByRole("button", { name: "Shuffle", exact: true }).click();
 await coversLoaded(page);
 await page.screenshot({ path: `${out}/03-pin-and-shuffle.png` });
 
-// 4. Share or export: the export menu with the sized image options.
-await page.getByRole("button", { name: /Export/ }).click();
-await page.getByRole("menuitem", { name: "Share or Save Image" }).waitFor();
-await page.screenshot({ path: `${out}/04-export-menu.png` });
-
-// 5. Sort by Color: gradients suggested for this collection, and the gradient editor.
+// 4. Save or share: the image menu with its sized options.
+await page.getByRole("button", { name: /Save image/ }).click();
+await page.getByRole("menuitem", { name: "Wall as shown" }).waitFor();
+await page.screenshot({ path: `${out}/04-save-image-menu.png` });
 await page.keyboard.press("Escape");
-await page.getByRole("button", { name: "Sort by Color", exact: true }).click();
+
+// 5. Arrange by genre: one tap on a choice builds the wall.
+await page.getByRole("button", { name: "Genre", exact: true }).click();
+// Let the button colors finish their transition.
+await page.waitForTimeout(500);
+const toolbar = page.locator("div.rounded-panel", {
+  has: page.getByRole("group", { name: "Arrange by genre" }),
+});
+await toolbar.screenshot({ path: `${out}/05-arrange-by-genre.png` });
+
+// 6. Sort by Color: gradients suggested for this collection, and the gradient editor.
+await page.getByRole("button", { name: "Color", exact: true }).click();
 await page.getByText("Suggested for your collection").waitFor();
+await page.waitForTimeout(500);
 const builder = page.locator("section", {
   has: page.getByRole("heading", { name: "Sort by Color" }),
 });
-await builder.screenshot({ path: `${out}/05-sort-by-color.png` });
+await builder.screenshot({ path: `${out}/06-sort-by-color.png` });
 
-// 6. A rainbow wall built from the whole collection (unpinned first, so every spot is free).
-await page.getByRole("button", { name: /Pin All/ }).click();
-await page.getByRole("button", { name: /Unpin All/ }).click();
+// 7. A rainbow wall built from the whole collection (unpinned first, so every spot is free).
+await page.getByRole("button", { name: "Pin all" }).click();
+await page.getByRole("button", { name: "Pin all" }).click();
 await page.getByRole("button", { name: /Rainbow/ }).click();
 await page.getByRole("button", { name: "Build wall" }).click();
-await page.getByText(/^Built the wall/).waitFor();
+await page.getByText(/^Wall built/).waitFor();
 await coversLoaded(page);
 const wall = page
-  .locator("div.rounded-panel", { has: page.getByRole("heading", { name: /Wall Display/ }) })
+  .locator("div.rounded-panel", { has: page.getByRole("heading", { name: /Your wall/ }) })
   .first();
-await wall.screenshot({ path: `${out}/06-gradient-wall.png` });
+await wall.screenshot({ path: `${out}/07-gradient-wall.png` });
+await page.close();
+
+// 8. On a phone.
+const phone = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  deviceScaleFactor: 2,
+  hasTouch: true,
+});
+await phone.addInitScript(() => localStorage.setItem("album-wall:welcome-dismissed", "1"));
+await phone.goto(url);
+await phone.getByRole("button", { name: "Try the demo wall" }).click();
+await phone.locator("[data-album-id]").first().waitFor();
+await coversLoaded(phone);
+await phone.screenshot({ path: `${out}/08-phone.png` });
 
 await browser.close();
 
@@ -117,11 +141,11 @@ writeFileSync(
     {
       revision,
       route: `${basePath}/`,
-      viewport: "1440x1000",
+      viewport: "1440x1000 (scene 8: 390x844 phone)",
       capturedAt: new Date().toISOString(),
     },
     null,
     2
   ) + "\n"
 );
-console.log(`Captured six scenes at ${revision} from ${url}`);
+console.log(`Captured eight scenes at ${revision} from ${url}`);

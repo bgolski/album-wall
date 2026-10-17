@@ -1,6 +1,6 @@
 # Album Wall Infrastructure
 
-This workspace contains the AWS CDK app and Lambda sources for the static frontend: the Discogs proxy, short share links and the cover image service.
+This workspace contains the AWS CDK app and Lambda sources for the static frontend: the Discogs proxy, short share links, the cover image service, saved walls, the collection cache and the cover color service.
 
 ## What it deploys
 
@@ -9,7 +9,10 @@ This workspace contains the AWS CDK app and Lambda sources for the static fronte
 - IAM permissions for the Lambda to read Discogs credentials from SSM Parameter Store
 - short share links: a DynamoDB table, the link page function and a CloudFront distribution on `albumwall.bradleygolski.com`
 - cover images: a function that resizes allowed covers (Discogs, Cover Art Archive) to 64, 320 or 600 pixel WebP, served by the same distribution at `/img?url=<cover>&w=<width>` and cached for a year
-- a $1 monthly budget and CloudWatch alarms on each function's invocations, errors and throttles
+- saved walls: a DynamoDB table (provisioned 2 read and 2 write units) where the proxy keeps a signed-in visitor's saved layouts and wall history under their Discogs account
+- collection cache: the same distribution serves `/collection?username=<name>` from the proxy and keeps a public collection for five minutes, keyed by username and calling site; the proxy marks errors and signed-in answers as not cacheable, and signed-in requests never go through it
+- cover colors: a DynamoDB table (provisioned 10 read and 10 write units, entries expire after a year) and a function that answers `POST {urls: [...]}` with the profiles kept for up to 100 allowed cover addresses, measuring a few missing ones itself with the app's own `coverProfile` code
+- a $1 monthly budget and CloudWatch alarms on each function's invocations, errors and throttles (ten alarms in all, the free limit)
 
 ## Local commands
 
@@ -56,4 +59,4 @@ Required IAM role capabilities:
 - permission to read and update the Lambda, IAM, and CloudFormation resources managed by the CDK stack
 - permission to read the SSM parameters referenced by the stack
 
-The deploy workflow resolves the live `DiscogsProxyFunctionUrl` CloudFormation output after `cdk deploy` and feeds that into the static frontend build, so the production site always uses the currently deployed proxy endpoint.
+The deploy workflow resolves the live `DiscogsProxyFunctionUrl` and `CoverProfilesUrl` CloudFormation outputs after `cdk deploy` and feeds them into the static frontend build, so the production site always uses the currently deployed endpoints.
