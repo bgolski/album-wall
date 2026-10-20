@@ -8,7 +8,7 @@ I collect vinyl and hang part of the collection on a wall, swapping records ever
 
 ## What it does
 
-- **Try it without an account.** First-time visitors are offered a demo wall of 96 well-known albums, with covers loaded from the Cover Art Archive.
+- **Try it without an account.** First-time visitors see a small card offering a demo wall of 96 well-known albums, with covers loaded from the Cover Art Archive.
 - **Load a Discogs collection** by username, or **sign in with Discogs** to load your own private collection, or one of its folders, in one tap. The sign-in key stays in your browser; the proxy passes it to Discogs and keeps nothing.
 - **Rearrange by dragging** records between the wall and the pool, or tap a record to move or swap it.
 - **Pin** records so that shuffling and swapping leave them in place. **Shuffle** only moves unpinned records, and **Undo** steps back.
@@ -18,6 +18,7 @@ I collect vinyl and hang part of the collection on a wall, swapping records ever
 - **Remember what has been up.** Mark a saved wall as on your wall; the pool can then list records that have not been hung recently first, an album's details say when it was last up, and Build wall can avoid recent walls.
 - **Save walls.** Name the wall and save it, use a saved wall to put it back, and rehang a saved wall at the real wall one step at a time: the cover to handle, the spot lit up on a small picture of the wall, and Done for the next. Saved walls are kept in your browser, or, when you are signed in, in your account so they load on any device (see [Privacy](https://bradleygolski.com/album-wall/privacy/)). A backup file moves them elsewhere.
 - **Save the wall as an image** at a phone-wallpaper, desktop-wallpaper or square-print size, with progress shown while it is prepared, or **share a link**. A short link opens the wall and shows a picture of it in message previews; if a short link cannot be made, a longer link that holds the wall in the part of the address after the `#` is copied instead.
+- **Use the screen.** On a very wide screen the wall and the pool sit side by side, and a record turns slowly behind the page. A first visit opens with the record spinning up; people who prefer less motion get none of it, and phones see it once and then it fades away so scrolling stays smooth.
 - **Keep working when a service is down.** Covers come from the app's own image service, then a public image proxy, then their own hosts; collections and cover colors fall back to loading directly if the cache or color service cannot be reached.
 
 ## Screenshots
@@ -26,11 +27,11 @@ Captured from the static build using `scripts/capture-case-study.ts` (the revisi
 
 | | |
 |---|---|
-| ![First-visit dialog titled "New to Album Wall?" over the sign-in page, offering "Try the demo" or "Use my collection"](docs/screenshots/01-fresh-visit.png) | ![The 8 by 4 demo wall of album covers above the pool of remaining records, with the arrange, wall and save controls](docs/screenshots/02-wall-and-pool.png) |
+| ![The sign-in page on a first visit: sign in with Discogs, a username field, and a "New to Album Wall?" card with a "Try the demo" button, over a faintly turning record](docs/screenshots/01-fresh-visit.png) | ![The 8 by 4 demo wall of album covers above the pool of remaining records, with the arrange, wall and save controls](docs/screenshots/02-wall-and-pool.png) |
 | A fresh visit offers sign-in, a username, or the demo. | The demo's 8 × 4 wall with the record pool below it. |
 | ![The wall after pinning four records and shuffling; the pinned covers carry a pin badge and stayed in their places](docs/screenshots/03-pin-and-shuffle.png) | ![The Save image menu open, listing sizes such as the wall as shown, phone wallpaper, desktop wallpaper and square print](docs/screenshots/04-save-image-menu.png) |
 | Four records pinned, then shuffled. | The Save image menu with sized options. |
-| ![The Arrange buttons (By hand, Artist, Genre, Year, Color) with Genre chosen and a row of genres below: All genres, Rock, Pop Rock, Pop, Ballad and others](docs/screenshots/05-arrange-by-genre.png) | ![Sort by Color: gradients suggested for this collection, presets and single colors, the colors and direction, and a preview of what each spot on the 8 by 4 wall aims for](docs/screenshots/06-sort-by-color.png) |
+| ![The Arrange buttons (By hand, Artist, Genre, Year, Color) with Genre chosen and a row of genres below: All genres, Rock, Pop Rock, Pop, Ballad and others](docs/screenshots/05-arrange-by-genre.png) | ![Color: gradients suggested for this collection, presets and single colors, the colors and direction, and a preview of what each spot on the 8 by 4 wall aims for](docs/screenshots/06-sort-by-color.png) |
 | Arrange by genre: one tap on a choice builds the wall. | Color: suggested gradients and the gradient editor. |
 | ![A rainbow wall built from the demo collection: red and orange covers on the left through yellow and green to blue and purple on the right](docs/screenshots/07-gradient-wall.png) | ![The app on a phone: header, the arrange, wall and save controls, and the first rows of a 4 by 4 wall](docs/screenshots/08-phone.png) |
 | A rainbow wall built from the whole collection. | The same app on a phone. |
@@ -49,10 +50,10 @@ Captured from the static build using `scripts/capture-case-study.ts` (the revisi
 
 ## Quality checks
 
-Measured at revision `bcf9fd9`:
+Measured at revision `5ade68b`:
 
-- 701 unit and component tests in 87 files pass (`npm test`), as do type checking and linting. 49 browser tests pass (Playwright, against the static build), including accessibility checks with axe in light and dark mode. The infrastructure has 196 tests (`cd infra && npx jest`) and `npx cdk synth` succeeds.
-- Lighthouse 12.6.1 (the repository's `lighthouserc.json`, the mobile profile with its default throttling), median of 5 runs against the static build served locally with gzip, as GitHub Pages serves it: performance 94, accessibility 100, best practices 100, SEO 100. First contentful paint 0.8 s, largest contentful paint 3.2 s, total blocking time 2 ms and layout shift 0. The page transferred 342 KB, of which 221 KB was JavaScript. The audit loads the page as a first-time visitor sees it, so no covers are part of it: the largest paint is the welcome dialog's text, which appears once the JavaScript has run. The pull request check requires performance of at least 90.
+- 741 unit and component tests in 94 files pass (`npm test`), as do type checking and linting. 55 browser tests pass (Playwright, against the static build), including accessibility checks with axe in light and dark mode. The infrastructure has 196 tests (`cd infra && npx jest`) and `npx cdk synth` succeeds.
+- Lighthouse 12.6.1 (the repository's `lighthouserc.json`, the mobile profile with its default throttling), median of 3 runs against the static build served locally with gzip, as GitHub Pages serves it: performance 96, accessibility 100, best practices 100, SEO 100. First contentful paint 0.8 s, largest contentful paint 2.7 s, total blocking time 1 ms and layout shift 0. The page transferred 342 KB, of which 220 KB was JavaScript. The audit loads the page as a first-time visitor sees it, so no covers are part of it: the largest paint is the page's own text, which appears once the JavaScript has run. The pull request check requires performance of at least 90.
 
 ## Development
 
