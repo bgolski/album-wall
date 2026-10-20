@@ -5,7 +5,8 @@ import { useLayouts } from "@/hooks/useLayouts";
 import type { useHangHistory } from "@/hooks/useHangHistory";
 import { wallDisplayName } from "@/utils/demoCollection";
 import type { SavedLayout } from "@/utils/layoutStore";
-import { buildSharedWallUrl } from "@/utils/shareState";
+import { buildSharedWallState, buildSharedWallUrl } from "@/utils/shareState";
+import { formatDay, type HangRecord } from "@/utils/hangHistory";
 import { Rehang } from "./Rehang";
 import { diffWalls } from "@/utils/diffWalls";
 import { rehangSteps } from "@/utils/rehangSteps";
@@ -184,6 +185,8 @@ export function LayoutsPanel({
   // The saved wall being hung at the real wall, and the wall the steps start from.
   const [rehanging, setRehanging] = useState<{ id: string; from: SharedWallState } | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
+  // The earlier wall (by its day) whose picture is showing.
+  const [lookingAt, setLookingAt] = useState<string | null>(null);
   // The saved wall last put on the wall with Use. A wall just saved is not selected.
   const [used, setUsed] = useState<string | null>(null);
   const nameId = useId();
@@ -199,7 +202,10 @@ export function LayoutsPanel({
 
   const markOnWall = (layout: SavedLayout) => {
     if (!history) return;
-    const problem = history.markHung(layout.wall.wallAlbumIds, layout.id);
+    const problem = history.markHung(layout.wall.wallAlbumIds, layout.id, {
+      rows: layout.wall.rows,
+      columns: layout.wall.columns,
+    });
     if (problem) onNotice(problem);
   };
 
@@ -223,6 +229,27 @@ export function LayoutsPanel({
     setUsed(layout.id);
     const missing = layout.wall.wallAlbumIds.filter((id) => !albumsById.has(id)).length;
     onApply(layout.wall);
+    if (missing > 0) onNotice(`${missing} no longer in the collection`);
+  };
+
+  // An earlier wall as a wall that can be put back. A record from before the shape was kept takes
+  // it from the saved wall it came from, or from the wall as it is now.
+  const wallOfHang = (hang: HangRecord): SharedWallState => {
+    const saved = hang.layoutId ? layouts.find((layout) => layout.id === hang.layoutId) : undefined;
+    const columns = hang.columns ?? saved?.wall.columns ?? currentWall.columns;
+    return buildSharedWallState({
+      username: collectionName,
+      rows: hang.rows ?? Math.max(1, Math.ceil(hang.albumIds.length / columns)),
+      columns,
+      wallAlbumIds: hang.albumIds,
+      pinnedAlbumIds: [],
+    });
+  };
+
+  const handleUseHang = (hang: HangRecord) => {
+    setUsed(null);
+    const missing = hang.albumIds.filter((id) => !albumsById.has(id)).length;
+    onApply(wallOfHang(hang));
     if (missing > 0) onNotice(`${missing} no longer in the collection`);
   };
 
@@ -457,7 +484,7 @@ export function LayoutsPanel({
                           <button
                             type="button"
                             className={buttonClass}
-                            aria-label={`Put ${layout.name} on the wall`}
+                            aria-label={`Use ${layout.name} on the wall`}
                             onClick={() => handleApply(layout)}
                           >
                             Use
@@ -475,6 +502,53 @@ export function LayoutsPanel({
             );
           })}
         </ul>
+      )}
+
+      {history && history.hangs.length > 0 && (
+        <>
+          <h4 className="mb-2 mt-5 text-sm font-medium text-muted">History</h4>
+          <ul className="flex flex-col gap-2" aria-label="History">
+            {[...history.hangs]
+              .reverse()
+              .slice(0, 12)
+              .map((hang) => {
+                const day = formatDay(hang.date);
+                const savedName = hang.layoutId
+                  ? layouts.find((layout) => layout.id === hang.layoutId)?.name
+                  : undefined;
+                return (
+                  <li key={hang.date} className="rounded-control bg-panel p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        aria-expanded={lookingAt === hang.date}
+                        onClick={() => setLookingAt(lookingAt === hang.date ? null : hang.date)}
+                        className="flex min-w-0 flex-1 items-baseline gap-2 py-1 text-left font-medium text-ink"
+                      >
+                        <span className="truncate">{day}</span>
+                        {savedName && (
+                          <span className="truncate text-sm font-normal text-muted">
+                            {savedName}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className={buttonClass}
+                        aria-label={`Use the wall from ${day}`}
+                        onClick={() => handleUseHang(hang)}
+                      >
+                        Use
+                      </button>
+                    </div>
+                    {lookingAt === hang.date && (
+                      <WallPreview name={day} wall={wallOfHang(hang)} albumsById={albumsById} />
+                    )}
+                  </li>
+                );
+              })}
+          </ul>
+        </>
       )}
     </section>
   );

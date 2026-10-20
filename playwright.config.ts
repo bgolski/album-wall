@@ -9,8 +9,9 @@ export default defineConfig({
   fullyParallel: true,
   reporter: process.env.CI ? "github" : "list",
   // Reduced motion keeps the page still for the checks (no intro, no fading); the intro's own
-  // test turns motion back on.
-  use: { baseURL: `http://localhost:${port}${basePath}/`, reducedMotion: "reduce" },
+  // test turns motion back on. The service worker is blocked so it cannot answer the requests the
+  // checks stub; its own test allows it.
+  use: { baseURL: `http://localhost:${port}${basePath}/`, reducedMotion: "reduce", serviceWorkers: "block" },
   webServer: {
     command: "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/serve-static.ts",
     url: `http://localhost:${port}${basePath}/`,

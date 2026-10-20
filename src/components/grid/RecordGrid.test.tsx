@@ -149,11 +149,35 @@ describe("RecordGrid tap actions", () => {
     expect(screen.queryByRole("button", { name: /^Drag / })).toBeNull();
   });
 
-  it("keeps sharing out of the Export menu", () => {
+  it("opens the Export panel beside the wall, with a choice of what to make", () => {
     renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Save image/ }));
-    expect(screen.getByRole("menuitem", { name: "Wall as shown" })).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: /Share/ })).toBeNull();
+    const trigger = screen.getByRole("button", { name: "Export" });
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("heading", { name: "Export" })).toBeTruthy();
+    const choices = screen.getByRole("group", { name: "Export as" });
+    for (const name of ["Wall", "Phone", "Desktop", "Poster", "Guide"]) {
+      expect(within(choices).getByRole("button", { name })).toBeTruthy();
+    }
+    expect(screen.getByTestId("export-preview")).toBeTruthy();
+  });
+
+  it("keeps sharing out of the Export panel", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    const panel = screen.getByRole("complementary", { name: "Export" });
+    expect(within(panel).queryByRole("button", { name: /Share/ })).toBeNull();
+  });
+
+  it("closes the Export panel on Escape and returns focus to the Export button", async () => {
+    renderGrid();
+    const trigger = screen.getByRole("button", { name: "Export" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("heading", { name: "Export" })).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
   it("shares the wall link through the share sheet when there is one", async () => {
@@ -174,55 +198,6 @@ describe("RecordGrid tap actions", () => {
     const line = await screen.findByText("Link copied");
     expect(line.closest("[role=status]")).toBeTruthy();
     expect(writeText).toHaveBeenCalledTimes(1);
-  });
-
-  it("marks the Export button as a menu button and the menu as a menu", () => {
-    renderGrid();
-    const trigger = screen.getByRole("button", { name: /Save image/ });
-    expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
-    expect(trigger.getAttribute("aria-expanded")).toBe("false");
-
-    fireEvent.click(trigger);
-    expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    const menu = screen.getByRole("menu", { name: "Image sizes" });
-    expect(trigger.getAttribute("aria-controls")).toBe(menu.id);
-  });
-
-  it("moves focus into the menu, steps with the arrow keys and wraps", () => {
-    renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Save image/ }));
-    const items = screen.getAllByRole("menuitem");
-    expect(document.activeElement).toBe(items[0]);
-
-    fireEvent.keyDown(items[0]!, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(items[1]);
-    fireEvent.keyDown(items[1]!, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(items[0]);
-    fireEvent.keyDown(items[0]!, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(items[items.length - 1]);
-    fireEvent.keyDown(items[items.length - 1]!, { key: "Home" });
-    expect(document.activeElement).toBe(items[0]);
-    fireEvent.keyDown(items[0]!, { key: "End" });
-    expect(document.activeElement).toBe(items[items.length - 1]);
-  });
-
-  it("closes on Escape and returns focus to the Export button", () => {
-    renderGrid();
-    const trigger = screen.getByRole("button", { name: /Save image/ });
-    fireEvent.click(trigger);
-    fireEvent.keyDown(screen.getAllByRole("menuitem")[0]!, { key: "Escape" });
-    expect(screen.queryByRole("menu")).toBeNull();
-    expect(document.activeElement).toBe(trigger);
-  });
-
-  it("closes on a click outside without taking focus from what was clicked", () => {
-    renderGrid();
-    fireEvent.click(screen.getByRole("button", { name: /Save image/ }));
-    const other = screen.getByRole("button", { name: "Pin Album 2" });
-    other.focus();
-    fireEvent.pointerDown(other);
-    expect(screen.queryByRole("menu")).toBeNull();
-    expect(document.activeElement).toBe(other);
   });
 
   it("announces a keyboard drag with album names and slots", async () => {
@@ -344,12 +319,12 @@ describe("RecordGrid undo, memory and sized exports", () => {
     ).toMatchObject({ pinnedAlbumIds: ["1"] });
   });
 
-  it("offers the sized exports in the Export menu", () => {
+  it("offers the sized exports and the guide in the Export panel", () => {
     renderWithUndo();
-    fireEvent.click(screen.getByRole("button", { name: "Save image" }));
-    const menu = screen.getByRole("menu");
-    for (const name of [/Phone wallpaper/, /Desktop wallpaper/, /Square print/]) {
-      expect(within(menu).getByRole("menuitem", { name })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    const choices = screen.getByRole("group", { name: "Export as" });
+    for (const name of ["Phone", "Desktop", "Poster", "Guide"]) {
+      expect(within(choices).getByRole("button", { name })).toBeTruthy();
     }
   });
 });

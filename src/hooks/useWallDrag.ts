@@ -2,10 +2,12 @@ import { useState } from "react";
 import {
   KeyboardSensor,
   MouseSensor,
+  closestCenter,
   TouchSensor,
   useSensor,
   useSensors,
   type Announcements,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
   type UniqueIdentifier,
@@ -18,6 +20,42 @@ import { swapAlbums } from "@/utils/dragAndDropHelpers";
 export const DRAG_INSTRUCTIONS = {
   draggable:
     "To move an album, press space or enter to pick it up, use the arrow keys to reach another album, then press space or enter to swap places, or escape to cancel. Pinned albums cannot be moved.",
+};
+
+// How far outside a cover the pointer still counts as over it, so the gaps between covers (12 to
+// 16 pixels) belong to whichever cover is nearer and there is never a dead spot to flicker over.
+const GUTTER = 12;
+
+/**
+ * Which album a drag is over: the one under the pointer, as a person aims it, using only the
+ * pointer so the result does not depend on where the cover was grabbed. In a gap it is the nearer
+ * cover; further from every cover than a gap (off the wall) it is none, so letting go there swaps
+ * nothing. Without a pointer, as with the keyboard, it is the cover nearest the dragged one.
+ */
+export const wallCollisionDetection: CollisionDetection = (args) => {
+  const { pointerCoordinates: pointer, droppableRects, droppableContainers } = args;
+  if (!pointer) return closestCenter(args);
+  const hits: ReturnType<CollisionDetection> = [];
+  for (const droppableContainer of droppableContainers) {
+    const rect = droppableRects.get(droppableContainer.id);
+    if (!rect) continue;
+    // Distance from the pointer to the cover's edge: nothing when it is on the cover.
+    const outside = Math.hypot(
+      Math.max(rect.left - pointer.x, 0, pointer.x - (rect.left + rect.width)),
+      Math.max(rect.top - pointer.y, 0, pointer.y - (rect.top + rect.height))
+    );
+    if (outside > GUTTER) continue;
+    // Ties (in a gap, or a corner) go to the cover whose center is nearer.
+    const toCenter = Math.hypot(
+      pointer.x - (rect.left + rect.width / 2),
+      pointer.y - (rect.top + rect.height / 2)
+    );
+    hits.push({
+      id: droppableContainer.id,
+      data: { droppableContainer, value: outside * 1000 + toCenter },
+    });
+  }
+  return hits.sort((a, b) => (a.data?.value ?? 0) - (b.data?.value ?? 0));
 };
 
 /**

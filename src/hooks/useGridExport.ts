@@ -1,8 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { wallDisplayName } from "@/utils/demoCollection";
 import { Album } from "@/types";
-import { fitIntoFrame, type ExportPreset } from "@/utils/exportFrame";
+import { fitIntoFrame, type ExportBackdrop, type ExportPreset } from "@/utils/exportFrame";
+import { drawRecordBackground } from "@/utils/recordBackground";
+import { PosterError, requestPoster, type PosterSize } from "@/utils/posterService";
 import { drawWall } from "@/utils/drawWall";
+import { makeGuide } from "@/utils/guide";
+import { paperFor } from "@/utils/guideLayout";
 import { DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 
 const EXPORT_TIMEOUT_MS = 20000;
@@ -57,22 +61,23 @@ function getExportScale(gridWidth: number, gridHeight: number) {
  * @param source The captured wall.
  * @param preset Output size.
  * @param padding Empty margin kept on every side, in output pixels.
- * @param background Fill colour around the wall.
+ * @param backdrop What is behind the wall: a colour, and the record over it when asked.
  * @returns A canvas of exactly the preset size.
  */
 function drawInFrame(
   source: HTMLCanvasElement,
   preset: ExportPreset,
   padding: number,
-  background: string
+  backdrop: ExportBackdrop
 ) {
   const frame = document.createElement("canvas");
   frame.width = preset.width;
   frame.height = preset.height;
   const context = frame.getContext("2d");
   if (!context) throw new Error("Canvas drawing is not available");
-  context.fillStyle = background;
+  context.fillStyle = backdrop.color;
   context.fillRect(0, 0, preset.width, preset.height);
+  if (backdrop.record) drawRecordBackground(context, preset.width, preset.height);
   const fit = fitIntoFrame(source.width, source.height, preset.width, preset.height, padding);
   context.drawImage(source, fit.x, fit.y, fit.width, fit.height);
   return frame;
@@ -102,14 +107,14 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 /**
- * Manages export UI state and provides the image export and share-link actions for the current wall.
+ * Manages export UI state and provides the image export, guide export and share-link actions for
+ * the current wall.
  *
  * @param username Discogs username used in exported filenames.
  * @param albums Albums to include in export output.
- * @returns Export dropdown state, grid ref, and export handlers.
+ * @returns Export state, grid ref, and export handlers.
  */
 export function useGridExport(username: string, albums: Album[]) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [status, setStatus] = useState<ExportStatus | null>(null);
   const setStatusMessage = (message: string | null) =>
@@ -129,18 +134,19 @@ export function useGridExport(username: string, albums: Album[]) {
   const userDisplayName = wallDisplayName(username) || "Anonymous";
   const imageFilenameFor = (preset?: ExportPreset) =>
     `${userDisplayName}_album_wall${preset ? `_${preset.id}` : ""}.png`;
+  const guideFilename = `${userDisplayName}_album_wall_guide.pdf`;
 
   /**
-   * Returns true when the current browser can share image files natively.
+   * Returns true when the current browser can share the file natively.
    *
-   * @param imageFile Image file to check against the Web Share API.
-   * @returns Whether file sharing is supported for this image.
+   * @param file File to check against the Web Share API.
+   * @returns Whether file sharing is supported for this file.
    */
-  const canShareImageFile = (imageFile: File) => {
+  const canShareFile = (file: File) => {
     return (
       typeof navigator !== "undefined" &&
       Boolean(navigator.share) &&
-      (!navigator.canShare || navigator.canShare({ files: [imageFile] }))
+      (!navigator.canShare || navigator.canShare({ files: [file] }))
     );
   };
 
@@ -148,14 +154,17 @@ export function useGridExport(username: string, albums: Album[]) {
    * Draws the current wall into a PNG blob.
    *
    * @param preset Output size; without one the image is the wall at the screen's density.
+   * @param backdrop What is behind the wall; without one it matches the wall's panel.
    * @returns A PNG blob for the current wall grid, and how many covers had to be left out.
    */
-  const captureGridImageBlob = async (preset?: ExportPreset) => {
+  const captureGridImageBlob = async (preset?: ExportPreset, backdrop?: ExportBackdrop) => {
     if (!gridRef.current) {
       throw new Error("No grid available to export");
     }
     const grid = gridRef.current;
-    const background = getPanelColor(grid);
+    const color = backdrop?.color ?? getPanelColor(grid);
+    // Over the record the wall is drawn on nothing, so the record shows between the covers.
+    const background = backdrop?.record && preset ? "rgba(0, 0, 0, 0)" : color;
     const padding = preset ? Math.round(Math.min(preset.width, preset.height) * 0.05) : 0;
     // Capture a preset at the resolution it is drawn at, so a narrow wall on a phone is not
     // stretched, but keep the capture within a canvas size phones can render.
@@ -176,7 +185,9 @@ export function useGridExport(username: string, albums: Album[]) {
       drawWall({ grid, albums, scale, background, placeholder: DEFAULT_PLACEHOLDER_IMAGE }),
       EXPORT_TIMEOUT_MS
     );
-    const output = preset ? drawInFrame(canvas, preset, padding, background) : canvas;
+    const output = preset
+      ? drawInFrame(canvas, preset, padding, { color, record: backdrop?.record ?? false })
+      : canvas;
     const imageBlob = await new Promise<Blob>((resolve, reject) => {
       output.toBlob((blob) => {
         if (!blob) {
@@ -191,51 +202,48 @@ export function useGridExport(username: string, albums: Album[]) {
   };
 
   /**
-   * Attempts to share an image file using the browser's native share sheet.
+   * Attempts to share a file using the browser's native share sheet.
    *
-   * @param imageFile Image file to share.
+   * @param file File to share.
    * @returns True when the share sheet was used successfully, otherwise false.
    */
-  const tryNativeImageShare = async (imageFile: File) => {
-    if (!canShareImageFile(imageFile)) {
+  const tryNativeShare = async (file: File) => {
+    if (!canShareFile(file)) {
       return false;
     }
 
     await navigator.share({
       title: `${userDisplayName}'s Album Wall`,
       text: `Check out ${userDisplayName}'s album wall.`,
-      files: [imageFile],
+      files: [file],
     });
 
     return true;
   };
 
   /**
-   * Captures the current wall grid as a PNG image and routes it through the best available
-   * share/save path for the current device.
+   * Makes a file of the wall and routes it through the best available share/save path for the
+   * current device: the share sheet where there is one, a download otherwise.
    *
-   * @param preset Output size, such as a phone wallpaper; without one the wall is saved as shown.
+   * @param work What is being made: the notice while it is, and the notice if it fails.
+   * @param make Makes the file, and says how many covers it had to leave out.
    */
-  const shareOrSaveImage = async (preset?: ExportPreset) => {
-    const imageFilename = imageFilenameFor(preset);
-    setDropdownOpen(false);
+  const deliver = async (
+    work: { preparing: string; failed: string },
+    make: () => Promise<{ blob: Blob; filename: string; coversLeftOut: number }>
+  ) => {
     setStatusMessage(null);
-
-    if (!gridRef.current || albums.length === 0) {
-      setStatus({ message: "No albums", tone: "error" });
-      return;
-    }
 
     try {
       setIsExporting(true);
-      setStatus({ message: "Preparing image...", tone: "info", busy: true });
-      const { imageBlob, coversLeftOut: missing } = await captureGridImageBlob(preset);
-      const imageFile = new File([imageBlob], imageFilename, { type: "image/png" });
+      setStatus({ message: work.preparing, tone: "info", busy: true });
+      const { blob, filename, coversLeftOut: missing } = await make();
+      const file = new File([blob], filename, { type: blob.type });
       const leftOut = missing > 0 ? `, ${missing} left out` : "";
       const savedMessage = `Saved${leftOut}`;
 
       try {
-        if (await tryNativeImageShare(imageFile)) {
+        if (await tryNativeShare(file)) {
           if (missing > 0) setStatusMessage(`Shared${leftOut}`);
           return;
         }
@@ -249,11 +257,11 @@ export function useGridExport(username: string, albums: Album[]) {
             action: {
               label: "Share",
               run: () => {
-                void tryNativeImageShare(imageFile).catch((shareError) => {
+                void tryNativeShare(file).catch((shareError) => {
                   if (shareError instanceof DOMException && shareError.name === "AbortError")
                     return;
-                  console.error("Error sharing image:", shareError);
-                  downloadBlob(imageBlob, imageFilename);
+                  console.error("Error sharing file:", shareError);
+                  downloadBlob(blob, filename);
                   setStatusMessage("Saved");
                 });
               },
@@ -264,7 +272,7 @@ export function useGridExport(username: string, albums: Album[]) {
         throw error;
       }
 
-      downloadBlob(imageBlob, imageFilename);
+      downloadBlob(blob, filename);
       setStatusMessage(savedMessage);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
@@ -272,8 +280,12 @@ export function useGridExport(username: string, albums: Album[]) {
         return;
       }
 
-      console.error("Error exporting image:", error);
-      setStatus({ message: "Could not save the image", tone: "error" });
+      console.error("Error exporting:", error);
+      // A poster says why in its own words (used up for the day, service unreachable).
+      setStatus({
+        message: error instanceof PosterError ? error.message : work.failed,
+        tone: "error",
+      });
     } finally {
       setIsExporting(false);
       // A share that needed no message leaves the progress notice up; clear it.
@@ -282,22 +294,98 @@ export function useGridExport(username: string, albums: Album[]) {
   };
 
   /**
-   * Toggles visibility of the export dropdown menu.
+   * Captures the current wall grid as a PNG image and routes it through the best available
+   * share/save path for the current device.
+   *
+   * @param preset Output size, such as a phone wallpaper; without one the wall is saved as shown.
+   * @param backdrop What is behind the wall; without one it matches the wall's panel.
    */
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
+  const shareOrSaveImage = async (preset?: ExportPreset, backdrop?: ExportBackdrop) => {
+    if (!gridRef.current || albums.length === 0) {
+      setStatus({ message: "No albums", tone: "error" });
+      return;
+    }
+    await deliver(
+      { preparing: "Preparing image...", failed: "Could not save the image" },
+      async () => {
+        const { imageBlob, coversLeftOut } = await captureGridImageBlob(preset, backdrop);
+        return { blob: imageBlob, filename: imageFilenameFor(preset), coversLeftOut };
+      }
+    );
   };
 
-  const closeDropdown = () => setDropdownOpen(false);
+  /**
+   * Makes the hanging guide, a PDF of the wall with its rows and columns numbered and the records
+   * listed, and shares or saves it.
+   *
+   * @param wall What is on the wall, in order, and its shape.
+   * @param changes Steps to change the wall hung last time into this one, to add to the guide.
+   */
+  const saveGuide = async (
+    wall: { albums: Album[]; rows: number; columns: number },
+    changes?: { since: string; lines: string[] }
+  ) => {
+    if (!gridRef.current || wall.albums.length === 0) {
+      setStatus({ message: "No albums", tone: "error" });
+      return;
+    }
+    const grid = gridRef.current;
+    await deliver(
+      { preparing: "Preparing guide...", failed: "Could not save the guide" },
+      async () => {
+        const { pdf, coversLeftOut } = await withTimeout(
+          makeGuide({
+            grid,
+            albums: wall.albums,
+            rows: wall.rows,
+            columns: wall.columns,
+            title: `${userDisplayName}'s wall`,
+            paper: paperFor(typeof navigator === "undefined" ? undefined : navigator.language),
+            placeholder: DEFAULT_PLACEHOLDER_IMAGE,
+            ...(changes ? { changes } : {}),
+          }),
+          EXPORT_TIMEOUT_MS * 2
+        );
+        return { blob: pdf, filename: guideFilename, coversLeftOut };
+      }
+    );
+  };
+
+  /**
+   * Has the poster service draw the wall at print size, and shares or saves it. The poster is
+   * made the same way whatever the device, so a phone gets the same file as a computer.
+   *
+   * @param wall What is on the wall, in order, and its shape.
+   * @param options The poster's size and what is behind the wall.
+   */
+  const savePoster = async (
+    wall: { albums: Album[]; rows: number; columns: number },
+    options: { size: PosterSize; background: "dark" | "light" | "record" }
+  ) => {
+    if (wall.albums.length === 0) {
+      setStatus({ message: "No albums", tone: "error" });
+      return;
+    }
+    await deliver(
+      { preparing: "Preparing poster...", failed: "Could not make the poster" },
+      async () => {
+        const { blob, coversLeftOut } = await requestPoster({ ...wall, ...options });
+        return {
+          blob,
+          filename: `${userDisplayName}_album_wall_poster_${options.size}.jpg`,
+          coversLeftOut,
+        };
+      }
+    );
+  };
 
   return {
-    dropdownOpen,
     isExporting,
     status,
     setStatus,
-    closeDropdown,
     gridRef,
     shareOrSaveImage,
-    toggleDropdown,
+    saveGuide,
+    savePoster,
   };
 }

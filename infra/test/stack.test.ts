@@ -41,14 +41,19 @@ describe("cost guardrails", () => {
   });
 
   it("alarms on unusual traffic, errors and throttling, notifying the alerts topic", () => {
-    // Three each for the Discogs proxy, the short link page and the cover image service, and one
-    // for the cover color service; exactly the ten alarms CloudWatch includes for free.
-    stack.resourceCountIs("AWS::CloudWatch::Alarm", 10);
+    // One each for Lambda's account-wide invocations, errors and throttles: three of the ten alarm
+    // metrics CloudWatch includes for free, so the rest stay free for other apps in the account.
+    stack.resourceCountIs("AWS::CloudWatch::Alarm", 3);
     for (const metric of ["Invocations", "Errors", "Throttles"]) {
       stack.hasResourceProperties("AWS::CloudWatch::Alarm", {
+        Namespace: "AWS/Lambda",
         MetricName: metric,
         AlarmActions: Match.anyValue(),
       });
+    }
+    // Account-wide: no function is named, so one alarm covers every function.
+    for (const alarm of Object.values(stack.findResources("AWS::CloudWatch::Alarm"))) {
+      expect((alarm.Properties as { Dimensions?: unknown }).Dimensions).toBeUndefined();
     }
   });
 
@@ -84,7 +89,7 @@ describe("short share links", () => {
 
   it("keeps shared walls in a table that stays free and forgets them after a year", () => {
     stack.hasResourceProperties("AWS::DynamoDB::Table", {
-      ProvisionedThroughput: { ReadCapacityUnits: 2, WriteCapacityUnits: 2 },
+      ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 },
       TimeToLiveSpecification: { AttributeName: "expires", Enabled: true },
     });
   });
@@ -194,7 +199,7 @@ describe("shared cover colors", () => {
   it("keeps profiles in a free provisioned table that expires them", () => {
     stack.hasResourceProperties("AWS::DynamoDB::Table", {
       KeySchema: [{ AttributeName: "url", KeyType: "HASH" }],
-      ProvisionedThroughput: { ReadCapacityUnits: 10, WriteCapacityUnits: 10 },
+      ProvisionedThroughput: { ReadCapacityUnits: 3, WriteCapacityUnits: 3 },
       TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
     });
   });
@@ -252,7 +257,7 @@ describe("saved walls and edge answers", () => {
         { AttributeName: "user", KeyType: "HASH" },
         { AttributeName: "item", KeyType: "RANGE" },
       ],
-      ProvisionedThroughput: { ReadCapacityUnits: 2, WriteCapacityUnits: 2 },
+      ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 },
     });
     stack.hasResourceProperties("AWS::Lambda::Function", {
       Environment: { Variables: Match.objectLike({ SAVED_TABLE_NAME: Match.anyValue() }) },
@@ -279,5 +284,51 @@ describe("saved walls and edge answers", () => {
     for (const alarm of alarms.filter((a) => a.MetricName === "Throttles")) {
       expect(alarm.Threshold).toBeGreaterThanOrEqual(20);
     }
+  });
+});
+
+describe("posters", () => {
+  const stack = template();
+
+  it("draws them in a streaming ARM function with capped concurrency and a daily cap", () => {
+    stack.hasResourceProperties("AWS::Lambda::Function", {
+      Architectures: ["arm64"],
+      MemorySize: 3008,
+      Timeout: 40,
+      ReservedConcurrentExecutions: 2,
+      Environment: {
+        Variables: Match.objectLike({ POSTER_DAILY_CAP: "40", SHARE_TABLE_NAME: Match.anyValue() }),
+      },
+    });
+    stack.hasResourceProperties("AWS::Lambda::Url", { InvokeMode: "RESPONSE_STREAM" });
+  });
+
+  it("serves POST /poster on the short link domain, never cached", () => {
+    stack.hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: "/poster",
+            AllowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"],
+            ViewerProtocolPolicy: "https-only",
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it("lets the function add to the day's counter and nothing else in the table", () => {
+    stack.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: "dynamodb:UpdateItem",
+            Condition: {
+              "ForAllValues:StringLike": { "dynamodb:LeadingKeys": ["poster-cap:*"] },
+            },
+          }),
+        ]),
+      },
+    });
   });
 });

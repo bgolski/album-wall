@@ -125,13 +125,13 @@ describe("LayoutsPanel", () => {
     const { onApply, rerenderWith } = renderPanel(wall(["1", "2", "3"], ["2"]));
     saveAs("Autumn");
     rerenderWith(wall(["4", "5", "6"]));
-    fireEvent.click(screen.getByRole("button", { name: "Put Autumn on the wall" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use Autumn on the wall" }));
     expect(onApply).toHaveBeenLastCalledWith(wall(["1", "2", "3"], ["2"]));
     expect(onApply).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
     // Once the wall is that saved wall, Use has nothing left to do.
     rerenderWith(wall(["1", "2", "3"], ["2"]));
-    expect(screen.queryByRole("button", { name: "Put Autumn on the wall" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Use Autumn on the wall" })).toBeNull();
   });
 
   it("marks the saved wall that was used while it is showing, and stops when the wall is edited", () => {
@@ -141,10 +141,10 @@ describe("LayoutsPanel", () => {
     // Saving does not select anything, even though both match the wall as it is now.
     expect(screen.queryByRole("img", { name: "Showing now" })).toBeNull();
     // Use one: only that one is selected, and it has no Use left.
-    fireEvent.click(screen.getByRole("button", { name: "Put Autumn on the wall" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use Autumn on the wall" }));
     expect(screen.getAllByRole("img", { name: "Showing now" })).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: "Put Autumn on the wall" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Put Winter on the wall" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Use Autumn on the wall" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Use Winter on the wall" })).toBeTruthy();
     // Moving an album, or pinning one, is an edit.
     rerenderWith(wall(["2", "1", "3"]));
     expect(screen.queryByRole("img", { name: "Showing now" })).toBeNull();
@@ -317,7 +317,77 @@ describe("LayoutsPanel", () => {
     expect(screen.getByRole("menuitem", { name: "Mark as on my wall" })).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(JSON.parse(storage.getItem("album-wall:hang-history:someone")!).hangs).toEqual([
-      { date: "2026-10-14", albumIds: ["1", "2", "3"], layoutId: "id-2" },
+      { date: "2026-10-14", albumIds: ["1", "2", "3"], layoutId: "id-2", rows: 1, columns: 3 },
     ]);
+  });
+
+  describe("history", () => {
+    function renderWithHistory(onApply = vi.fn()) {
+      const storage = fakeStorage();
+      storage.setItem(
+        "album-wall:hang-history:someone",
+        JSON.stringify({
+          v: 1,
+          hangs: [
+            { date: "2026-09-02", albumIds: ["4", "5", "6"], rows: 1, columns: 3 },
+            { date: "2026-10-01", albumIds: ["2", "3", "9"] },
+            { date: "2026-10-14", albumIds: ["1", "2", "3"], rows: 1, columns: 3 },
+          ],
+        })
+      );
+      const onNotice = vi.fn();
+      function WithHistory() {
+        const history = useHangHistory("someone", { storage });
+        return (
+          <LayoutsPanel
+            isVisible
+            collectionName="someone"
+            currentWall={wall(["1", "2", "3"])}
+            albums={albums}
+            onApply={onApply}
+            storageOptions={{ storage }}
+            history={history}
+            onNotice={onNotice}
+          />
+        );
+      }
+      render(<WithHistory />);
+      return { onApply, onNotice };
+    }
+
+    it("lists the walls that were hung, newest first, below the saved walls", () => {
+      renderWithHistory();
+      const list = screen.getByRole("list", { name: "History" });
+      const days = within(list)
+        .getAllByRole("button", { expanded: false })
+        .map((button) => button.textContent);
+      expect(days).toHaveLength(3);
+      expect(days[0]).toContain("2026");
+      expect(screen.getByRole("heading", { name: "History" })).toBeTruthy();
+    });
+
+    it("shows a picture of an earlier wall, and puts it back with Use", () => {
+      const { onApply } = renderWithHistory();
+      const list = screen.getByRole("list", { name: "History" });
+      const first = within(list).getAllByRole("button", { expanded: false })[0]!;
+      fireEvent.click(first);
+      expect(within(list).getByRole("img", { name: /3 albums/ })).toBeTruthy();
+
+      fireEvent.click(within(list).getAllByRole("button", { name: /^Use the wall from/ })[0]!);
+      expect(onApply).toHaveBeenCalledWith(
+        expect.objectContaining({ rows: 1, columns: 3, wallAlbumIds: ["1", "2", "3"] })
+      );
+    });
+
+    it("works out the shape of a wall recorded before shapes were kept", () => {
+      const { onApply, onNotice } = renderWithHistory();
+      const uses = screen.getAllByRole("button", { name: /^Use the wall from/ });
+      // The middle one (1 Oct) has no shape and names an album that is no longer there.
+      fireEvent.click(uses[1]!);
+      expect(onApply).toHaveBeenCalledWith(
+        expect.objectContaining({ columns: 3, rows: 1, wallAlbumIds: ["2", "3", "9"] })
+      );
+      expect(onNotice).toHaveBeenCalledWith("1 no longer in the collection");
+    });
   });
 });

@@ -9,13 +9,12 @@ import { requestShortLink } from "@/utils/shortLink";
 /**
  * Sharing the wall as a link: through the device's share sheet, or copied to the clipboard (with
  * a fallback box when the clipboard refuses). A short link that shows the wall in message
- * previews is asked for when the export menu opens (`prepare`), so it is usually ready by the
+ * previews is asked for when the export panel opens (`prepare`), so it is usually ready by the
  * time a share is chosen; until it is, or if it cannot be made, the long link is used.
  *
  * @param input.username Collection the wall belongs to; no link is built without one.
  * @param input.wall The wall as shown.
  * @param input.covers Cover image addresses of the wall, in order, for the preview picture.
- * @param input.closeMenu Closes the export menu the actions were chosen from.
  * @param input.setStatus Shows the outcome.
  * @returns `prepare`, `shareLink` and `copyShareLink`.
  */
@@ -23,10 +22,9 @@ export function useShareLinks(input: {
   username: string;
   wall: SharedWallState;
   covers: string[];
-  closeMenu: () => void;
   setStatus: (status: ExportStatus | null) => void;
 }) {
-  const { username, wall, covers, closeMenu, setStatus } = input;
+  const { username, wall, covers, setStatus } = input;
   // Short links by long link: requests under way, and the ones that came back.
   const pending = useRef(new Map<string, Promise<string | null>>());
   const ready = useRef(new Map<string, string>());
@@ -72,7 +70,6 @@ export function useShareLinks(input: {
    * Copies the wall's share link to the clipboard.
    */
   const copyShareLink = async () => {
-    closeMenu();
     const longUrl = buildShareUrl();
     if (!longUrl) {
       setStatus({ message: "Link not ready", tone: "error" });
@@ -92,7 +89,6 @@ export function useShareLinks(input: {
    * Opens the device's share sheet with the wall's share link, copying it instead if that fails.
    */
   const shareLink = async () => {
-    closeMenu();
     const longUrl = buildShareUrl();
     if (!longUrl) {
       setStatus({ message: "Link not ready", tone: "error" });

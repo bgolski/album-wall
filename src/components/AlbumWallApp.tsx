@@ -95,7 +95,8 @@ export default function AlbumWallApp() {
           usernameError={usernameError}
           onUsernameChange={handleUsernameChange}
           onLoadCollection={loadCollection}
-          onTryDemo={demoAvailable ? tryDemo : undefined}
+          // While the welcome card is due, it is the one way to the demo.
+          onTryDemo={demoAvailable && !welcome.expected ? tryDemo : undefined}
           account={account}
           folders={folders}
           folderId={folderId}

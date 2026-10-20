@@ -5,6 +5,14 @@ import { coverAddresses } from "./imageProxy";
 // Longest wait for one cover before it is left out of the image.
 const LOAD_TIMEOUT_MS = 8000;
 
+/** Where a tile sits on the drawn canvas, in canvas pixels. */
+export interface TileBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** Loads an image the page may draw and read back, or resolves null when it cannot. */
 export type ImageLoader = (src: string) => Promise<HTMLImageElement | null>;
 
@@ -42,7 +50,7 @@ export const loadReadableImage: ImageLoader = (src) =>
  * @param options.background Fill colour behind the tiles.
  * @param options.placeholder Image address drawn for a cover that cannot be included.
  * @param options.loadImage Loader to use; tests pass their own.
- * @returns The drawn canvas and how many covers were left out.
+ * @returns The drawn canvas, how many covers were left out, and where each tile sits on it.
  */
 export async function drawWall(options: {
   grid: HTMLElement;
@@ -51,7 +59,7 @@ export async function drawWall(options: {
   background: string;
   placeholder: string;
   loadImage?: ImageLoader;
-}): Promise<{ canvas: HTMLCanvasElement; left: number }> {
+}): Promise<{ canvas: HTMLCanvasElement; left: number; tiles: TileBox[] }> {
   const { grid, albums, scale, background, placeholder } = options;
   const loadImage = options.loadImage ?? loadReadableImage;
 
@@ -84,8 +92,15 @@ export async function drawWall(options: {
   );
 
   const origin = grid.getBoundingClientRect();
+  const boxes: TileBox[] = [];
   tiles.forEach((tile, index) => {
     const rect = tile.getBoundingClientRect();
+    boxes.push({
+      x: (rect.left - origin.left) * scale,
+      y: (rect.top - origin.top) * scale,
+      width: rect.width * scale,
+      height: rect.height * scale,
+    });
     const rounded = tile.querySelector<HTMLElement>(".rounded-tile") ?? tile;
     const radius = parseFloat(getComputedStyle(rounded).borderTopLeftRadius) || 0;
     drawTile(
@@ -99,7 +114,7 @@ export async function drawWall(options: {
     );
   });
 
-  return { canvas, left };
+  return { canvas, left, tiles: boxes };
 }
 
 // Draws an image filling the box (cropping the longer side, like `object-fit: cover`) inside

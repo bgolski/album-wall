@@ -7,6 +7,7 @@
     "build": "next build",
     "build:static": "npm run check:env && cross-env NEXT_STATIC_EXPORT=true next build",
     "check:env": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local scripts/check-deploy-env.ts",
+    "check:live": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/live-check.ts",
     "check:static-output": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local scripts/check-static-output.ts",
     "build:ssr": "cross-env NEXT_STATIC_EXPORT=false next build",
     "start": "serve out -s -p 3001",

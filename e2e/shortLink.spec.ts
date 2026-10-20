@@ -5,7 +5,7 @@ test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
 const SHORT = "https://d111.cloudfront.net/w/AbCd1234";
 
-test("copies a short link made when the export menu opens", async ({ page }) => {
+test("copies a short link made as the share button is reached", async ({ page }) => {
   await loadWall(page);
   const requests: unknown[] = [];
   await page.route(

@@ -83,8 +83,8 @@ export function useHangHistory(collectionName: string, options: HangHistoryOptio
     hangs,
     lastHung: last,
     /** Records the albums (of a saved layout, when given) as hung today. */
-    markHung: (albumIds: string[], layoutId?: string) =>
-      commit(addHang(hangs, albumIds, now(), layoutId)),
+    markHung: (albumIds: string[], layoutId?: string, shape?: { rows: number; columns: number }) =>
+      commit(addHang(hangs, albumIds, now(), layoutId, shape)),
     /** Forgets every wall. */
     clear: () => commit([]),
     /** Adds records from a backup file. */

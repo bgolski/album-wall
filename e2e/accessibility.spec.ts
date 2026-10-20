@@ -77,9 +77,10 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoViolations(page);
     });
 
-    test("export menu", async ({ page }) => {
+    test("export panel", async ({ page }) => {
       await loadWall(page);
-      await page.getByRole("button", { name: /Save image/ }).click();
+      await page.getByRole("button", { name: "Export", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Export" })).toBeVisible();
       await expectNoViolations(page);
     });
 

@@ -9,7 +9,7 @@ import type { CoverSource } from "./coverSource";
  * The app's own cover image service (`?url=<cover>&w=<width>`), which serves resized copies of
  * covers that pages may read. An empty value turns it off.
  */
-const IMAGE_SERVICE =
+export const IMAGE_SERVICE =
   process.env.NEXT_PUBLIC_IMAGE_SERVICE_URL ?? "https://albumwall.bradleygolski.com/img";
 
 /** Widths the image service makes; a request is rounded up to the next one. */

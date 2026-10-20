@@ -5,6 +5,9 @@ export interface HangRecord {
   albumIds: string[];
   /** The saved layout that was marked as on the wall, when it was one. */
   layoutId?: string;
+  /** The wall's shape, so it can be put back; walls recorded before this was kept have none. */
+  rows?: number;
+  columns?: number;
 }
 
 /** Most walls remembered per collection; the oldest are forgotten first. */
@@ -23,6 +26,8 @@ export function hangHistoryKey(collectionName: string): string {
   return `album-wall:hang-history:${collectionName.trim().toLowerCase()}`;
 }
 
+const isCount = (value: unknown) => Number.isInteger(value) && (value as number) > 0;
+
 /**
  * Whether a value is a well-formed hang record.
  *
@@ -37,7 +42,9 @@ export function isHangRecord(value: unknown): value is HangRecord {
     /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
     Array.isArray(record.albumIds) &&
     record.albumIds.every((id) => typeof id === "string") &&
-    (record.layoutId === undefined || typeof record.layoutId === "string")
+    (record.layoutId === undefined || typeof record.layoutId === "string") &&
+    (record.rows === undefined || isCount(record.rows)) &&
+    (record.columns === undefined || isCount(record.columns))
   );
 }
 
@@ -87,18 +94,24 @@ export function localDay(now: Date): string {
  * @param albumIds Albums on the wall, in order.
  * @param now The moment it was hung.
  * @param layoutId The saved layout marked as on the wall, if it was one.
+ * @param shape The wall's rows and columns.
  * @returns The new records, oldest first.
  */
 export function addHang(
   hangs: HangRecord[],
   albumIds: string[],
   now: Date,
-  layoutId?: string
+  layoutId?: string,
+  shape?: { rows: number; columns: number }
 ): HangRecord[] {
   const date = localDay(now);
   const kept = hangs.filter((hang) => hang.date !== date);
   const record: HangRecord = { date, albumIds: [...albumIds] };
   if (layoutId) record.layoutId = layoutId;
+  if (shape) {
+    record.rows = shape.rows;
+    record.columns = shape.columns;
+  }
   return [...kept, record].sort((x, y) => x.date.localeCompare(y.date)).slice(-MAX_HANGS);
 }
 

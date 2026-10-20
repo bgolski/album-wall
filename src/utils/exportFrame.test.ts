@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { EXPORT_PRESETS, fitIntoFrame } from "./exportFrame";
 
 describe("EXPORT_PRESETS", () => {
-  it("lists the phone, desktop and square sizes in that order", () => {
+  it("lists the phone and desktop sizes in that order", () => {
     expect(EXPORT_PRESETS.map(({ id, width, height }) => [id, width, height])).toEqual([
       ["phone", 1179, 2556],
       ["desktop", 2560, 1440],
-      ["square", 3000, 3000],
     ]);
     for (const preset of EXPORT_PRESETS) expect(preset.label.length).toBeGreaterThan(0);
   });

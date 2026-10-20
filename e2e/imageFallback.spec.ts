@@ -25,8 +25,9 @@ test("covers still show when the image proxy is down, and the wall can still be 
   // Saving still works. (Which covers are left out depends on the browser refusing to read them,
   // which the stubbed network cannot reproduce; the drawing code is tested for that directly.)
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Save image/ }).click();
-  await page.getByRole("menuitem", { name: "Wall as shown" }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page.getByRole("button", { name: "Wall", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await download;
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
 });
@@ -68,8 +69,9 @@ test("Discogs covers come from the app's image service, so a saved wall includes
   await expect(page.getByText(/loading directly/)).toHaveCount(0);
 
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: /Save image/ }).click();
-  await page.getByRole("menuitem", { name: "Wall as shown" }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page.getByRole("button", { name: "Wall", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await download;
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   expect(serviceRequests.some((url) => url.endsWith("&w=600"))).toBe(true);

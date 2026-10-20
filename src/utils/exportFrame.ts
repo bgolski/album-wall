@@ -8,13 +8,13 @@
 /**
  * A preset describing a target export frame.
  *
- * @property id - Identifier used for lookup.  Must be one of "phone", "desktop", or "square".
+ * @property id - Identifier used for lookup.  Must be one of "phone" or "desktop".
  * @property label - Human readable name shown to the user.
  * @property width - Target width in pixels.
  * @property height - Target height in pixels.
  */
 export interface ExportPreset {
-  id: "phone" | "desktop" | "square";
+  id: "phone" | "desktop";
   label: string;
   width: number;
   height: number;
@@ -25,10 +25,25 @@ export interface ExportPreset {
  * rely on the presets being in the same order as the tests expect.
  */
 export const EXPORT_PRESETS: readonly ExportPreset[] = [
-  { id: "phone", label: "Phone wallpaper", width: 1179, height: 2556 },
-  { id: "desktop", label: "Desktop wallpaper", width: 2560, height: 1440 },
-  { id: "square", label: "Square print", width: 3000, height: 3000 },
+  { id: "phone", label: "Phone", width: 1179, height: 2556 },
+  { id: "desktop", label: "Desktop", width: 2560, height: 1440 },
 ];
+
+/** What an exported picture can have behind the wall: a plain colour, or the app's record. */
+export type ExportBackground = "dark" | "light" | "record";
+
+/** What to draw behind the wall: a colour, and the record's grooves over it when `record`. */
+export interface ExportBackdrop {
+  color: string;
+  record: boolean;
+}
+
+/** The backdrop of each background: the app's own dark and light page colours, or its record. */
+export const EXPORT_BACKDROPS: Record<ExportBackground, ExportBackdrop> = {
+  dark: { color: "#0b0f17", record: false },
+  light: { color: "#f1f3f9", record: false },
+  record: { color: "#0b0f17", record: true },
+};
 
 /**
  * Scale content to fit within a frame while preserving aspect ratio.

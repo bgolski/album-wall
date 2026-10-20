@@ -31,11 +31,23 @@ const ALERT_EMAIL_PARAMETER_NAME = "/album-wall/alert-email";
 // Hosting must stay free: alert on the first cent spent, and when the month is forecast to pass $1.
 const MONTHLY_BUDGET_USD = 1;
 // Far below Lambda's free allowance (1M requests a month), so unusual traffic is noticed early.
+// The three alarms below watch Lambda for the whole account (one alarm metric each, where an alarm
+// for each function would be ten), so the rest of CloudWatch's ten free alarm metrics stay free for
+// whatever else runs in this account.
 const DAILY_INVOCATION_ALARM = 100_000;
 const HOURLY_ERROR_ALARM = 50;
 // Throttling is the caps doing their job (scanners and bursts are turned away for free), so it
-// alarms only when it is heavy enough to mean abuse or a cap that is too low.
-const HOURLY_THROTTLE_ALARM = 20;
+// alarms only when it is heavy enough to mean abuse or a cap that is too low. A wall's first load
+// can be throttled a little on the cover service, which is why this is higher than it once was.
+const HOURLY_THROTTLE_ALARM = 100;
+// Posters are drawn at print size, which takes real compute, so the number made in a day is capped
+// in code. 40 a day, each taking at most 40 seconds of 3 GB, is at worst 35% of the month's free
+// compute (400,000 GB-seconds); in practice a poster takes a few seconds.
+const POSTER_DAILY_CAP = 40;
+const POSTER_PATH = "/poster";
+const POSTER_CONCURRENCY = 2;
+const POSTER_MEMORY_MB = 3008;
+const POSTER_TIMEOUT_SECONDS = 40;
 // Room for a message preview (page and picture, sometimes several fetchers at once).
 const SHARE_PAGE_CONCURRENCY = 10;
 // Short share links: the CloudFront domain is written here after the distribution is made and read
@@ -56,7 +68,6 @@ const COVER_PROFILES_CONCURRENCY = 5;
 // covers not yet cached each need the function. Throttled requests fall back to the third-party
 // proxy in the app, and after a few the app stops asking, so the cap has to take a whole wall.
 const COVER_IMAGE_CONCURRENCY = 50;
-const HOURLY_COVER_THROTTLE_ALARM = 100;
 
 /**
  * Root infrastructure stack for album-wall AWS resources.
@@ -94,6 +105,11 @@ export class AlbumWallStack extends cdk.Stack {
 
     const discogsProxyFunction = new lambdaNodejs.NodejsFunction(this, "DiscogsProxyFunction", {
       runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      logGroup: new logs.LogGroup(this, "DiscogsProxyLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
       entry: "lambda/discogs-proxy/index.ts",
       handler: "handler",
       description: "Discogs proxy for the album-wall static frontend.",
@@ -124,19 +140,15 @@ export class AlbumWallStack extends cdk.Stack {
       },
     });
 
-    const { sharePage: sharePageFunction, distribution } = this.addShortLinks(discogsProxyFunction);
-    const coverImageFunction = this.addCoverImages(distribution);
+    const { distribution, table: sharedWalls } = this.addShortLinks(discogsProxyFunction);
+    this.addCoverImages(distribution);
+    this.addPoster(distribution, sharedWalls);
     this.addCollectionCache(distribution, functionUrl);
-    const profileFunction = this.addCoverProfiles();
+    this.addCoverProfiles();
 
     this.addSavedWalls(discogsProxyFunction);
 
-    this.addCostGuardrails(
-      discogsProxyFunction,
-      sharePageFunction,
-      coverImageFunction,
-      profileFunction
-    );
+    this.addCostGuardrails();
 
     new cdk.CfnOutput(this, "DiscogsProxyFunctionUrl", {
       value: functionUrl.url,
@@ -172,14 +184,18 @@ export class AlbumWallStack extends cdk.Stack {
     const table = new dynamodb.Table(this, "SharedWallsTable", {
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PROVISIONED,
-      readCapacity: 2,
-      writeCapacity: 2,
+      readCapacity: 1,
+      writeCapacity: 1,
       timeToLiveAttribute: "expires",
     });
 
     const sharePage = new lambdaNodejs.NodejsFunction(this, "SharePageFunction", {
       runtime: lambda.Runtime.NODEJS_24_X,
       architecture: lambda.Architecture.ARM_64,
+      logGroup: new logs.LogGroup(this, "SharePageLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
       entry: "lambda/share-page/index.ts",
       handler: "handler",
       description: "Short share links for album-wall: link page and wall picture.",
@@ -291,7 +307,7 @@ function handler(event) {
       description: "CloudFront domain the short link domain points to (CNAME, DNS only).",
     });
 
-    return { sharePage, distribution };
+    return { sharePage, distribution, table };
   }
 
   /**
@@ -339,8 +355,8 @@ function handler(event) {
     const table = new dynamodb.Table(this, "CoverProfilesTable", {
       partitionKey: { name: "url", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PROVISIONED,
-      readCapacity: 10,
-      writeCapacity: 10,
+      readCapacity: 3,
+      writeCapacity: 3,
       timeToLiveAttribute: "ttl",
       // Everything in it can be measured again.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -383,6 +399,77 @@ function handler(event) {
   }
 
   /**
+   * Posters: the wall drawn at print size (18 x 24 or 24 x 36 inches at 300 dots per inch), which
+   * a phone cannot draw, so it comes out the same whichever device asked. A function with capped
+   * concurrency draws it and streams the picture back (a large poster is tens of megabytes, more
+   * than a plain response may hold). Each poster takes real compute, so the day's total is capped
+   * in the function by a counter kept in the short links table, under keys only this function may
+   * write: that keeps the month inside the free compute allowance however it is called. Served on
+   * the short link domain under `/poster`.
+   *
+   * @param distribution The short link distribution.
+   * @param table The short links table, whose items expire by themselves.
+   * @returns The poster function.
+   */
+  private addPoster(distribution: cloudfront.Distribution, table: dynamodb.Table) {
+    const poster = new lambdaNodejs.NodejsFunction(this, "PosterFunction", {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      entry: "lambda/poster/index.ts",
+      handler: "handler",
+      description: "Album-wall posters: the wall drawn at print size, a few a day.",
+      timeout: cdk.Duration.seconds(POSTER_TIMEOUT_SECONDS),
+      memorySize: POSTER_MEMORY_MB,
+      reservedConcurrentExecutions: POSTER_CONCURRENCY,
+      environment: {
+        SHARE_TABLE_NAME: table.tableName,
+        POSTER_DAILY_CAP: String(POSTER_DAILY_CAP),
+      },
+      logGroup: new logs.LogGroup(this, "PosterLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+      bundling: {
+        target: "node22",
+        // sharp has native parts: install the Linux ARM build whatever machine deploys.
+        nodeModules: ["sharp"],
+        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
+      },
+    });
+    // Only the day's counter, and only to add to it.
+    poster.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:UpdateItem"],
+        resources: [table.tableArn],
+        conditions: {
+          "ForAllValues:StringLike": { "dynamodb:LeadingKeys": ["poster-cap:*"] },
+        },
+      })
+    );
+
+    const url = poster.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+    });
+    distribution.addBehavior(
+      POSTER_PATH,
+      new origins.FunctionUrlOrigin(url, { readTimeout: cdk.Duration.seconds(60) }),
+      {
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+      }
+    );
+
+    new cdk.CfnOutput(this, "PosterPath", {
+      value: `https://${SHARE_DOMAIN}${POSTER_PATH}`,
+      description: "Poster service (POST {size, background, rows, columns, covers}).",
+    });
+    return poster;
+  }
+
+  /**
    * Signed-in visitors' saved layouts and wall history, so they load on any device: one item per
    * Discogs account, collection and kind, in a table with provisioned capacity inside the
    * always-free allowance (on-demand is not free). Kept until the visitor deletes them.
@@ -394,8 +481,8 @@ function handler(event) {
       partitionKey: { name: "user", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "item", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PROVISIONED,
-      readCapacity: 2,
-      writeCapacity: 2,
+      readCapacity: 1,
+      writeCapacity: 1,
     });
     table.grantReadWriteData(proxy);
     proxy.addEnvironment("SAVED_TABLE_NAME", table.tableName);
@@ -469,19 +556,11 @@ function handler(event) {
   /**
    * Keeps hosting free, or makes any cost visible at once: a $1 monthly budget for the whole
    * account that emails on the first cent spent and when the month is forecast to pass $1, and
-   * alarms on the Discogs proxy for unusual traffic, errors and throttling (its reserved
-   * concurrency throttles abuse instead of billing it).
-   *
-   * @param proxy The Discogs proxy function.
-   * @param sharePage The short link page function, watched the same way.
-   * @param coverImage The cover image function, watched the same way.
+   * three alarms on Lambda for the whole account, for unusual traffic, errors and throttling (each
+   * function's reserved concurrency throttles abuse instead of billing it). Three alarms is all
+   * this app uses of CloudWatch's ten free ones.
    */
-  private addCostGuardrails(
-    proxy: lambda.IFunction,
-    sharePage: lambda.IFunction,
-    coverImage: lambda.IFunction,
-    profiles: lambda.IFunction
-  ) {
+  private addCostGuardrails() {
     // A dynamic reference is resolved by CloudFormation during the deploy (with its execution
     // role), unlike a template parameter, which the CDK deploy role would have to read itself.
     const alertEmail = new cdk.CfnDynamicReference(
@@ -537,65 +616,32 @@ function handler(event) {
         alarmDescription: description,
       }).addAlarmAction(new cloudwatchActions.SnsAction(alerts));
 
+    // Lambda's own account-wide totals (no function named), so one alarm each covers every function
+    // here and any other app in the account.
+    const lambdaTotal = (metricName: string, period: cdk.Duration) =>
+      new cloudwatch.Metric({
+        namespace: "AWS/Lambda",
+        metricName,
+        statistic: "Sum",
+        period,
+      });
     alarm(
-      "ProxyInvocationsAlarm",
-      proxy.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
+      "LambdaInvocationsAlarm",
+      lambdaTotal("Invocations", cdk.Duration.days(1)),
       DAILY_INVOCATION_ALARM,
-      "The Discogs proxy ran far more often than usual in a day."
+      "Lambda ran far more often than usual in a day."
     );
     alarm(
-      "ProxyErrorsAlarm",
-      proxy.metricErrors({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      "LambdaErrorsAlarm",
+      lambdaTotal("Errors", cdk.Duration.hours(1)),
       HOURLY_ERROR_ALARM,
-      "The Discogs proxy failed many times in an hour."
+      "Lambda functions failed many times in an hour."
     );
     alarm(
-      "ProxyThrottlesAlarm",
-      proxy.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
+      "LambdaThrottlesAlarm",
+      lambdaTotal("Throttles", cdk.Duration.hours(1)),
       HOURLY_THROTTLE_ALARM,
-      "The Discogs proxy was throttled many times in an hour, which may mean abuse."
-    );
-    alarm(
-      "SharePageInvocationsAlarm",
-      sharePage.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
-      DAILY_INVOCATION_ALARM,
-      "Short share links were opened far more often than usual in a day."
-    );
-    alarm(
-      "SharePageErrorsAlarm",
-      sharePage.metricErrors({ period: cdk.Duration.hours(1), statistic: "Sum" }),
-      HOURLY_ERROR_ALARM,
-      "The short link page failed many times in an hour."
-    );
-    alarm(
-      "SharePageThrottlesAlarm",
-      sharePage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
-      HOURLY_THROTTLE_ALARM,
-      "The short link page was throttled many times in an hour, which may mean abuse."
-    );
-    alarm(
-      "CoverImageInvocationsAlarm",
-      coverImage.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
-      DAILY_INVOCATION_ALARM,
-      "The cover image service resized far more covers than usual in a day."
-    );
-    alarm(
-      "CoverImageErrorsAlarm",
-      coverImage.metricErrors({ period: cdk.Duration.hours(1), statistic: "Sum" }),
-      HOURLY_ERROR_ALARM,
-      "The cover image service failed many times in an hour."
-    );
-    alarm(
-      "CoverImageThrottlesAlarm",
-      coverImage.metricThrottles({ period: cdk.Duration.hours(1), statistic: "Sum" }),
-      HOURLY_COVER_THROTTLE_ALARM,
-      "The cover image service was throttled many times in an hour, which may mean abuse."
-    );
-    alarm(
-      "CoverProfilesInvocationsAlarm",
-      profiles.metricInvocations({ period: cdk.Duration.days(1), statistic: "Sum" }),
-      DAILY_INVOCATION_ALARM,
-      "The cover color service ran far more often than usual in a day."
+      "Lambda throttled many runs in an hour, which may mean abuse."
     );
   }
 }

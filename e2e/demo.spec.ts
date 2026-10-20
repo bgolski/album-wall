@@ -26,6 +26,8 @@ test("a first-time visitor is offered the demo on the page, and only once", asyn
   const welcome = page.getByRole("region", { name: "New to Album Wall?" });
   await expect(welcome).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  // The card is the one way to the demo here, not the header too.
+  await expect(page.getByRole("button", { name: "Try the demo wall" })).toHaveCount(0);
   // Nothing covers the page: the form is usable beside it.
   await expect(page.getByRole("button", { name: "Load Collection" })).toBeVisible();
   await welcome.getByRole("button", { name: "Try the demo" }).click();

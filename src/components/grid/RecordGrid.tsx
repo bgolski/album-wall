@@ -1,5 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { Album, SharedWallState } from "@/types";
 import { useGridDimensions } from "@/hooks/useGridDimensions";
 import { useAlbumPinning } from "@/hooks/useAlbumPinning";
@@ -10,7 +10,7 @@ import { useAlbumLabels } from "@/hooks/useAlbumLabels";
 import { useGradientBuilder } from "@/hooks/useGradientBuilder";
 import { useGroupBuilder } from "@/hooks/useGroupBuilder";
 import { useMoveMode } from "@/hooks/useMoveMode";
-import { useWallDrag, DRAG_INSTRUCTIONS } from "@/hooks/useWallDrag";
+import { useWallDrag, wallCollisionDetection, DRAG_INSTRUCTIONS } from "@/hooks/useWallDrag";
 import { useRememberWall } from "@/hooks/useRememberWall";
 import { useShareLinks } from "@/hooks/useShareLinks";
 import { useUndoShortcut } from "@/hooks/useUndoShortcut";
@@ -20,14 +20,17 @@ import { useHangHistory } from "@/hooks/useHangHistory";
 import { usePressings } from "@/hooks/usePressings";
 import { recentlyHungCost } from "@/utils/hangHistory";
 import { buildSharedWallState, orderAlbumsBySharedWall } from "@/utils/shareState";
-import { EXPORT_PRESETS } from "@/utils/exportFrame";
+import { diffWalls } from "@/utils/diffWalls";
+import { rehangSteps } from "@/utils/rehangSteps";
+import { stepSentence } from "@/utils/rehangText";
+import { formatDay } from "@/utils/hangHistory";
 import { GridControls } from "./GridControls";
 import { CoverSourceNotice } from "./CoverSourceNotice";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
 import { LayoutsPanel } from "../layouts/LayoutsPanel";
 import { GradientPanel } from "../gradient/GradientPanel";
 import { GroupChoices } from "../arrange/GroupPanel";
-import { ExportDropdown } from "./ExportDropdown";
+import { ExportPanel } from "./ExportPanel";
 import { DockedPanel } from "./DockedPanel";
 import { WallDisplay } from "./WallDisplay";
 import { PoolDisplay } from "./PoolDisplay";
@@ -39,6 +42,7 @@ const PANEL_LABELS: Record<WallPanel, string> = {
   size: "Wall size",
   layouts: "Saved walls",
   arrange: "Arrange",
+  export: "Export",
 };
 
 interface RecordGridProps {
@@ -103,8 +107,6 @@ export function RecordGrid({
     id: number;
     colors: string[];
   } | null>(null);
-  const exportButtonRef = useRef<HTMLButtonElement | null>(null);
-  const exportMenuId = useId();
 
   // The wall and the pool are the two parts of the one ordered list the parent owns, so they
   // follow the grid size and every reorder without any state of their own.
@@ -162,6 +164,30 @@ export function RecordGrid({
   });
   useRememberWall({ username, wall: wallState, pinnedAlbums, onPinsChange });
 
+  // What it takes to change the wall hung last time (marked as on the real wall) into this one,
+  // for the hanging guide.
+  const lastHung = history.hangs[history.hangs.length - 1];
+  const hangChanges = (() => {
+    if (!lastHung) return null;
+    const lastColumns = lastHung.columns ?? columns;
+    const before = buildSharedWallState({
+      username,
+      rows: lastHung.rows ?? Math.max(1, Math.ceil(lastHung.albumIds.length / lastColumns)),
+      columns: lastColumns,
+      wallAlbumIds: lastHung.albumIds,
+      pinnedAlbumIds: [],
+    });
+    const steps = rehangSteps(diffWalls(before, wallState));
+    if (steps.length === 0) return null;
+    const byId = new Map(collection.map((album) => [String(album.id), album]));
+    const titleOf = (id: string) => byId.get(id)?.title || "An album no longer in the collection";
+    const where = (spot: { row: number; column: number }) => `R${spot.row} C${spot.column}`;
+    return {
+      since: formatDay(lastHung.date),
+      lines: steps.map((step) => stepSentence(step, titleOf, where)),
+    };
+  })();
+
   const drag = useWallDrag({
     wallAlbums,
     displayedAlbums: wallAlbums,
@@ -173,9 +199,17 @@ export function RecordGrid({
     username,
     wall: wallState,
     covers: wallAlbums.map((album) => album.cover_image ?? album.coverUrl ?? ""),
-    closeMenu: exportHooks.closeDropdown,
     setStatus: exportHooks.setStatus,
   });
+  // The short link is asked for as the export panel opens, so it is usually ready by the time the
+  // link is shared.
+  const exportOpen = panels.panel === "export";
+  const { prepare: prepareShare } = share;
+  useEffect(() => {
+    if (exportOpen) prepareShare();
+    // Once per opening; `prepare` changes with every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportOpen]);
   const canShareSheet = typeof navigator !== "undefined" && Boolean(navigator.share);
 
   /**
@@ -271,23 +305,9 @@ export function RecordGrid({
           onUndo={handleUndo}
           onShare={() => void (canShareSheet ? share.shareLink() : share.copyShareLink())}
           onPrepareShare={share.prepare}
-          onToggleExportDropdown={exportHooks.toggleDropdown}
-          exportOpen={exportHooks.dropdownOpen}
-          exportMenuId={exportMenuId}
-          exportButtonRef={exportButtonRef}
+          onToggleExport={() => panels.toggle("export")}
+          showExport={panels.panel === "export"}
           showDimensionsConfig={panels.panel === "size"}
-          exportMenu={
-            <ExportDropdown
-              isOpen={exportHooks.dropdownOpen}
-              isExporting={exportHooks.isExporting}
-              menuId={exportMenuId}
-              triggerRef={exportButtonRef}
-              onClose={exportHooks.closeDropdown}
-              onShareOrSaveImage={() => void exportHooks.shareOrSaveImage()}
-              presets={EXPORT_PRESETS}
-              onExportPreset={(preset) => void exportHooks.shareOrSaveImage(preset)}
-            />
-          }
         />
       </div>
 
@@ -358,7 +378,7 @@ export function RecordGrid({
 
       <DndContext
         sensors={drag.sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={wallCollisionDetection}
         onDragStart={drag.onDragStart}
         onDragEnd={drag.onDragEnd}
         onDragCancel={drag.onDragCancel}
@@ -409,6 +429,30 @@ export function RecordGrid({
               onDimensionsChange={resize.changeSize}
               pressings={pressings}
               onReset={resize.resetSize}
+            />
+
+            <ExportPanel
+              isVisible={panels.panel === "export"}
+              albums={wallAlbums}
+              rows={rows}
+              columns={columns}
+              isExporting={exportHooks.isExporting}
+              onSaveImage={(preset, backdrop) =>
+                void exportHooks.shareOrSaveImage(preset, backdrop)
+              }
+              stepCount={hangChanges?.lines.length ?? 0}
+              onSaveGuide={(withSteps) =>
+                void exportHooks.saveGuide(
+                  { albums: wallAlbums, rows, columns },
+                  withSteps && hangChanges ? hangChanges : undefined
+                )
+              }
+              onSavePoster={(size, background) =>
+                void exportHooks.savePoster(
+                  { albums: wallAlbums, rows, columns },
+                  { size, background }
+                )
+              }
             />
 
             <LayoutsPanel

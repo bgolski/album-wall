@@ -86,11 +86,14 @@ await page.getByRole("button", { name: "Shuffle", exact: true }).click();
 await coversLoaded(page);
 await page.screenshot({ path: `${out}/03-pin-and-shuffle.png` });
 
-// 4. Save or share: the image menu with its sized options.
-await page.getByRole("button", { name: /Save image/ }).click();
-await page.getByRole("menuitem", { name: "Wall as shown" }).waitFor();
-await page.screenshot({ path: `${out}/04-save-image-menu.png` });
-await page.keyboard.press("Escape");
+// 4. Export: what can be made, with a preview of it.
+await page.getByRole("button", { name: "Export", exact: true }).click();
+await page.getByRole("button", { name: "Phone", exact: true }).click();
+const exportPanel = page.getByRole("complementary", { name: "Export" });
+await exportPanel.getByTestId("export-preview").waitFor();
+await page.waitForTimeout(500);
+await exportPanel.screenshot({ path: `${out}/04-export-panel.png` });
+await page.getByRole("button", { name: "Close Export" }).click();
 
 // 5. Arrange by genre: one tap on a choice builds the wall.
 await page.getByRole("button", { name: "Genre", exact: true }).click();

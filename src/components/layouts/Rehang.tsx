@@ -5,6 +5,7 @@ import { diffWalls, type WallPosition } from "@/utils/diffWalls";
 import { coverSources } from "@/utils/coverSource";
 import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
 import { rehangSteps, type RehangStep } from "@/utils/rehangSteps";
+import { stepSentence } from "@/utils/rehangText";
 
 interface RehangProps {
   /** The wall as it is now. */
@@ -131,24 +132,6 @@ export function Rehang({ currentWall, target, name, albumsById, onCancel, onFini
   // The cover this step is about, and for a replace the one it takes down too.
   const covers: string[] = step.kind === "replace" ? [step.outId, step.id] : [step.id];
 
-  const sentence = (current: RehangStep) => {
-    const title = titleOf(current.kind === "replace" ? current.outId : current.id);
-    const { from, to } = spotsOf(current);
-    switch (current.kind) {
-      case "take-down":
-      case "set-aside":
-        return `${VERBS[current.kind]} ${title} from ${where(from!)}`;
-      case "move":
-        return current.from
-          ? `Move ${title} from ${where(current.from)} to ${where(current.to)}`
-          : `Hang ${title}, set aside earlier, at ${where(current.to)}`;
-      case "hang-up":
-        return `Hang up ${title} at ${where(to!)}`;
-      case "replace":
-        return `Replace ${title} with ${titleOf(current.id)} at ${where(current.at)}`;
-    }
-  };
-
   return (
     <div
       role="group"
@@ -195,7 +178,7 @@ export function Rehang({ currentWall, target, name, albumsById, onCancel, onFini
 
       <p className="mt-3 text-lg font-semibold">{VERBS[step.kind]}</p>
       <p role="status" className="sr-only">
-        {sentence(step)}
+        {stepSentence(step, titleOf, where)}
       </p>
       <div className="mt-2">
         <div className="flex items-start gap-2">

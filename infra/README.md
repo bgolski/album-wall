@@ -9,10 +9,30 @@ This workspace contains the AWS CDK app and Lambda sources for the static fronte
 - IAM permissions for the Lambda to read Discogs credentials from SSM Parameter Store
 - short share links: a DynamoDB table, the link page function and a CloudFront distribution on `albumwall.bradleygolski.com`
 - cover images: a function that resizes allowed covers (Discogs, Cover Art Archive) to 64, 320 or 600 pixel WebP, served by the same distribution at `/img?url=<cover>&w=<width>` and cached for a year
-- saved walls: a DynamoDB table (provisioned 2 read and 2 write units) where the proxy keeps a signed-in visitor's saved layouts and wall history under their Discogs account
+- saved walls: a DynamoDB table (provisioned 1 read and 1 write unit) where the proxy keeps a signed-in visitor's saved layouts and wall history under their Discogs account
 - collection cache: the same distribution serves `/collection?username=<name>` from the proxy and keeps a public collection for five minutes, keyed by username and calling site; the proxy marks errors and signed-in answers as not cacheable, and signed-in requests never go through it
-- cover colors: a DynamoDB table (provisioned 10 read and 10 write units, entries expire after a year) and a function that answers `POST {urls: [...]}` with the profiles kept for up to 100 allowed cover addresses, measuring a few missing ones itself with the app's own `coverProfile` code
-- a $1 monthly budget and CloudWatch alarms on each function's invocations, errors and throttles (ten alarms in all, the free limit)
+- cover colors: a DynamoDB table (provisioned 3 read and 3 write units, entries expire after a year) and a function that answers `POST {urls: [...]}` with the profiles kept for up to 100 allowed cover addresses, measuring a few missing ones itself with the app's own `coverProfile` code
+- a poster function that draws the wall at print size (18 x 24 or 24 x 36 inches at 300 dots per inch) and streams the JPEG back from `/poster` on the same domain; the day's total is capped at 40 by a counter in the short links table
+- a $1 monthly budget and three CloudWatch alarms on Lambda for the whole account (invocations, errors and throttles; one alarm metric each)
+
+## Free-tier headroom for other apps
+
+This account is shared, so the app keeps to a share of each always-free allowance and the infrastructure tests (`test/guardrails.test.ts`) fail when a change goes past it.
+
+| Free allowance                | Included                              | This app uses                                                                                                              |
+| ----------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| CloudWatch alarm metrics      | 10                                    | 3 (Lambda invocations, errors and throttles for the whole account, so they also watch other apps)                          |
+| DynamoDB provisioned capacity | 25 read and 25 write units            | 5 and 5                                                                                                                    |
+| Lambda compute                | 400,000 GB-seconds a month            | posters at worst 35% (40 a day, each at most 40 seconds of 3 GB); everything else is far smaller and capped by concurrency |
+| Lambda requests               | 1,000,000 a month                     | far below; the daily alarm is at 100,000                                                                                   |
+| CloudFront                    | 1 TB out, 10,000,000 requests a month | covers cached for a year; posters are streamed and uncached (a few MB each)                                                |
+| Budgets                       | 2                                     | 1                                                                                                                          |
+
+Things to know when adding another app to the account:
+
+- The three alarms are account-wide, so another app's Lambda traffic counts toward them. Do not add per-function alarms for it: each alarm metric over ten is billed, and an alarm on a math expression bills for every metric in it. Custom metrics are also limited to ten free.
+- Reserved concurrency (72 across this app's functions) comes out of the account's Lambda concurrency pool; check the account's quota in Service Quotas if another app needs a lot.
+- Posters are the one feature with a real compute cost. The cap is in the function (`POSTER_DAILY_CAP`), not only in an alarm, so it holds even if nobody is watching.
 
 ## Local commands
 

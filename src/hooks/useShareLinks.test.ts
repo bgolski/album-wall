@@ -26,7 +26,6 @@ function setup() {
       username: "someone",
       wall,
       covers: ["https://i.discogs.com/a.jpg", "https://i.discogs.com/b.jpg"],
-      closeMenu: vi.fn(),
       setStatus,
     })
   );

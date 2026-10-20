@@ -15,11 +15,9 @@ function renderControls(overrides: Partial<Props> = {}) {
     onTogglePinAll: vi.fn(),
     onToggleAlbumLabels: vi.fn(),
     onShuffle: vi.fn(),
-    onToggleExportDropdown: vi.fn(),
+    onToggleExport: vi.fn(),
+    showExport: false,
     showDimensionsConfig: false,
-    exportOpen: false,
-    exportMenuId: "export-menu",
-    exportButtonRef: { current: null },
     ...overrides,
   };
   return { props, ...render(<GridControls {...props} />) };
@@ -125,12 +123,12 @@ describe("GridControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pin all" }));
     fireEvent.click(screen.getByRole("button", { name: "Labels" }));
     fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save image" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
     expect(props.onToggleDimensionsConfig).toHaveBeenCalledTimes(1);
     expect(props.onTogglePinAll).toHaveBeenCalledTimes(1);
     expect(props.onToggleAlbumLabels).toHaveBeenCalledTimes(1);
     expect(props.onShuffle).toHaveBeenCalledTimes(1);
-    expect(props.onToggleExportDropdown).toHaveBeenCalledTimes(1);
+    expect(props.onToggleExport).toHaveBeenCalledTimes(1);
   });
 
   it("shows Labels and Pin all as switches that keep their names", () => {
@@ -150,7 +148,7 @@ describe("GridControls", () => {
     );
   });
 
-  it("offers Share next to Saved walls and Save image, and gets the link ready on approach", () => {
+  it("offers Share next to Saved walls and Export, and gets the link ready on approach", () => {
     const onShare = vi.fn();
     const onPrepareShare = vi.fn();
     renderControls({ onShare, onPrepareShare });

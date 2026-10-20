@@ -3,6 +3,7 @@ import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { getBasePath } from "@/utils/basePath";
 import Footer from "@/components/layout/Footer";
+import { RegisterServiceWorker } from "@/components/layout/RegisterServiceWorker";
 
 const basePath = getBasePath();
 
@@ -96,6 +97,7 @@ export default function RootLayout({
         <main className="grow">{children}</main>
 
         <Footer />
+        <RegisterServiceWorker />
       </body>
     </html>
   );

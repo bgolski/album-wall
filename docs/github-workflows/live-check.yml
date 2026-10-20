@@ -1,0 +1,25 @@
+# Copy this file to .github/workflows/live-check.yml to run the live check every week. It is kept
+# here because a token without the workflow scope cannot push files under .github/workflows.
+name: Live check
+
+# Checks the deployed site and its services from the outside every week, and on demand. A failure
+# shows up as a failed run (GitHub emails the repository owner about those).
+on:
+  schedule:
+    - cron: "17 11 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - name: Check the deployed app
+        run: npm run check:live

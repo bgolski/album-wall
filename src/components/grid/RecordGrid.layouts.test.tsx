@@ -50,7 +50,7 @@ describe("RecordGrid layouts", () => {
     fireEvent.click(screen.getByRole("button", { name: "Unpin Album 2" }));
     expect(tile("Album 2").getAttribute("data-pinned")).toBe("false");
 
-    fireEvent.click(screen.getByRole("button", { name: "Put Mine on the wall" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use Mine on the wall" }));
     expect(tile("Album 2").getAttribute("data-pinned")).toBe("true");
     const order = onAlbumsReorder.mock.calls.at(-1)![0] as Album[];
     expect(order.slice(0, 32).map((album) => album.id)).toEqual(

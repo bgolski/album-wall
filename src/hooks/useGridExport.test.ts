@@ -2,14 +2,27 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useGridExport } from "./useGridExport";
 import { drawWall } from "@/utils/drawWall";
+import { makeGuide } from "@/utils/guide";
+import { drawRecordBackground } from "@/utils/recordBackground";
+import { PosterError, requestPoster } from "@/utils/posterService";
 
 vi.mock("@/utils/drawWall", () => ({
   drawWall: vi.fn(),
 }));
+vi.mock("@/utils/guide", () => ({
+  makeGuide: vi.fn(),
+}));
+vi.mock("@/utils/recordBackground", () => ({
+  drawRecordBackground: vi.fn(),
+}));
+vi.mock("@/utils/posterService", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/posterService")>()),
+  requestPoster: vi.fn(),
+}));
 
 const wallMock = vi.mocked(drawWall);
 const resolveCanvas = (canvas: unknown, left = 0) =>
-  wallMock.mockResolvedValue({ canvas: canvas as HTMLCanvasElement, left });
+  wallMock.mockResolvedValue({ canvas: canvas as HTMLCanvasElement, left, tiles: [] });
 
 const mockCanvasToBlob = (blob: Blob) => {
   return { toBlob: (_cb: (b: Blob | null) => void) => _cb(blob) };
@@ -64,31 +77,13 @@ describe("useGridExport", () => {
   const username = "testuser";
   const albums = [{ id: 1, title: "Album 1", artist: "Artist 1", imageUrl: "" }];
 
-  it("toggles dropdown open state", () => {
-    const { result } = renderHook(() => useGridExport(username, albums));
-    expect(result.current.dropdownOpen).toBe(false);
-    act(() => {
-      result.current.toggleDropdown();
-    });
-    expect(result.current.dropdownOpen).toBe(true);
-    act(() => {
-      result.current.toggleDropdown();
-    });
-    expect(result.current.dropdownOpen).toBe(false);
-  });
-
-  it("reports in the status line when no grid or albums and closes dropdown", async () => {
+  it("reports in the status line when there is no grid or there are no albums", async () => {
     const { result } = renderHook(() => useGridExport(username, []));
-    act(() => {
-      result.current.toggleDropdown();
-    });
-    expect(result.current.dropdownOpen).toBe(true);
     await act(async () => {
       await result.current.shareOrSaveImage();
     });
     expect(window.alert).not.toHaveBeenCalled();
     expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
-    expect(result.current.dropdownOpen).toBe(false);
   });
 
   it("reports in the status line when grid is missing even with albums", async () => {
@@ -99,7 +94,6 @@ describe("useGridExport", () => {
     });
     expect(window.alert).not.toHaveBeenCalled();
     expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
-    expect(result.current.dropdownOpen).toBe(false);
     expect(result.current.isExporting).toBe(false);
   });
 
@@ -114,7 +108,6 @@ describe("useGridExport", () => {
     });
     expect(window.alert).not.toHaveBeenCalled();
     expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
-    expect(result.current.dropdownOpen).toBe(false);
     expect(result.current.isExporting).toBe(false);
   });
 
@@ -344,8 +337,8 @@ describe("useGridExport sized images", () => {
 
     await act(async () => {
       await result.current.shareOrSaveImage({
-        id: "square",
-        label: "Square print",
+        id: "desktop",
+        label: "Desktop",
         width: 3000,
         height: 3000,
       });
@@ -365,7 +358,7 @@ describe("useGridExport sized images", () => {
     const anchor = createSpy.mock.results
       .map((entry) => entry.value as HTMLElement)
       .find((element) => element.tagName === "A") as HTMLAnchorElement;
-    expect(anchor.getAttribute("download")).toBe("testuser_album_wall_square.png");
+    expect(anchor.getAttribute("download")).toBe("testuser_album_wall_desktop.png");
     expect(result.current.status?.message).toBe("Saved");
   });
 });
@@ -391,8 +384,8 @@ describe("useGridExport capture size", () => {
     vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
     await act(async () => {
       await result.current.shareOrSaveImage({
-        id: "square",
-        label: "Square print",
+        id: "desktop",
+        label: "Desktop",
         width: size,
         height: size,
       });
@@ -465,7 +458,11 @@ describe("useGridExport progress", () => {
     act(() => {
       result.current.gridRef.current = grid;
     });
-    let finish: (value: { canvas: HTMLCanvasElement; left: number }) => void = () => {};
+    let finish: (value: {
+      canvas: HTMLCanvasElement;
+      left: number;
+      tiles: never[];
+    }) => void = () => {};
     wallMock.mockReset();
     wallMock.mockReturnValue(new Promise((resolve) => (finish = resolve)));
     vi.spyOn(window.navigator, "canShare").mockReturnValue(true);
@@ -483,10 +480,202 @@ describe("useGridExport progress", () => {
       callback(new Blob(["png"], { type: "image/png" }))
     );
     await act(async () => {
-      finish({ canvas, left: 0 });
+      finish({ canvas, left: 0, tiles: [] });
       await pending;
     });
     expect(share).toHaveBeenCalled();
     expect(result.current.status).toBeNull();
+  });
+});
+
+describe("useGridExport background and guide", () => {
+  const album = { id: 1, title: "A", artist: "B" };
+
+  it("draws a picture on the chosen colour", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    wallMock.mockReset();
+    resolveCanvas({ width: 800, height: 600 });
+    const context = { fillStyle: "", fillRect: vi.fn(), drawImage: vi.fn() };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      context as unknown as CanvasRenderingContext2D
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback: BlobCallback) =>
+      callback(new Blob(["png"], { type: "image/png" }))
+    );
+
+    await act(async () => {
+      await result.current.shareOrSaveImage(
+        { id: "phone", label: "Phone", width: 1179, height: 2556 },
+        { color: "#f1f3f9", record: false }
+      );
+    });
+
+    expect(wallMock.mock.calls[0]![0]).toMatchObject({ background: "#f1f3f9" });
+    expect(context.fillStyle).toBe("#f1f3f9");
+    expect(drawRecordBackground).not.toHaveBeenCalled();
+  });
+
+  it("draws the record behind the wall, and the wall on nothing so the record shows through", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    wallMock.mockReset();
+    resolveCanvas({ width: 800, height: 600 });
+    const context = { fillStyle: "", fillRect: vi.fn(), drawImage: vi.fn() };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      context as unknown as CanvasRenderingContext2D
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback: BlobCallback) =>
+      callback(new Blob(["png"], { type: "image/png" }))
+    );
+
+    await act(async () => {
+      await result.current.shareOrSaveImage(
+        { id: "phone", label: "Phone", width: 1179, height: 2556 },
+        { color: "#0b0f17", record: true }
+      );
+    });
+
+    expect(wallMock.mock.calls[0]![0]).toMatchObject({ background: "rgba(0, 0, 0, 0)" });
+    expect(drawRecordBackground).toHaveBeenCalledWith(context, 1179, 2556);
+  });
+
+  it("makes the hanging guide from the wall's albums and saves it as a PDF", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    vi.mocked(makeGuide).mockResolvedValue({
+      pdf: new Blob(["%PDF"], { type: "application/pdf" }),
+      coversLeftOut: 0,
+    });
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+    const createSpy = vi.spyOn(document, "createElement");
+
+    await act(async () => {
+      await result.current.saveGuide({ albums: [album], rows: 4, columns: 8 });
+    });
+
+    expect(vi.mocked(makeGuide).mock.calls[0]![0]).toMatchObject({
+      grid,
+      albums: [album],
+      rows: 4,
+      columns: 8,
+      title: "testuser's wall",
+    });
+    const anchor = createSpy.mock.results
+      .map((entry) => entry.value as HTMLElement)
+      .find((element) => element.tagName === "A") as HTMLAnchorElement;
+    expect(anchor.getAttribute("download")).toBe("testuser_album_wall_guide.pdf");
+    expect(result.current.status?.message).toBe("Saved");
+  });
+
+  it("passes the steps from the wall hung last time on to the guide", async () => {
+    const grid = createGridWithLabels();
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    act(() => {
+      result.current.gridRef.current = grid;
+    });
+    vi.mocked(makeGuide).mockResolvedValue({
+      pdf: new Blob(["%PDF"], { type: "application/pdf" }),
+      coversLeftOut: 0,
+    });
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+    const changes = { since: "14 Oct 2026", lines: ["Take down A from R1 C1"] };
+
+    await act(async () => {
+      await result.current.saveGuide({ albums: [album], rows: 4, columns: 8 }, changes);
+    });
+
+    expect(vi.mocked(makeGuide).mock.calls.at(-1)![0]).toMatchObject({ changes });
+  });
+
+  it("says so when the guide cannot be made", async () => {
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    act(() => {
+      result.current.gridRef.current = createGridWithLabels();
+    });
+    vi.mocked(makeGuide).mockRejectedValue(new Error("boom"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await act(async () => {
+      await result.current.saveGuide({ albums: [album], rows: 4, columns: 8 });
+    });
+
+    expect(result.current.status).toEqual({ message: "Could not save the guide", tone: "error" });
+  });
+
+  it("has nothing to make a guide of without albums", async () => {
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    act(() => {
+      result.current.gridRef.current = createGridWithLabels();
+    });
+    await act(async () => {
+      await result.current.saveGuide({ albums: [], rows: 4, columns: 8 });
+    });
+    expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
+  });
+});
+
+describe("useGridExport poster", () => {
+  const album = { id: 1, title: "A", artist: "B" };
+  const wall = { albums: [album], rows: 4, columns: 8 };
+
+  it("has the poster drawn by the service and saves it as a JPEG named for its size", async () => {
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    vi.mocked(requestPoster).mockResolvedValue({
+      blob: new Blob(["jpeg"], { type: "image/jpeg" }),
+      coversLeftOut: 0,
+    });
+    vi.spyOn(window.navigator, "canShare").mockReturnValue(false);
+    const createSpy = vi.spyOn(document, "createElement");
+
+    await act(async () => {
+      await result.current.savePoster(wall, { size: "24x36", background: "record" });
+    });
+
+    expect(requestPoster).toHaveBeenCalledWith({
+      ...wall,
+      size: "24x36",
+      background: "record",
+    });
+    const anchor = createSpy.mock.results
+      .map((entry) => entry.value as HTMLElement)
+      .find((element) => element.tagName === "A") as HTMLAnchorElement;
+    expect(anchor.getAttribute("download")).toBe("testuser_album_wall_poster_24x36.jpg");
+    expect(result.current.status?.message).toBe("Saved");
+  });
+
+  it("says why a poster could not be made", async () => {
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    vi.mocked(requestPoster).mockRejectedValue(new PosterError("Posters are used up for today"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await act(async () => {
+      await result.current.savePoster(wall, { size: "18x24", background: "dark" });
+    });
+
+    expect(result.current.status).toEqual({
+      message: "Posters are used up for today",
+      tone: "error",
+    });
+  });
+
+  it("has nothing to make a poster of without albums", async () => {
+    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    await act(async () => {
+      await result.current.savePoster(
+        { albums: [], rows: 4, columns: 8 },
+        { size: "18x24", background: "dark" }
+      );
+    });
+    expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
   });
 });

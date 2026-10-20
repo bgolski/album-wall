@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode } from "react";
 import { SortOption } from "@/hooks/useAlbumSorting";
 
 interface GridControlsProps {
@@ -21,13 +21,10 @@ interface GridControlsProps {
   onShare?: (() => void) | undefined;
   /** Starts getting the share link ready, as the pointer or focus reaches Share. */
   onPrepareShare?: (() => void) | undefined;
-  onToggleExportDropdown: () => void;
+  /** Opens and closes the export panel. */
+  onToggleExport: () => void;
+  showExport: boolean;
   showDimensionsConfig: boolean;
-  exportOpen: boolean;
-  exportMenuId: string;
-  exportButtonRef: RefObject<HTMLButtonElement | null>;
-  /** The image size menu, drawn under the Save image button. */
-  exportMenu?: ReactNode;
   /** One-tap choices for the open Arrange mode, drawn under the controls. */
   arrangeChoices?: ReactNode;
 }
@@ -106,12 +103,9 @@ export function GridControls({
   onUndo,
   onShare,
   onPrepareShare,
-  onToggleExportDropdown,
+  onToggleExport,
+  showExport,
   showDimensionsConfig,
-  exportOpen,
-  exportMenuId,
-  exportButtonRef,
-  exportMenu,
   arrangeChoices,
 }: GridControlsProps) {
   const panelButtonClass = (open: boolean) =>
@@ -250,35 +244,14 @@ export function GridControls({
                 Share link
               </button>
             )}
-            <div className="relative">
-              <button
-                ref={exportButtonRef}
-                aria-haspopup="menu"
-                aria-expanded={exportOpen}
-                aria-controls={exportOpen ? exportMenuId : undefined}
-                onClick={onToggleExportDropdown}
-                className={`${plainClass} w-full`}
-                type="button"
-              >
-                Save image
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              {exportMenu}
-            </div>
+            <button
+              onClick={onToggleExport}
+              className={panelButtonClass(showExport)}
+              aria-expanded={showExport}
+              type="button"
+            >
+              Export
+            </button>
           </div>
         </ControlGroup>
       </div>
