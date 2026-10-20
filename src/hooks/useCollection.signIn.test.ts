@@ -76,7 +76,7 @@ describe("signed in with Discogs", () => {
     const onSignedOut = vi.fn();
     const { result } = renderHook(() => useCollection(SESSION, onSignedOut));
     act(() => result.current.loadOwnCollection("Collector"));
-    await waitFor(() => expect(result.current.error).toMatch(/signed out/));
+    await waitFor(() => expect(result.current.error).toMatch(/signed out/i));
     expect(onSignedOut).toHaveBeenCalledTimes(1);
   });
 });

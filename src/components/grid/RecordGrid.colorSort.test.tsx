@@ -92,7 +92,7 @@ describe("RecordGrid sort by color", () => {
     setProfiles();
     const onAlbumsReorder = renderGrid();
     sortByColor();
-    expect(screen.getByRole("heading", { name: "Sort by Color" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Color" })).toBeTruthy();
     expect(wallOrder()).toEqual(Array.from({ length: 32 }, (_, i) => i + 1));
     expect(onAlbumsReorder).not.toHaveBeenCalled();
   });
@@ -131,7 +131,7 @@ describe("RecordGrid sort by color", () => {
     expect((screen.getByRole("button", { name: "Build wall" }) as HTMLButtonElement).disabled).toBe(
       true
     );
-    expect(screen.getByText("Reading cover colors... 35 of 40")).toBeTruthy();
+    expect(screen.getByText("Reading colors 35/40")).toBeTruthy();
   });
 
   it("closes the builder and stops measuring on Custom Order", () => {
@@ -175,7 +175,6 @@ describe("RecordGrid starting a wall from a cover's color", () => {
     fireEvent.click(screen.getByRole("group", { name: "Album 1 by Artist 1" }));
     fireEvent.click(screen.getByRole("button", { name: /^Start a wall from this/ }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText(/^Starting from a color on Album 1/)).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /^Color \d/ })).toHaveLength(2);
   });
 });

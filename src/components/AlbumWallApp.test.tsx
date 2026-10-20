@@ -133,7 +133,7 @@ describe("changing the wall size", () => {
   });
 
   const setRows = (rows: number) =>
-    fireEvent.change(screen.getByLabelText("Rows:"), { target: { value: String(rows) } });
+    fireEvent.change(screen.getByLabelText("Rows"), { target: { value: String(rows) } });
 
   it("moves albums between the wall and the pool and unpins the ones that leave", async () => {
     await loadByHand(40);

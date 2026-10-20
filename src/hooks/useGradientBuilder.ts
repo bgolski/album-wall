@@ -13,7 +13,7 @@ import { runGradientJob } from "@/utils/gradientJobs";
  *
  * @param input.albums The whole collection in its current order.
  * @param input.active Whether Sort by Color is open.
- * @returns Profiles and progress, suggestions and a summary, and `build`.
+ * @returns Profiles and progress, suggestions, and `build`.
  */
 export function useGradientBuilder(input: {
   albums: Album[];
@@ -36,8 +36,7 @@ export function useGradientBuilder(input: {
   const [answered, setAnswered] = useState<{
     request: typeof request;
     suggestions: SuggestedGradient[];
-    summary: string;
-  }>({ request: null, suggestions: [], summary: "" });
+  }>({ request: null, suggestions: [] });
   useEffect(() => {
     if (!request) return;
     let current = true;
@@ -48,8 +47,7 @@ export function useGradientBuilder(input: {
       current = false;
     };
   }, [request]);
-  const { suggestions, summary } =
-    request && answered.request === request ? answered : { suggestions: [], summary: "" };
+  const { suggestions } = request && answered.request === request ? answered : { suggestions: [] };
 
   /**
    * Fills the wall with the covers that best fit a gradient.
@@ -78,5 +76,5 @@ export function useGradientBuilder(input: {
     return { ...built, keepArtistsApart };
   };
 
-  return { profiles, pending, total, suggestions, summary, build };
+  return { profiles, pending, total, suggestions, build };
 }

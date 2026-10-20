@@ -3,7 +3,7 @@
 import { AppContainer } from "./layout/AppContainer";
 import { SearchInput } from "./search/SearchInput";
 import { CollectionManager } from "./collection/CollectionManager";
-import { WelcomeDialog } from "./search/WelcomeDialog";
+import { WelcomeCard } from "./search/WelcomeCard";
 import { useEffect, useMemo } from "react";
 import { SavedWallsContext } from "@/hooks/savedWallsContext";
 import { savedWallsClient } from "@/utils/savedWalls";
@@ -103,6 +103,8 @@ export default function AlbumWallApp() {
           shown={shown}
         />
 
+        {welcome.open && <WelcomeCard onTryDemo={tryDemo} />}
+
         <CollectionManager
           albums={albums}
           username={username}
@@ -119,8 +121,6 @@ export default function AlbumWallApp() {
           onPinsChange={forgetUndo}
           onRetry={retry}
         />
-
-        {welcome.open && <WelcomeDialog onTryDemo={tryDemo} onClose={welcome.dismiss} />}
       </AppContainer>
     </SavedWallsContext.Provider>
   );

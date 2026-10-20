@@ -159,11 +159,16 @@ describe("LayoutsPanel", () => {
     saveAs("Autumn");
     rerenderWith(wall(["4", "5", "6"]));
     expect(screen.queryByRole("img", { name: "Autumn: 3 albums" })).toBeNull();
+    const row = screen.getAllByRole("listitem")[0]!;
+    expect(row.className).not.toContain("ring-2");
     fireEvent.click(screen.getByRole("button", { name: "Autumn" }));
+    // The selected wall has a ring around it, with its picture open.
+    expect(row.className).toContain("ring-2");
     const picture = screen.getByRole("img", { name: "Autumn: 3 albums" });
     expect(picture.querySelectorAll("img")).toHaveLength(3);
     fireEvent.click(screen.getByRole("button", { name: "Autumn" }));
     expect(screen.queryByRole("img", { name: "Autumn: 3 albums" })).toBeNull();
+    expect(row.className).not.toContain("ring-2");
   });
 
   it("guides hanging a saved wall one step at a time, and can be cancelled", () => {

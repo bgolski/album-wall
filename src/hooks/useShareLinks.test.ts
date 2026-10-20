@@ -66,7 +66,7 @@ describe("useShareLinks", () => {
     await act(async () => result.current.prepare());
     await act(async () => result.current.copyShareLink());
     expect(copyLink).toHaveBeenCalledWith(SHORT);
-    expect(setStatus).toHaveBeenLastCalledWith({ message: "Share link copied.", tone: "info" });
+    expect(setStatus).toHaveBeenLastCalledWith({ message: "Link copied", tone: "info" });
   });
 
   it("waits for a short link under way, and copies the long link when none comes", async () => {
@@ -100,7 +100,7 @@ describe("useShareLinks", () => {
     });
     expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: SHORT }));
     const status = setStatus.mock.calls.at(-1)![0];
-    expect(status.action.label).toBe("Share link");
+    expect(status.action.label).toBe("Share");
     share.mockResolvedValue(undefined);
     status.action.run();
     expect(share).toHaveBeenCalledTimes(2);

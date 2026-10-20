@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { useWelcome } from "./useWelcome";
 
@@ -7,6 +7,8 @@ beforeEach(() => {
   window.location.hash = "";
 });
 afterEach(() => {
+  vi.useRealTimers();
+  document.documentElement.removeAttribute("data-intro");
   cleanup();
   window.location.hash = "";
 });
@@ -38,5 +40,16 @@ describe("useWelcome", () => {
     expect(result.current.open).toBe(false);
     cleanup();
     expect(renderHook(() => useWelcome(true, false)).result.current.open).toBe(false);
+  });
+
+  it("waits for the record's intro to finish before greeting", () => {
+    vi.useFakeTimers();
+    document.documentElement.setAttribute("data-intro", "");
+    const { result } = renderHook(() => useWelcome(true, false));
+    expect(result.current.open).toBe(false);
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(result.current.open).toBe(true);
   });
 });

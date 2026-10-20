@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Album } from "@/types";
 import type { CoverProfile } from "@/utils/coverProfile";
 import { hexToOklab } from "@/utils/gradientTargets";
-import { colorFamilies, describeCollection, suggestGradients } from "./suggestGradients";
+import { colorFamilies, suggestGradients } from "./suggestGradients";
 
 function flat(hex: string): CoverProfile {
   const color = hexToOklab(hex)!;
@@ -50,32 +50,6 @@ describe("colorFamilies", () => {
       ["black", 2],
       ["pink", 1],
     ]);
-  });
-});
-
-describe("describeCollection", () => {
-  const family = (name: string, count: number) => ({ name, count, color: { l: 0, a: 0, b: 0 } });
-
-  it("names the most common colors and the other colors there are enough of", () => {
-    expect(
-      describeCollection(
-        [
-          family("black", 60),
-          family("gray", 50),
-          family("white", 30),
-          family("red", 20),
-          family("brown", 15),
-          family("blue", 3),
-        ],
-        11
-      )
-    ).toBe("Mostly black, gray and white covers, with some reds and browns.");
-  });
-
-  it("says so when there are few colorful covers", () => {
-    expect(describeCollection([family("black", 60), family("white", 30)], 11)).toBe(
-      "Mostly black and white covers, with few strongly colored ones."
-    );
   });
 });
 
@@ -129,14 +103,9 @@ describe("suggestGradients", () => {
     expect(usesGreen(3, 4)).toBe(false);
   });
 
-  it("describes the collection", () => {
-    expect(result.summary).toBe("Mostly black, gray and white covers, with some reds and blues.");
-  });
-
   it("suggests nothing for a collection with no colors read", () => {
     expect(suggestGradients({ albums, profiles: {}, rows: 4, columns: 8 })).toEqual({
       suggestions: [],
-      summary: "",
     });
   });
 });

@@ -35,6 +35,6 @@ describe("useHangHistory", () => {
     act(() => {
       problem = result.current.markHung(["1"]);
     });
-    expect(problem).toMatch(/not letting the page save/);
+    expect(problem).toMatch(/save in this browser/);
   });
 });

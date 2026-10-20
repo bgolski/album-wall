@@ -1,5 +1,3 @@
-import { useId } from "react";
-
 // Compass order, row by row; the middle cell is empty. Angles follow CSS: 0 points up.
 const COMPASS: ({ label: string; arrow: string; angle: number } | null)[] = [
   { label: "Toward top left", arrow: "↖", angle: 315 },
@@ -26,17 +24,9 @@ export function DirectionPicker({
   angle: number;
   onChange: (angle: number) => void;
 }) {
-  const id = useId();
   return (
     <div>
-      <p id={`${id}-direction`} className="mb-1 text-sm text-muted">
-        Direction
-      </p>
-      <div
-        role="group"
-        aria-labelledby={`${id}-direction`}
-        className="grid w-max grid-cols-3 gap-1"
-      >
+      <div role="group" aria-label="Direction" className="grid w-max grid-cols-3 gap-1">
         {COMPASS.map((direction, index) =>
           direction ? (
             <button

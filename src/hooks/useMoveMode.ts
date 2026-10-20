@@ -58,7 +58,7 @@ export function useMoveMode(input: {
       pinnedAlbums
     );
     if (newDisplayedAlbums === displayedAlbums && newPoolItems === poolItems) {
-      setMoveMessage("Pinned albums can't be swapped. Tap another album.");
+      setMoveMessage("That one is pinned");
       return;
     }
 

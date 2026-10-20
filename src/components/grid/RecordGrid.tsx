@@ -102,7 +102,6 @@ export function RecordGrid({
   const [gradientStart, setGradientStart] = useState<{
     id: number;
     colors: string[];
-    note: string;
   } | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const exportMenuId = useId();
@@ -342,7 +341,6 @@ export function RecordGrid({
                   setGradientStart((previous) => ({
                     id: (previous?.id ?? 0) + 1,
                     colors: [hex, hex],
-                    note: `Starting from a color on ${sheetAlbum.title || "this album"}. Choose Build wall.`,
                   }));
                   panels.open("arrange");
                   move.closeSheet();
@@ -371,10 +369,12 @@ export function RecordGrid({
       >
         <div
           className={`flex flex-col gap-8 lg:grid lg:items-start lg:gap-6 ${
-            panels.panel ? "lg:grid-cols-[minmax(0,1fr)_24rem]" : "lg:grid-cols-1"
+            panels.panel
+              ? "lg:grid-cols-[minmax(0,1fr)_24rem] 3xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_24rem]"
+              : "lg:grid-cols-1 3xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)]"
           }`}
         >
-          <div ref={wallColumnRef} className="flex min-w-0 scroll-mt-4 flex-col gap-8">
+          <div ref={wallColumnRef} className="flex min-w-0 scroll-mt-4 flex-col gap-8 3xl:contents">
             <WallDisplay
               albums={wallAlbums}
               columns={columns}
@@ -406,9 +406,6 @@ export function RecordGrid({
               isVisible={panels.panel === "size"}
               rows={rows}
               columns={columns}
-              gridSize={gridSize}
-              defaultRows={DEFAULT_ROWS}
-              defaultColumns={DEFAULT_COLUMNS}
               onDimensionsChange={resize.changeSize}
               pressings={pressings}
               onReset={resize.resetSize}
@@ -434,7 +431,6 @@ export function RecordGrid({
               total={gradient.total}
               onBuild={gradient.build}
               suggestions={gradient.suggestions}
-              summary={gradient.summary}
               canPreferRested={history.hangs.length > 0}
               onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
             />

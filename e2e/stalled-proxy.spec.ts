@@ -14,10 +14,10 @@ test("a proxy that never answers ends in an error with a Try again button, not a
   await page.goto("./");
   await page.getByLabel("Discogs username").fill("someone");
   await page.getByRole("button", { name: "Load Collection" }).click();
-  await expect(page.getByText("Loading someone's collection...")).toBeVisible();
+  await expect(page.getByText("Loading someone's collection")).toBeVisible();
 
   await page.clock.runFor(61_000);
   await expect(page.getByRole("heading", { name: "Discogs isn't answering" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
-  await expect(page.getByText("Loading someone's collection...")).toHaveCount(0);
+  await expect(page.getByText("Loading someone's collection")).toHaveCount(0);
 });

@@ -32,6 +32,11 @@ const fraunces = Fraunces({
 // otherwise the device's light or dark setting.
 const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.classList.toggle("dark",t==="dark")}catch(e){}`;
 
+// The record's spin-up on the first load of a visit: marks the page before it is first painted so
+// the page can start hidden and fade in. Not for anyone who prefers less motion, or when the visit
+// has already seen it. (On a phone it is the same moment, but the record then goes away.)
+const INTRO_SCRIPT = `try{if(!sessionStorage.getItem("album-wall:intro")&&matchMedia("(prefers-reduced-motion: no-preference)").matches){document.documentElement.setAttribute("data-intro","");sessionStorage.setItem("album-wall:intro","1")}}catch(e){}`;
+
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f1f3f9" },
@@ -83,6 +88,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
       </head>
       <body
         className={`${inter.variable} ${fraunces.variable} antialiased bg-page text-ink min-h-screen flex flex-col`}

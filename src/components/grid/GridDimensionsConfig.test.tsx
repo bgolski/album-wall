@@ -10,9 +10,6 @@ const baseProps = {
   isVisible: true,
   rows: defaultRows,
   columns: defaultColumns,
-  gridSize: 12,
-  defaultRows,
-  defaultColumns,
   onDimensionsChange: vi.fn(),
   onReset: vi.fn(),
 };
@@ -28,14 +25,12 @@ describe("GridDimensionsConfig", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("shows current rows, columns and gridSize", () => {
+  it("shows current rows and columns", () => {
     render(<GridDimensionsConfig {...baseProps} />);
     const rowsInput = screen.getByLabelText(/rows/i) as HTMLInputElement;
     const colsInput = screen.getByLabelText(/columns/i) as HTMLInputElement;
     expect(rowsInput.value).toBe(String(defaultRows));
     expect(colsInput.value).toBe(String(defaultColumns));
-    expect(screen.getByText(/Total albums in display:/)).toBeTruthy();
-    expect(screen.getByText(String(baseProps.gridSize))).toBeTruthy();
   });
 
   it("calls onReset when reset button is clicked", () => {
@@ -56,7 +51,6 @@ function Harness({ onChange }: { onChange: (rows: number, columns: number) => vo
       {...baseProps}
       rows={size.rows}
       columns={size.columns}
-      gridSize={size.rows * size.columns}
       onDimensionsChange={(rows, columns) => {
         setSize({ rows, columns });
         onChange(rows, columns);
@@ -66,7 +60,7 @@ function Harness({ onChange }: { onChange: (rows: number, columns: number) => vo
 }
 
 describe("GridDimensionsConfig typing", () => {
-  const rowsBox = () => screen.getByLabelText("Rows:") as HTMLInputElement;
+  const rowsBox = () => screen.getByLabelText("Rows") as HTMLInputElement;
   const type = (box: HTMLInputElement, value: string) =>
     fireEvent.change(box, { target: { value } });
 
@@ -87,7 +81,7 @@ describe("GridDimensionsConfig typing", () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
     type(rowsBox(), "2");
-    type(screen.getByLabelText("Columns:") as HTMLInputElement, "9");
+    type(screen.getByLabelText("Columns") as HTMLInputElement, "9");
     expect(onChange).toHaveBeenNthCalledWith(1, 2, 4);
     expect(onChange).toHaveBeenNthCalledWith(2, 2, 9);
   });

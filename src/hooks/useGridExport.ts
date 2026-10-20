@@ -222,7 +222,7 @@ export function useGridExport(username: string, albums: Album[]) {
     setStatusMessage(null);
 
     if (!gridRef.current || albums.length === 0) {
-      setStatus({ message: "No albums to share.", tone: "error" });
+      setStatus({ message: "No albums", tone: "error" });
       return;
     }
 
@@ -231,14 +231,12 @@ export function useGridExport(username: string, albums: Album[]) {
       setStatus({ message: "Preparing image...", tone: "info", busy: true });
       const { imageBlob, coversLeftOut: missing } = await captureGridImageBlob(preset);
       const imageFile = new File([imageBlob], imageFilename, { type: "image/png" });
-      const savedMessage =
-        missing > 0
-          ? `Image saved. ${missing} ${missing === 1 ? "cover" : "covers"} could not be included.`
-          : "Image saved.";
+      const leftOut = missing > 0 ? `, ${missing} left out` : "";
+      const savedMessage = `Saved${leftOut}`;
 
       try {
         if (await tryNativeImageShare(imageFile)) {
-          if (missing > 0) setStatusMessage(savedMessage.replace("Image saved", "Image shared"));
+          if (missing > 0) setStatusMessage(`Shared${leftOut}`);
           return;
         }
       } catch (error) {
@@ -246,17 +244,17 @@ export function useGridExport(username: string, albums: Album[]) {
         // while. Offer a button so the share happens from a fresh tap instead of failing.
         if (error instanceof DOMException && error.name === "NotAllowedError") {
           setStatus({
-            message: "Image ready.",
+            message: "Ready",
             tone: "info",
             action: {
-              label: "Share image",
+              label: "Share",
               run: () => {
                 void tryNativeImageShare(imageFile).catch((shareError) => {
                   if (shareError instanceof DOMException && shareError.name === "AbortError")
                     return;
                   console.error("Error sharing image:", shareError);
                   downloadBlob(imageBlob, imageFilename);
-                  setStatusMessage("Image saved.");
+                  setStatusMessage("Saved");
                 });
               },
             },
@@ -270,12 +268,12 @@ export function useGridExport(username: string, albums: Album[]) {
       setStatusMessage(savedMessage);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        setStatusMessage("Save canceled.");
+        setStatusMessage("Canceled");
         return;
       }
 
       console.error("Error exporting image:", error);
-      setStatus({ message: "Failed to export image. Please try again.", tone: "error" });
+      setStatus({ message: "Could not save the image", tone: "error" });
     } finally {
       setIsExporting(false);
       // A share that needed no message leaves the progress notice up; clear it.

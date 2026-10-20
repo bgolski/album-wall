@@ -15,8 +15,7 @@ describe("ErrorMessage", () => {
   it("offers to try again after an unexpected failure", () => {
     const mockRetry = vi.fn();
     render(<ErrorMessage error="Network error" username="alice" onRetry={mockRetry} />);
-    expect(screen.getByRole("heading", { name: "The collection didn't load" })).toBeTruthy();
-    expect(screen.getByText("Network error")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Couldn't load" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(mockRetry).toHaveBeenCalledOnce();
   });
@@ -24,12 +23,11 @@ describe("ErrorMessage", () => {
   it("says a name was not found without offering a retry that would fail the same way", () => {
     render(<ErrorMessage error="x" username="alice" kind="not-found" onRetry={vi.fn()} />);
     expect(screen.getByRole("heading", { name: 'No Discogs user "alice"' })).toBeTruthy();
-    expect(screen.getByText(/Check the spelling/)).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
   });
 
   it.each([
-    ["busy", "Discogs needs a short break"],
+    ["busy", "Discogs is busy"],
     ["unavailable", "Discogs isn't answering"],
   ] as const)(
     "asks to try again later when Discogs is %s, without blaming the name",

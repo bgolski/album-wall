@@ -13,7 +13,7 @@ test("covers still show when the image proxy is down, and the wall can still be 
   await page.getByRole("button", { name: "Load Collection" }).click();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
 
-  await expect(page.getByText(/loading directly because the image service/)).toBeVisible();
+  await expect(page.getByText(/Covers may load slowly/)).toBeVisible();
   const firstCover = page.locator("[data-album-id] img").first();
   await expect(firstCover).toHaveAttribute("src", /^https:\/\/example\.test\//);
   await expect
@@ -28,7 +28,7 @@ test("covers still show when the image proxy is down, and the wall can still be 
   await page.getByRole("button", { name: /Save image/ }).click();
   await page.getByRole("menuitem", { name: "Wall as shown" }).click();
   await download;
-  await expect(page.getByText(/Image saved/)).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
 });
 
 test("Discogs covers come from the app's image service, so a saved wall includes every cover even with the proxy down", async ({
@@ -71,6 +71,6 @@ test("Discogs covers come from the app's image service, so a saved wall includes
   await page.getByRole("button", { name: /Save image/ }).click();
   await page.getByRole("menuitem", { name: "Wall as shown" }).click();
   await download;
-  await expect(page.getByText("Image saved.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   expect(serviceRequests.some((url) => url.endsWith("&w=600"))).toBe(true);
 });

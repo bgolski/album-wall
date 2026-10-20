@@ -46,7 +46,7 @@ describe("RecordGrid showing each album once", () => {
     expect(
       (screen.getByRole("switch", { name: "One copy per album" }) as HTMLInputElement).checked
     ).toBe(true);
-    expect(screen.getByText("1 extra copy set aside")).toBeTruthy();
+    expect(screen.getByText("1 set aside")).toBeTruthy();
 
     // A shuffle reorders what is shown and keeps the hidden pressing in the collection.
     fireEvent.click(screen.getByRole("button", { name: /Shuffle/ }));

@@ -70,7 +70,7 @@ export function CollectionManager({
             onPinsChange={onPinsChange}
           />
         ) : loadedUsername ? (
-          <EmptyCollection username={loadedUsername} />
+          <EmptyCollection />
         ) : null)}
     </>
   );

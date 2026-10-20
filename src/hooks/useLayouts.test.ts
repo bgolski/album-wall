@@ -75,7 +75,7 @@ describe("useLayouts", () => {
     act(() => {
       problem = result.current.save("Autumn", wall(["1"]));
     });
-    expect(problem).toMatch(/not letting the page save/);
+    expect(problem).toMatch(/save in this browser/);
     expect(result.current.layouts).toEqual([]);
   });
 
@@ -89,7 +89,7 @@ describe("useLayouts", () => {
     act(() => {
       problem = result.current.save("Autumn", wall(["1"]));
     });
-    expect(problem).toMatch(/storage is full/);
+    expect(problem).toMatch(/storage is full/i);
     expect(result.current.layouts).toEqual([]);
   });
 
@@ -129,6 +129,6 @@ describe("useLayouts", () => {
     act(() => {
       outcome = target.result.current.importText("not a backup");
     });
-    expect(outcome).toEqual({ ok: false, message: "That is not an Album Wall backup file." });
+    expect(outcome).toEqual({ ok: false, message: "Not a backup file" });
   });
 });

@@ -152,7 +152,7 @@ test("explains a shared wall from a private collection", async ({ page }) => {
 
   await page.goto(`./${hash}`);
   await expect(page.getByRole("heading", { name: "Private collection" })).toBeVisible();
-  await expect(page.getByText(/shared from a private Discogs collection/)).toBeVisible();
+  await expect(page.getByText(/Only its owner can open this wall/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign in with Discogs" })).toHaveCount(2);
 });

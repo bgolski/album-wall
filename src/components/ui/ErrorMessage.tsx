@@ -12,8 +12,8 @@ interface ErrorMessageProps {
 
 interface Explanation {
   heading: string;
-  /** What happened and what to do, in one or two plain sentences. */
-  text: string;
+  /** One short line when the heading is not enough. */
+  text: string | null;
   action: "retry" | "sign-in" | null;
   /** A warning sign for failures, but not for answers like "private" or "no such user". */
   warning: boolean;
@@ -27,42 +27,32 @@ interface Explanation {
  * @param username The collection asked for.
  * @returns Heading, text and the action that helps.
  */
-function explain(kind: CollectionErrorKind, error: string, username: string): Explanation {
+function explain(kind: CollectionErrorKind, username: string): Explanation {
   switch (kind) {
     case "private":
-      return { heading: "Private collection", text: error, action: "sign-in", warning: false };
+      return { heading: "Private collection", text: null, action: "sign-in", warning: false };
     case "private-shared":
-      return { heading: "Private collection", text: error, action: "sign-in", warning: false };
+      return {
+        heading: "Private collection",
+        text: "Only its owner can open this wall.",
+        action: "sign-in",
+        warning: false,
+      };
     case "signed-out":
-      return { heading: "Signed out", text: error, action: "sign-in", warning: false };
+      return { heading: "Signed out", text: null, action: "sign-in", warning: false };
     case "not-found":
       return {
         heading: username ? `No Discogs user "${username}"` : "No such Discogs user",
-        text: "Check the spelling: it is the name in your Discogs profile address, discogs.com/user/your-name.",
+        text: null,
         action: null,
         warning: false,
       };
     case "busy":
-      return {
-        heading: "Discogs needs a short break",
-        text: "Too many requests reached Discogs at once. Try again in a minute.",
-        action: "retry",
-        warning: true,
-      };
+      return { heading: "Discogs is busy", text: null, action: "retry", warning: true };
     case "unavailable":
-      return {
-        heading: "Discogs isn't answering",
-        text: "Discogs or the connection didn't respond. Nothing is lost; try again in a minute.",
-        action: "retry",
-        warning: true,
-      };
+      return { heading: "Discogs isn't answering", text: null, action: "retry", warning: true };
     default:
-      return {
-        heading: "The collection didn't load",
-        text: error,
-        action: "retry",
-        warning: true,
-      };
+      return { heading: "Couldn't load", text: null, action: "retry", warning: true };
   }
 }
 
@@ -71,14 +61,8 @@ function explain(kind: CollectionErrorKind, error: string, username: string): Ex
  * passing problem, sign in for a private collection, or nothing extra when the name is wrong
  * (the username box is right above).
  */
-export function ErrorMessage({
-  error,
-  username,
-  onRetry,
-  kind = null,
-  onSignIn,
-}: ErrorMessageProps) {
-  const { heading, text, action, warning } = explain(kind, error, username);
+export function ErrorMessage({ username, onRetry, kind = null, onSignIn }: ErrorMessageProps) {
+  const { heading, text, action, warning } = explain(kind, username);
   return (
     <div
       role="alert"
@@ -101,8 +85,8 @@ export function ErrorMessage({
           />
         </svg>
       )}
-      <h3 className="mb-2 text-xl font-bold text-ink">{heading}</h3>
-      <p className="mb-6 max-w-lg text-muted">{text}</p>
+      <h3 className={`text-xl font-bold text-ink ${action || text ? "mb-2" : ""}`}>{heading}</h3>
+      {text && <p className="mb-6 max-w-lg text-muted">{text}</p>}
       {action === "retry" && (
         <button
           type="button"

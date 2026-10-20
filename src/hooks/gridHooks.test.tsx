@@ -59,7 +59,7 @@ describe("useMoveMode", () => {
     act(() => result.current.startMove(wall[0]!));
     act(() => result.current.selectAlbum(wall[1]!));
     expect(onAlbumsReorder).not.toHaveBeenCalled();
-    expect(result.current.moveMessage).toBe("Pinned albums can't be swapped. Tap another album.");
+    expect(result.current.moveMessage).toBe("That one is pinned");
   });
 });
 

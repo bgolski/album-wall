@@ -18,31 +18,24 @@ function watchDiscogs(page: Page) {
 
 test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
-test("a first-time visitor is offered the demo, and only once", async ({ page }) => {
+test("a first-time visitor is offered the demo on the page, and only once", async ({ page }) => {
   await page.route(/images\.weserv\.nl/, (route) => route.fulfill({ status: 404 }));
   const discogsRequests = watchDiscogs(page);
 
   await page.goto("./");
-  const dialog = page.getByRole("dialog", { name: "New to Album Wall?" });
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Try the demo" }).click();
-  await expect(dialog).toBeHidden();
+  const welcome = page.getByRole("region", { name: "New to Album Wall?" });
+  await expect(welcome).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // Nothing covers the page: the form is usable beside it.
+  await expect(page.getByRole("button", { name: "Load Collection" })).toBeVisible();
+  await welcome.getByRole("button", { name: "Try the demo" }).click();
+  await expect(welcome).toBeHidden();
   await expect(page.getByText("Demo wall", { exact: true })).toBeVisible();
   expect(discogsRequests).toEqual([]);
 
   await page.reload();
   await expect(page.getByRole("button", { name: "Load Collection" })).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-});
-
-test("a visitor who closes the welcome is not asked again", async ({ page }) => {
-  await page.route(/images\.weserv\.nl/, (route) => route.fulfill({ status: 404 }));
-  await page.goto("./");
-  await page.getByRole("button", { name: "Use my collection" }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Load Collection" })).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "New to Album Wall?" })).toHaveCount(0);
 });
 
 test("a returning visitor can still try the demo from the header", async ({ page }) => {
@@ -50,7 +43,7 @@ test("a returning visitor can still try the demo from the header", async ({ page
   const discogsRequests = watchDiscogs(page);
 
   await page.goto("./");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "New to Album Wall?" })).toHaveCount(0);
   await page.getByRole("button", { name: "Try the demo wall" }).click();
   await expect(page.getByText("Demo wall", { exact: true })).toBeVisible();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
@@ -58,7 +51,7 @@ test("a returning visitor can still try the demo from the header", async ({ page
 
   await page.getByRole("button", { name: "Shuffle" }).click();
   await page.getByRole("button", { name: "Share link" }).click();
-  await expect(page.getByText("Share link copied.")).toBeVisible();
+  await expect(page.getByText("Link copied")).toBeVisible();
   const link = await page.evaluate(() => navigator.clipboard.readText());
   expect(link).toContain("#share=");
 

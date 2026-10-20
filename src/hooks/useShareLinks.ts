@@ -75,7 +75,7 @@ export function useShareLinks(input: {
     closeMenu();
     const longUrl = buildShareUrl();
     if (!longUrl) {
-      setStatus({ message: "Unable to build a share link yet.", tone: "error" });
+      setStatus({ message: "Link not ready", tone: "error" });
       return;
     }
 
@@ -83,7 +83,7 @@ export function useShareLinks(input: {
     const shareUrl = ready.current.get(longUrl) ?? (await resolveUrl(longUrl));
     const outcome = await copyLink(shareUrl);
     setStatus({
-      message: outcome === "copied" ? "Share link copied." : "Copy the share link from the box.",
+      message: outcome === "copied" ? "Link copied" : "Copy it from the box",
       tone: "info",
     });
   };
@@ -95,7 +95,7 @@ export function useShareLinks(input: {
     closeMenu();
     const longUrl = buildShareUrl();
     if (!longUrl) {
-      setStatus({ message: "Unable to build a share link yet.", tone: "error" });
+      setStatus({ message: "Link not ready", tone: "error" });
       return;
     }
 
@@ -116,9 +116,9 @@ export function useShareLinks(input: {
       // use that up, so offer a button that shares from a fresh tap.
       if (!readyUrl && error instanceof DOMException && error.name === "NotAllowedError") {
         setStatus({
-          message: "Link ready.",
+          message: "Link ready",
           tone: "info",
-          action: { label: "Share link", run: () => void share(shareUrl).catch(() => {}) },
+          action: { label: "Share", run: () => void share(shareUrl).catch(() => {}) },
         });
         return;
       }

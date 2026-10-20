@@ -20,6 +20,8 @@
   --color-on-accent-2: var(--on-accent-2);
   --color-danger: var(--danger);
   --color-on-danger: var(--on-danger);
+  /* Very wide screens: the wall, the pool and the open panel sit side by side. */
+  --breakpoint-3xl: 106rem;
   --radius-control: 10px;
   --radius-panel: 14px;
   --radius-tile: 10px;
@@ -82,5 +84,160 @@
   h3,
   h4 {
     font-family: var(--font-fraunces), Georgia, serif;
+  }
+}
+
+/*
+  A record turning slowly behind the page (a few frames a second, in tiny steps, so it costs the
+  page almost nothing; 112vmax is just enough to cover the screen at every angle): fine grooves, and two soft highlights that sweep round
+  like light on vinyl. It sits behind everything, is only decoration, and stays still for anyone
+  who prefers less motion.
+*/
+.record-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* A point at the middle of the page: the record's intro turns about it. */
+.record-backdrop__spin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.record-backdrop__disc {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 112vmax;
+  height: 112vmax;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      color-mix(in srgb, var(--accent) 10%, transparent) 25deg,
+      transparent 55deg,
+      transparent 180deg,
+      color-mix(in srgb, var(--accent) 10%, transparent) 205deg,
+      transparent 235deg,
+      transparent 360deg
+    ),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      transparent 0 4px,
+      color-mix(in srgb, var(--ink) 5%, transparent) 4px 5px,
+      transparent 5px 9px,
+      color-mix(in srgb, var(--ink) 3%, transparent) 9px 10px
+    );
+  animation: record-spin 120s steps(1440) infinite;
+  will-change: transform;
+}
+
+@keyframes record-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-backdrop__disc {
+    animation: none;
+  }
+}
+
+/*
+  The first load of a visit, for anyone who has not asked for less motion (the page marks itself
+  `data-intro` before it is first painted): the record fades in already turning fast and eases
+  down to its slow turn, and the page slides up a little over it. Nothing waits for it: the page is usable
+  throughout, and it is over in about two seconds.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  /* The welcome card eases in once the record has settled (it waits for that). */
+  .welcome-in {
+    animation: welcome-in 400ms ease-out both;
+  }
+
+  @keyframes welcome-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  html[data-intro] .record-backdrop {
+    animation: record-fade 1600ms ease-out both;
+  }
+
+  html[data-intro] .record-backdrop__spin {
+    animation: record-spinup 2600ms cubic-bezier(0.12, 0.6, 0.25, 1) both;
+  }
+
+  html[data-intro] .app-intro {
+    animation: page-rise 900ms ease-out 400ms both;
+  }
+
+  @keyframes record-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes record-spinup {
+    from {
+      transform: rotate(900deg);
+    }
+  }
+
+  /* The page only slides up a little: it never starts invisible, so the first paint (and what
+     a speed test measures) is the page itself. */
+  @keyframes page-rise {
+    from {
+      transform: translateY(10px);
+    }
+  }
+}
+
+/*
+  Phones and tablets (touch screens) scroll smoothest with nothing painted behind the page, so
+  the record does not stay: it is there for the first load of a visit, spinning up as above and
+  then fading away, and it is gone (not just hidden) for everything after.
+*/
+@media (max-width: 767px), (pointer: coarse) {
+  .record-backdrop {
+    display: none;
+  }
+
+  .record-backdrop__disc {
+    animation: none;
+    will-change: auto;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html[data-intro] .record-backdrop {
+      display: block;
+      animation: record-visit 3200ms ease-in-out both;
+    }
+
+    @keyframes record-visit {
+      from {
+        opacity: 0;
+      }
+
+      25%,
+      60% {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
   }
 }

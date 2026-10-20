@@ -58,10 +58,14 @@ if (ogOnly) {
   console.log("Captured public/og-image.jpg");
   process.exit(0);
 }
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+// Reduced motion keeps the record and the welcome card still, so every shot is the same.
+const page = await browser.newPage({
+  viewport: { width: 1440, height: 1000 },
+  reducedMotion: "reduce",
+});
 await page.goto(url);
 
-// 1. Fresh visit: sign in or enter a username, or try the demo.
+// 1. Fresh visit: sign in or enter a username, with the demo offered below.
 await page.getByRole("button", { name: "Try the demo", exact: true }).waitFor();
 await page.screenshot({ path: `${out}/01-fresh-visit.png` });
 
@@ -99,16 +103,16 @@ await toolbar.screenshot({ path: `${out}/05-arrange-by-genre.png` });
 
 // 6. Sort by Color: gradients suggested for this collection, and the gradient editor.
 await page.getByRole("button", { name: "Color", exact: true }).click();
-await page.getByText("Suggested for your collection").waitFor();
+await page.getByText("Suggested", { exact: true }).waitFor();
 await page.waitForTimeout(500);
 const builder = page.locator("section", {
-  has: page.getByRole("heading", { name: "Sort by Color" }),
+  has: page.getByRole("heading", { name: "Color", exact: true }),
 });
 await builder.screenshot({ path: `${out}/06-sort-by-color.png` });
 
 // 7. A rainbow wall built from the whole collection (unpinned first, so every spot is free).
-await page.getByRole("button", { name: "Pin all" }).click();
-await page.getByRole("button", { name: "Pin all" }).click();
+await page.getByRole("button", { name: "Pin all", exact: true }).click();
+await page.getByRole("button", { name: "Pin all", exact: true }).click();
 await page.getByRole("button", { name: /Rainbow/ }).click();
 await page.getByRole("button", { name: "Build wall" }).click();
 await page.getByText(/^Wall built/).waitFor();
@@ -124,6 +128,7 @@ const phone = await browser.newPage({
   viewport: { width: 390, height: 844 },
   deviceScaleFactor: 2,
   hasTouch: true,
+  reducedMotion: "reduce",
 });
 await phone.addInitScript(() => localStorage.setItem("album-wall:welcome-dismissed", "1"));
 await phone.goto(url);

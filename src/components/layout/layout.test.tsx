@@ -32,7 +32,19 @@ describe("AppContainer", () => {
     );
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain("min-h-screen");
-    expect(root.className).toContain("bg-page");
+    // The page colour comes from the body, so the record behind the page shows through.
+    expect(root.className).not.toContain("bg-page");
+  });
+
+  it("puts a decorative record behind the page, hidden from assistive technology", () => {
+    const { container } = render(
+      <AppContainer>
+        <p>wall</p>
+      </AppContainer>
+    );
+    const backdrop = container.querySelector(".record-backdrop");
+    expect(backdrop?.getAttribute("aria-hidden")).toBe("true");
+    expect(backdrop?.querySelector(".record-backdrop__disc")).not.toBeNull();
   });
 });
 

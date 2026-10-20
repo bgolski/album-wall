@@ -8,7 +8,9 @@ export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
   reporter: process.env.CI ? "github" : "list",
-  use: { baseURL: `http://localhost:${port}${basePath}/` },
+  // Reduced motion keeps the page still for the checks (no intro, no fading); the intro's own
+  // test turns motion back on.
+  use: { baseURL: `http://localhost:${port}${basePath}/`, reducedMotion: "reduce" },
   webServer: {
     command: "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/serve-static.ts",
     url: `http://localhost:${port}${basePath}/`,

@@ -34,11 +34,11 @@ test("Sort by Color builds a wall for a gradient from the whole demo collection"
   const before = await wallIds(page);
 
   await page.getByRole("button", { name: "Color" }).click();
-  await expect(page.getByRole("heading", { name: "Sort by Color" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Color" })).toBeVisible();
   // Opening the builder changes nothing on the wall.
   expect(await wallIds(page)).toEqual(before);
   // The demo's colors are known, so it is offered gradients it can fill.
-  await expect(page.getByText("Suggested for your collection")).toBeVisible();
+  await expect(page.getByText("Suggested")).toBeVisible();
 
   await page.getByRole("button", { name: /Rainbow/ }).click();
   await page.getByRole("button", { name: "Build wall" }).click();

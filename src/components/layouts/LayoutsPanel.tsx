@@ -362,7 +362,9 @@ export function LayoutsPanel({
             return (
               <li
                 key={layout.id}
-                className={`rounded-control bg-panel p-3 ${current ? "ring-2 ring-accent" : ""}`}
+                className={`rounded-control bg-panel p-3 ${
+                  current || previewing === layout.id ? "ring-2 ring-accent" : ""
+                }`}
               >
                 {renaming?.id === layout.id ? (
                   <form

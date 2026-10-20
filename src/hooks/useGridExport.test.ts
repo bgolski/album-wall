@@ -87,7 +87,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
     expect(window.alert).not.toHaveBeenCalled();
-    expect(result.current.status).toEqual({ message: "No albums to share.", tone: "error" });
+    expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
     expect(result.current.dropdownOpen).toBe(false);
   });
 
@@ -98,7 +98,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
     expect(window.alert).not.toHaveBeenCalled();
-    expect(result.current.status).toEqual({ message: "No albums to share.", tone: "error" });
+    expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
     expect(result.current.dropdownOpen).toBe(false);
     expect(result.current.isExporting).toBe(false);
   });
@@ -113,7 +113,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
     expect(window.alert).not.toHaveBeenCalled();
-    expect(result.current.status).toEqual({ message: "No albums to share.", tone: "error" });
+    expect(result.current.status).toEqual({ message: "No albums", tone: "error" });
     expect(result.current.dropdownOpen).toBe(false);
     expect(result.current.isExporting).toBe(false);
   });
@@ -134,7 +134,7 @@ describe("useGridExport", () => {
     });
 
     expect(clickSpy).toHaveBeenCalled();
-    expect(result.current.status?.message).toBe("Image saved.");
+    expect(result.current.status?.message).toBe("Saved");
   });
 
   it("says how many covers could not be included", async () => {
@@ -150,7 +150,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    expect(result.current.status?.message).toBe("Image saved. 3 covers could not be included.");
+    expect(result.current.status?.message).toBe("Saved, 3 left out");
     expect(wallMock.mock.calls.at(-1)![0].albums).toBe(albums);
   });
 
@@ -211,7 +211,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    expect(result.current.status?.message).toBe("Image ready.");
+    expect(result.current.status?.message).toBe("Ready");
     expect(result.current.status?.tone).toBe("info");
     expect(shareSpy).toHaveBeenCalledTimes(1);
 
@@ -279,7 +279,7 @@ describe("useGridExport", () => {
       await result.current.shareOrSaveImage();
     });
 
-    expect(result.current.status?.message).toBe("Save canceled.");
+    expect(result.current.status?.message).toBe("Canceled");
     expect(window.alert).not.toHaveBeenCalled();
   });
 
@@ -298,7 +298,7 @@ describe("useGridExport", () => {
 
     expect(window.alert).not.toHaveBeenCalled();
     expect(result.current.status).toEqual({
-      message: "Failed to export image. Please try again.",
+      message: "Could not save the image",
       tone: "error",
     });
   });
@@ -366,7 +366,7 @@ describe("useGridExport sized images", () => {
       .map((entry) => entry.value as HTMLElement)
       .find((element) => element.tagName === "A") as HTMLAnchorElement;
     expect(anchor.getAttribute("download")).toBe("testuser_album_wall_square.png");
-    expect(result.current.status?.message).toBe("Image saved.");
+    expect(result.current.status?.message).toBe("Saved");
   });
 });
 

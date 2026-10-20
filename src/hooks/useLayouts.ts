@@ -31,11 +31,11 @@ interface LayoutOptions {
 
 const MESSAGES: Record<LayoutError["code"], string> = {
   "empty-name": "Give the wall a name.",
-  limit: `You can keep up to ${MAX_LAYOUTS} saved walls. Delete one to save another.`,
-  "invalid-file": "That is not an Album Wall backup file.",
+  limit: `Limit is ${MAX_LAYOUTS} saved walls`,
+  "invalid-file": "Not a backup file",
 };
-const NO_STORAGE = "This browser is not letting the page save anything, so walls cannot be saved.";
-const STORAGE_FULL = "This browser's storage is full, so the change was not saved.";
+const NO_STORAGE = "Can't save in this browser";
+const STORAGE_FULL = "Storage is full";
 
 function browserStorage(): LayoutStorage | null {
   try {

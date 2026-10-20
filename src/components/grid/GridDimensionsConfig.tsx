@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { wallSize } from "@/utils/wallSize";
 import type { Album } from "@/types";
 import { InfoTip } from "@/components/ui/InfoTip";
 
@@ -7,9 +6,6 @@ interface GridDimensionsConfigProps {
   isVisible: boolean;
   rows: number;
   columns: number;
-  gridSize: number;
-  defaultRows: number;
-  defaultColumns: number;
   onDimensionsChange: (rows: number, columns: number) => void;
   onReset: () => void;
   /** "Show each album once": the setting, the sets of pressings, and the ones set aside. */
@@ -74,9 +70,6 @@ export function GridDimensionsConfig({
   isVisible,
   rows,
   columns,
-  gridSize,
-  defaultRows,
-  defaultColumns,
   onDimensionsChange,
   onReset,
   pressings,
@@ -89,7 +82,7 @@ export function GridDimensionsConfig({
       <div className="flex flex-col gap-3 @lg:flex-row @lg:flex-wrap @lg:items-end @lg:gap-4">
         <DimensionField
           id="columns"
-          label="Columns:"
+          label="Columns"
           value={columns}
           min={1}
           max={12}
@@ -98,23 +91,19 @@ export function GridDimensionsConfig({
 
         <DimensionField
           id="rows"
-          label="Rows:"
+          label="Rows"
           value={rows}
           min={1}
           max={10}
           onCommit={(next) => onDimensionsChange(next, columns)}
         />
 
-        <p className="text-sm text-muted @lg:pb-2">
-          Total albums in display: <span className="font-semibold">{gridSize}</span>
-        </p>
-
         <div className="w-full @lg:ml-auto @lg:w-auto">
           <button
             onClick={onReset}
             className="w-full rounded-control bg-raised px-3 py-2 text-sm text-ink transition-colors hover:bg-line @lg:w-auto @lg:py-1"
           >
-            Reset to default ({wallSize(defaultColumns, defaultRows)})
+            Reset
           </button>
         </div>
       </div>
@@ -141,10 +130,7 @@ export function GridDimensionsConfig({
             />
           </span>
           {pressings.once && (
-            <p className="mt-1 text-xs text-muted">
-              {pressings.hidden.length} extra {pressings.hidden.length === 1 ? "copy" : "copies"}{" "}
-              set aside
-            </p>
+            <p className="mt-1 text-xs text-muted">{pressings.hidden.length} set aside</p>
           )}
         </div>
       )}

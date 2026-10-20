@@ -19,8 +19,8 @@ interface HangHistoryOptions {
   now?: () => Date;
 }
 
-const NO_STORAGE = "This browser is not letting the page save anything, so history cannot be kept.";
-const STORAGE_FULL = "This browser's storage is full, so the change was not saved.";
+const NO_STORAGE = "Can't save in this browser";
+const STORAGE_FULL = "Storage is full";
 
 function browserStorage(): HistoryStorage | null {
   try {

@@ -114,9 +114,7 @@ describe("RecordGrid tap actions", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Swap with/ }));
     fireEvent.click(tile("Album 2"));
     expect(onAlbumsReorder).not.toHaveBeenCalled();
-    expect(screen.getByTestId("move-banner").textContent).toContain(
-      "Pinned albums can't be swapped"
-    );
+    expect(screen.getByTestId("move-banner").textContent).toContain("That one is pinned");
   });
 
   it("does not offer Move for a pinned album", () => {
@@ -173,7 +171,7 @@ describe("RecordGrid tap actions", () => {
     vi.stubGlobal("navigator", { ...navigator, share: undefined, clipboard: { writeText } });
     renderGrid();
     fireEvent.click(screen.getByRole("button", { name: "Share link" }));
-    const line = await screen.findByText("Share link copied.");
+    const line = await screen.findByText("Link copied");
     expect(line.closest("[role=status]")).toBeTruthy();
     expect(writeText).toHaveBeenCalledTimes(1);
   });

@@ -1,7 +1,11 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { loadLastUsername } from "@/utils/savedWall";
 
 const WELCOME_DISMISSED_KEY = "album-wall:welcome-dismissed";
+
+// How long the record's spin-up takes (see globals.css); the welcome waits for it so the two do not
+// play over each other.
+const INTRO_MS = 3000;
 
 const listeners = new Set<() => void>();
 
@@ -35,10 +39,20 @@ function neverOnServer() {
  *
  * @param demoAvailable Whether the demo wall can be loaded.
  * @param hasWall Whether a wall is already showing.
- * @returns Whether the welcome should show, and a function that dismisses it for good.
+ * @returns Whether the welcome should show (once the intro, if any, is over), and a function that
+ *          dismisses it for good.
  */
 export function useWelcome(demoAvailable: boolean, hasWall: boolean) {
   const firstVisit = useSyncExternalStore(subscribe, isFirstVisit, neverOnServer);
+  // The page marks itself `data-intro` while the record's spin-up plays; wait for it to finish.
+  const [introOver, setIntroOver] = useState(
+    () => typeof document === "undefined" || !document.documentElement.hasAttribute("data-intro")
+  );
+  useEffect(() => {
+    if (introOver) return;
+    const timer = setTimeout(() => setIntroOver(true), INTRO_MS);
+    return () => clearTimeout(timer);
+  }, [introOver]);
 
   const dismiss = useCallback(() => {
     try {
@@ -49,5 +63,5 @@ export function useWelcome(demoAvailable: boolean, hasWall: boolean) {
     listeners.forEach((listener) => listener());
   }, []);
 
-  return { open: firstVisit && demoAvailable && !hasWall, dismiss };
+  return { open: firstVisit && demoAvailable && !hasWall && introOver, dismiss };
 }

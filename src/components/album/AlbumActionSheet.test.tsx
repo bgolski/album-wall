@@ -33,7 +33,7 @@ describe("AlbumActionSheet cover colors", () => {
         }}
       />
     );
-    expect(screen.getByText("Colors Sort by Color sees")).toBeTruthy();
+    expect(screen.getByText("Colors")).toBeTruthy();
     const items = screen.getAllByRole("listitem").map((item) => item.textContent);
     // Two shades of black are one color: 35% + 6%.
     expect(items).toEqual(["pink 55%", "black 41%"]);
@@ -41,9 +41,9 @@ describe("AlbumActionSheet cover colors", () => {
 
   it("says when no colors could be read, and shows nothing outside Sort by Color", () => {
     const { rerender } = render(<AlbumActionSheet {...base} colorProfile={null} />);
-    expect(screen.getByText("Sort by Color could not read the colors of this cover.")).toBeTruthy();
+    expect(screen.getByText("Colors not readable")).toBeTruthy();
     rerender(<AlbumActionSheet {...base} />);
-    expect(screen.queryByText(/Sort by Color/)).toBeNull();
+    expect(screen.queryByText(/Colors/)).toBeNull();
   });
 });
 

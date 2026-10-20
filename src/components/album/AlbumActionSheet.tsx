@@ -116,10 +116,8 @@ export function AlbumActionSheet({
               </svg>
             </button>
           </div>
-          {lastHungOn !== undefined && (
-            <p className="text-sm text-muted">
-              {lastHungOn ? `Last on the wall ${formatDay(lastHungOn)}` : "Not on your wall yet"}
-            </p>
+          {lastHungOn && (
+            <p className="text-sm text-muted">Last on the wall {formatDay(lastHungOn)}</p>
           )}
           {colorProfile !== undefined && (
             <CoverColors profile={colorProfile} onStartFromColor={onStartFromColor} />
@@ -187,17 +185,13 @@ function CoverColors({
   onStartFromColor?: ((hex: string) => void) | undefined;
 }) {
   if (!profile) {
-    return (
-      <p className="mt-2 text-sm text-muted">
-        Sort by Color could not read the colors of this cover.
-      </p>
-    );
+    return <p className="mt-2 text-sm text-muted">Colors not readable</p>;
   }
   // Shades with the same name are one color to a person: shown once, with their shares added.
   const shown = namedMainColors(profile);
   return (
     <div className="mt-3">
-      <p className="mb-1 text-sm text-muted">Colors Sort by Color sees</p>
+      <p className="mb-1 text-sm text-muted">Colors</p>
       <ul className="flex flex-wrap gap-3">
         {shown.map((entry) => (
           <li key={entry.name} className="flex items-center gap-2 text-sm text-ink">
@@ -214,7 +208,7 @@ function CoverColors({
                 aria-label={`Start a wall from this ${entry.name}`}
                 onClick={() => onStartFromColor(oklabToHex(entry.color))}
               >
-                Start a wall from this color
+                Build from this
               </button>
             )}
           </li>

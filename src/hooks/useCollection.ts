@@ -18,14 +18,12 @@ import { getBasePath } from "@/utils/basePath";
 import { setAddressUser, userFromAddress } from "@/utils/loadAddress";
 import { DiscogsSession, proxyErrorCode } from "@/utils/discogsSignIn";
 
-const VALIDATION_ERROR_MESSAGE =
-  "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
-const DEMO_MISSING_MESSAGE = "The demo wall is not available right now.";
+const VALIDATION_ERROR_MESSAGE = "Letters, numbers, dots, dashes and underscores only";
+const DEMO_MISSING_MESSAGE = "Demo unavailable";
 const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
 const PRIVATE_SHARED_WALL_MESSAGE =
   "This wall was shared from a private Discogs collection, so only its owner can open it here. If it is yours, sign in with Discogs. Otherwise ask them for a saved image of the wall, or to make their collection public on Discogs.";
-const SIGNED_OUT_MESSAGE =
-  "Your Discogs sign-in has ended, so you have been signed out. Sign in again to load this collection.";
+const SIGNED_OUT_MESSAGE = "Signed out";
 const FOLDER_KEY_PREFIX = "album-wall:folder:";
 
 /** Why a load failed, when the app can say more than the message. */

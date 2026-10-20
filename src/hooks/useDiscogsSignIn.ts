@@ -101,12 +101,12 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
 
     if (answer.kind === "denied") {
       restoreAddress();
-      queueMicrotask(() => setError("Sign-in was cancelled on Discogs."));
+      queueMicrotask(() => setError("Sign-in cancelled"));
       return;
     }
     if (!pending || pending.token !== answer.token) {
       restoreAddress();
-      queueMicrotask(() => setError("That sign-in could not be finished. Please sign in again."));
+      queueMicrotask(() => setError("Sign-in failed"));
       return;
     }
 
@@ -116,7 +116,7 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
         const localStore = getStorage("localStorage");
         restoreAddress();
         if (!localStore || !saveSession(localStore, next)) {
-          setError("This browser does not allow saving the sign-in.");
+          setError("This browser blocks sign-in");
           return;
         }
         notify();
@@ -124,7 +124,7 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
       })
       .catch((reason: unknown) => {
         restoreAddress();
-        setError(reason instanceof Error ? reason.message : "Signing in failed.");
+        setError(reason instanceof Error ? reason.message : "Sign-in failed");
       })
       .finally(() => setStatus("idle"));
   }, []);
@@ -148,7 +148,7 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
       navigate(started.authorizeUrl);
     } catch (reason) {
       setStatus("idle");
-      setError(reason instanceof Error ? reason.message : "Signing in failed.");
+      setError(reason instanceof Error ? reason.message : "Sign-in failed");
     }
   }, [navigate]);
 

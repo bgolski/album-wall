@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { DiscogsAccountProps } from "./types";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
 
 /**
  * The account control in the header corner. Signed in, a round button with the visitor's initial
@@ -45,7 +46,7 @@ export function AccountMenu({
   if (status === "finishing") {
     return (
       <span role="status" className={`${cornerButton} w-9`} aria-label="Signing in with Discogs">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-transparent" />
+        <LoadingSpinner className="h-5 w-5 text-muted" />
       </span>
     );
   }

@@ -51,36 +51,6 @@ export function colorFamilies(
     .sort((x, y) => y.count - x.count || x.name.localeCompare(y.name));
 }
 
-const plural = (name: string) => `${name}s`;
-const list = (names: string[]) =>
-  names.length <= 1
-    ? (names[0] ?? "")
-    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-
-/**
- * One sentence about what colors the collection has, so the suggestions make sense.
- *
- * @param families The collection's color families.
- * @param enough How many covers a family needs to fill its part of the wall.
- * @returns For example "Mostly black, gray and white covers, with some reds and browns."
- */
-export function describeCollection(families: Family[], enough: number): string {
-  if (families.length === 0) return "";
-  const mostly = families.slice(0, 3).map((family) => family.name);
-  const some = families
-    .slice(3)
-    .filter((family) => family.count >= enough && !NEUTRALS.has(family.name))
-    .map((family) => plural(family.name));
-  const colorfulInMostly = mostly.some((name) => !NEUTRALS.has(name));
-  const tail =
-    some.length > 0
-      ? `, with some ${list(some)}`
-      : colorfulInMostly
-        ? ""
-        : ", with few strongly colored ones";
-  return `Mostly ${list(mostly)} covers${tail}.`;
-}
-
 /**
  * Gradients this collection can fill well, made from the shades its covers really have: one that
  * runs from dark to light through neutrals, then up to three that include a color other than brown, each a
@@ -91,20 +61,19 @@ export function describeCollection(families: Family[], enough: number): string {
  * @param input.profiles Measured covers by album id.
  * @param input.rows Wall rows.
  * @param input.columns Wall columns.
- * @returns The suggestions and a sentence describing the collection's colors.
+ * @returns The suggestions.
  */
 export function suggestGradients(input: {
   albums: Album[];
   profiles: Readonly<Record<string, CoverProfile | null | undefined>>;
   rows: number;
   columns: number;
-}): { suggestions: SuggestedGradient[]; summary: string } {
+}): { suggestions: SuggestedGradient[] } {
   const { albums, profiles, rows, columns } = input;
   const spots = Math.min(rows * columns, albums.length);
   const families = colorFamilies(albums, profiles);
   // Each stop of a three-color gradient covers about a third of the wall.
   const enough = Math.max(1, Math.ceil(spots / 3));
-  const summary = describeCollection(families, enough);
   const usable = families.filter((family) => family.count >= enough);
 
   const candidates: Family[][] = [];
@@ -151,5 +120,5 @@ export function suggestGradients(input: {
   const suggestions = [...(neutral ? [neutral] : []), ...colorful].map(
     ({ colors, angle, names }) => ({ colors, angle, names })
   );
-  return { suggestions, summary };
+  return { suggestions };
 }

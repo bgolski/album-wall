@@ -137,7 +137,6 @@ describe("GradientPanel", () => {
       <GradientPanel isVisible rows={4} columns={8} pending={0} total={0} onBuild={vi.fn()} />
     );
     expect(container.querySelectorAll("figure span")).toHaveLength(32);
-    expect(screen.getByText("What each spot on your 8 × 4 wall aims for")).toBeTruthy();
   });
 
   it("waits for the cover colors before building, and says how far along they are", () => {
@@ -145,7 +144,7 @@ describe("GradientPanel", () => {
     expect((screen.getByRole("button", { name: "Build wall" }) as HTMLButtonElement).disabled).toBe(
       true
     );
-    expect(screen.getByRole("status").textContent).toBe("Reading cover colors... 6 of 10");
+    expect(screen.getByRole("status").textContent).toBe("Reading colors 6/10");
   });
 });
 
@@ -225,17 +224,13 @@ describe("describeBuild", () => {
 });
 
 describe("GradientPanel suggestions", () => {
-  it("offers gradients suggested for the collection, with a sentence about its colors", async () => {
+  it("offers gradients suggested for the collection", async () => {
     const onBuild = panel({
       suggestions: [
         { colors: ["#2b2826", "#d6d1c5"], angle: 90, names: ["black", "white"] },
         { colors: ["#2b2826", "#a55b59", "#d6d1c5"], angle: 90, names: ["black", "red", "white"] },
       ],
-      summary: "Mostly black, gray and white covers, with some reds and browns.",
     });
-    expect(
-      screen.getByText("Mostly black, gray and white covers, with some reds and browns.")
-    ).toBeTruthy();
     click("Black → red → white");
     await build();
     expect(onBuild.mock.calls[0]![0].colors).toEqual(["#2b2826", "#a55b59", "#d6d1c5"]);
@@ -243,7 +238,7 @@ describe("GradientPanel suggestions", () => {
 
   it("leaves the row out until there are suggestions", () => {
     panel();
-    expect(screen.queryByText("Suggested for your collection")).toBeNull();
+    expect(screen.queryByText("Suggested")).toBeNull();
   });
 });
 

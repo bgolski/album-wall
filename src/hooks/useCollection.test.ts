@@ -22,8 +22,7 @@ const mockDiscogs = discogs as unknown as {
 // A hook left mounted by an earlier test would pick up an address a later test sets.
 afterEach(cleanup);
 
-const VALIDATION_ERROR_MESSAGE =
-  "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
+const VALIDATION_ERROR_MESSAGE = "Letters, numbers, dots, dashes and underscores only";
 
 describe("useCollection", () => {
   beforeEach(() => {

@@ -9,7 +9,7 @@ test("saving the wall as an image downloads a PNG", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Wall as shown" }).click();
 
   expect((await download).suggestedFilename()).toBe("someone_album_wall.png");
-  await expect(page.getByText("Image saved.")).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
 });
 
 test.describe("on a phone", () => {

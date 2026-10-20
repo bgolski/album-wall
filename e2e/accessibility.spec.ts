@@ -53,8 +53,14 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Color" }).click();
       await expect(page.getByRole("button", { name: "Build wall" })).toBeVisible();
       // Let the pressed button finish changing color before checking contrast.
+      // (The record turning behind the page never finishes, so it is left out.)
       await page.evaluate(() =>
-        Promise.all(document.getAnimations().map((animation) => animation.finished))
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+            .map((animation) => animation.finished)
+        )
       );
       await expectNoViolations(page);
     });
@@ -123,8 +129,14 @@ for (const colorScheme of ["light", "dark"] as const) {
       await loadWall(page);
       await page.getByRole("button", { name: "Color" }).click();
       await expect(page.getByRole("button", { name: "Build wall" })).toBeVisible();
+      // (The record turning behind the page never finishes, so it is left out.)
       await page.evaluate(() =>
-        Promise.all(document.getAnimations().map((animation) => animation.finished))
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+            .map((animation) => animation.finished)
+        )
       );
       await expectNoViolations(page);
     });

@@ -79,7 +79,7 @@ describe("useDiscogsSignIn", () => {
 
     const { result } = renderHook(() => useDiscogsSignIn());
 
-    await waitFor(() => expect(result.current.error).toMatch(/could not be finished/));
+    await waitFor(() => expect(result.current.error).toMatch(/Sign-in failed/));
     expect(fetchMock).not.toHaveBeenCalled();
     expect(result.current.session).toBeNull();
   });

@@ -16,18 +16,26 @@ export function CoverSourceNotice() {
   return (
     <div
       role="status"
-      className="mb-4 flex items-start justify-between gap-3 rounded-panel bg-panel px-4 py-3 text-sm text-ink shadow-sm"
+      className="mb-4 flex items-center justify-between gap-3 rounded-panel bg-panel px-4 py-3 text-sm text-ink shadow-sm"
     >
-      <p>
-        Cover images are loading directly because the image service isn&apos;t responding. Some
-        covers may load slowly or be left out of saved images.
-      </p>
+      <p>Covers may load slowly or be left out of saved images.</p>
       <button
         type="button"
+        aria-label="Dismiss"
         onClick={() => setDismissed(true)}
-        className="shrink-0 rounded-control bg-raised px-3 py-1 text-ink hover:bg-line"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-ink"
       >
-        Dismiss
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        >
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
       </button>
     </div>
   );

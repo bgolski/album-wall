@@ -25,7 +25,7 @@ export function PoolDisplay({ albums, onSelect, moveSourceId, showAlbumLabels }:
   const isFiltering = visibleAlbums !== albums;
 
   return (
-    <div className="rounded-panel bg-panel p-4 shadow-sm">
+    <div className="rounded-panel bg-panel p-4 shadow-sm 3xl:sticky 3xl:top-4 3xl:max-h-[calc(100vh-2rem)] 3xl:overflow-y-auto">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="flex flex-wrap items-baseline gap-x-2 text-lg font-bold text-ink sm:text-xl">
           <span>Not on the wall</span>
@@ -40,7 +40,7 @@ export function PoolDisplay({ albums, onSelect, moveSourceId, showAlbumLabels }:
       {visibleAlbums.length === 0 && (
         <p className="py-6 text-center text-muted">No albums match &ldquo;{query.trim()}&rdquo;.</p>
       )}
-      <div className="grid grid-cols-4 gap-2 sm:gap-3 md:grid-cols-6 md:gap-4 lg:grid-cols-8">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 md:grid-cols-6 md:gap-4 lg:grid-cols-8 3xl:grid-cols-6">
         <SortableContext
           items={visibleAlbums.map((album) => `album-${album.id}`)}
           strategy={rectSwappingStrategy}

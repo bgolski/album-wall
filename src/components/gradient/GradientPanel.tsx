@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { oklabToHex } from "@/utils/gradientTargets";
 import { InfoTip } from "@/components/ui/InfoTip";
-import { wallSize } from "@/utils/wallSize";
 import { DirectionPicker } from "../arrange/DirectionPicker";
 import { wallTargets, type WallGradient } from "./buildGradientWall";
 import type { SuggestedGradient } from "./suggestGradients";
@@ -30,12 +29,10 @@ interface GradientPanelProps {
   ) => GradientBuildSummary | Promise<GradientBuildSummary>;
   /** Whether there is wall history, so records not hung recently can be preferred. */
   canPreferRested?: boolean;
-  /** Colors to start from instead of the first preset, and a note saying where they came from. */
-  start?: { colors: string[]; note: string } | undefined;
+  /** Colors to start from instead of the first preset. */
+  start?: { colors: string[] } | undefined;
   /** Gradients this collection can fill well, once its colors are read. */
   suggestions?: SuggestedGradient[];
-  /** One sentence about the collection's colors. */
-  summary?: string;
   /** Shows a short message that goes away on its own; without it the message stays in the panel. */
   onNotice?: (message: string) => void;
 }
@@ -110,7 +107,6 @@ export function GradientPanel({
   total,
   onBuild,
   suggestions = [],
-  summary = "",
   canPreferRested = false,
   start,
   onNotice,
@@ -123,7 +119,7 @@ export function GradientPanel({
   const [keepApart, setKeepApart] = useState(false);
   const [preferRested, setPreferRested] = useState(false);
   const [building, setBuilding] = useState(false);
-  const [message, setMessage] = useState<string | null>(start?.note ?? null);
+  const [message, setMessage] = useState<string | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
   // Started from a cover's color while scrolled down the wall: bring the builder into view.
@@ -174,15 +170,14 @@ export function GradientPanel({
   return (
     <section ref={sectionRef} aria-labelledby={`${id}-heading`} className="pr-8">
       <h3 id={`${id}-heading`} className="mb-3 font-medium text-ink">
-        Sort by Color
+        Color
       </h3>
 
       {suggestions.length > 0 && (
         <div className="mb-4">
           <p id={`${id}-suggested`} className="text-sm text-muted">
-            Suggested for your collection
+            Suggested
           </p>
-          {summary && <p className="mb-1 text-xs text-muted">{summary}</p>}
           <div role="group" aria-labelledby={`${id}-suggested`} className="flex flex-wrap gap-2">
             {suggestions.map((suggestion) => {
               const label = suggestion.names
@@ -211,14 +206,7 @@ export function GradientPanel({
       )}
 
       <div className="mb-4">
-        <p id={`${id}-start`} className="mb-1 text-sm text-muted">
-          Start from
-        </p>
-        <div
-          role="group"
-          aria-labelledby={`${id}-start`}
-          className="flex flex-wrap items-center gap-2"
-        >
+        <div role="group" aria-label="Presets" className="flex flex-wrap items-center gap-2">
           {PRESETS.map((preset) => (
             <button
               key={preset.name}
@@ -251,14 +239,7 @@ export function GradientPanel({
       <div className="mb-4 flex flex-col gap-4 @lg:flex-row @lg:items-start @lg:justify-between">
         <div className="flex flex-col gap-4">
           <div>
-            <p id={`${id}-colors`} className="mb-1 text-sm text-muted">
-              Colors
-            </p>
-            <div
-              role="group"
-              aria-labelledby={`${id}-colors`}
-              className="flex flex-wrap items-center gap-2"
-            >
+            <div role="group" aria-label="Colors" className="flex flex-wrap items-center gap-2">
               {colors.map((color, index) => (
                 <button
                   key={index}
@@ -337,9 +318,6 @@ export function GradientPanel({
               <span key={index} className="aspect-square" style={{ backgroundColor: hex }} />
             ))}
           </div>
-          <figcaption className="mt-1 text-xs text-muted">
-            What each spot on your {wallSize(columns, rows)} wall aims for
-          </figcaption>
         </figure>
       </div>
 
@@ -389,14 +367,10 @@ export function GradientPanel({
         onClick={() => void handleBuild()}
         className="mt-4 w-full rounded-control bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
-        Build wall
+        {building ? "Building…" : "Build wall"}
       </button>
       <p role="status" className="mt-2 text-sm text-muted">
-        {measuring
-          ? `Reading cover colors... ${total - pending} of ${total}`
-          : building
-            ? "Building the wall..."
-            : (message ?? "")}
+        {measuring ? `Reading colors ${total - pending}/${total}` : (message ?? "")}
       </p>
     </section>
   );

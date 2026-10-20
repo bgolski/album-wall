@@ -64,7 +64,7 @@ describe("demo wall sharing", () => {
     );
     window.location.hash = linkFor(DEMO_USERNAME, ["1"]);
     const { result } = renderHook(() => useCollection());
-    await waitFor(() => expect(result.current.error).toMatch(/demo wall/i));
+    await waitFor(() => expect(result.current.error).toMatch(/demo/i));
     expect(getUserCollection).not.toHaveBeenCalled();
   });
 
