@@ -51,10 +51,10 @@ Captured from the static build using `scripts/capture-case-study.ts` (the revisi
 
 ## Quality checks
 
-Measured at revision `5ade68b`:
+Measured at revision `cb0fd41`:
 
-- 741 unit and component tests in 94 files pass (`npm test`), as do type checking and linting. 55 browser tests pass (Playwright, against the static build), including accessibility checks with axe in light and dark mode. The infrastructure has 196 tests (`cd infra && npx jest`) and `npx cdk synth` succeeds.
-- Lighthouse 12.6.1 (the repository's `lighthouserc.json`, the mobile profile with its default throttling), median of 3 runs against the static build served locally with gzip, as GitHub Pages serves it: performance 96, accessibility 100, best practices 100, SEO 100. First contentful paint 0.8 s, largest contentful paint 2.7 s, total blocking time 1 ms and layout shift 0. The page transferred 342 KB, of which 220 KB was JavaScript. The audit loads the page as a first-time visitor sees it, so no covers are part of it: the largest paint is the page's own text, which appears once the JavaScript has run. The pull request check requires performance of at least 90.
+- 790 unit and component tests in 103 files pass (`npm test`), as do type checking and linting. 72 browser tests pass (Playwright, against the static build), including accessibility checks with axe in light and dark mode. The infrastructure has 236 tests (`cd infra && npx jest`) and `npx cdk synth` succeeds.
+- Lighthouse 12.6.1 (the repository's `lighthouserc.json`, the mobile profile with its default throttling), median of 5 runs against the static build served locally with gzip, as GitHub Pages serves it: performance 96, accessibility 100, best practices 100, SEO 100. First contentful paint 0.8 s, largest contentful paint 2.7 s, total blocking time 0 ms and layout shift 0. The page transferred 348 KB, of which 225 KB was JavaScript. The audit loads the page as a first-time visitor sees it, so no covers are part of it: the largest paint is the page's own text, which appears once the JavaScript has run. The pull request check requires performance of at least 90.
 
 ## Development
 
