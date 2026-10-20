@@ -30,9 +30,9 @@ describe("RecordGrid layouts", () => {
   it("opens the layouts from the controls", () => {
     render(<RecordGrid username="someone" albums={albums} onAlbumsReorder={vi.fn()} />);
     expect(screen.queryByLabelText("Name for the current wall")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Layouts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Saved walls" }));
     expect(screen.getByLabelText("Name for the current wall")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Layouts" }).getAttribute("aria-expanded")).toBe(
+    expect(screen.getByRole("button", { name: "Saved walls" }).getAttribute("aria-expanded")).toBe(
       "true"
     );
   });
@@ -41,11 +41,11 @@ describe("RecordGrid layouts", () => {
     const onAlbumsReorder = vi.fn();
     render(<RecordGrid username="someone" albums={albums} onAlbumsReorder={onAlbumsReorder} />);
     fireEvent.click(screen.getByRole("button", { name: "Pin Album 2" }));
-    fireEvent.click(screen.getByRole("button", { name: "Layouts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Saved walls" }));
     fireEvent.change(screen.getByLabelText("Name for the current wall"), {
       target: { value: "Mine" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save current wall" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Save$/ }));
 
     fireEvent.click(screen.getByRole("button", { name: "Unpin Album 2" }));
     expect(tile("Album 2").getAttribute("data-pinned")).toBe("false");

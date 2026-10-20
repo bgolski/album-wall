@@ -57,7 +57,7 @@ export default function PrivacyPage() {
 
         <Section title="What stays in your browser">
           <p>
-            Your walls, saved layouts, settings and recently loaded collections are kept in your own
+            Your walls, saved walls, settings and recently loaded collections are kept in your own
             browser and are not sent to us, unless you are signed in (see below). Clearing this
             site&apos;s data in your browser removes them.
           </p>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
         <section id="saved-walls" className="space-y-3">
           <h2 className="text-xl font-bold text-ink">Saved walls in your account</h2>
           <p>
-            While you are signed in, your saved layouts and the walls you marked as on your wall are
+            While you are signed in, your saved walls and the walls you marked as on your wall are
             also kept on our server under your Discogs username, so they load on any device you sign
             in on. They are kept until you remove them here. Copies in your browsers stay; a device
             that is still signed in saves its copy again, so sign out there first.

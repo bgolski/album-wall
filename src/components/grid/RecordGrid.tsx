@@ -37,7 +37,7 @@ import { Toast } from "../ui/Toast";
 
 const PANEL_LABELS: Record<WallPanel, string> = {
   size: "Wall size",
-  layouts: "Layouts",
+  layouts: "Saved walls",
   arrange: "Arrange",
 };
 
@@ -421,6 +421,7 @@ export function RecordGrid({
               albums={albums}
               onApply={applyWall}
               history={history}
+              onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
             />
 
             <GradientPanel

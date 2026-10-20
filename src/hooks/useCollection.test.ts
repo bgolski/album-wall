@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
+import { cleanup, renderHook, act, waitFor } from "@testing-library/react";
 import { collectionErrorKind, useCollection } from "./useCollection";
 import { DiscogsProxyError } from "@/utils/discogsSignIn";
 import type { Album } from "@/types";
@@ -18,6 +18,9 @@ const mockDiscogs = discogs as unknown as {
   getUserCollection: ReturnType<typeof vi.fn>;
   validateDiscogsUsername: ReturnType<typeof vi.fn>;
 };
+
+// A hook left mounted by an earlier test would pick up an address a later test sets.
+afterEach(cleanup);
 
 const VALIDATION_ERROR_MESSAGE =
   "Invalid username format. Use only letters, numbers, dots, underscores, or hyphens.";
@@ -275,5 +278,61 @@ describe("collectionErrorKind", () => {
     [new Error("anything"), null],
   ] as const)("sorts %s as %s", (error, kind) => {
     expect(collectionErrorKind(error)).toBe(kind);
+  });
+});
+
+describe("useCollection and the address", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockDiscogs.validateDiscogsUsername.mockReturnValue(true);
+    mockDiscogs.getUserCollection.mockResolvedValue([{ id: 1, title: "A" } as Album]);
+  });
+
+  it("opens the collection a ?user= link names, once, and shows its name in the box", async () => {
+    window.history.replaceState(null, "", "/?user=linkedfan");
+    const { result, rerender } = renderHook(() => useCollection());
+    expect(result.current.username).toBe("linkedfan");
+    await waitFor(() => expect(result.current.loadedUsername).toBe("linkedfan"));
+    rerender();
+    expect(mockDiscogs.getUserCollection).toHaveBeenCalledTimes(1);
+    expect(mockDiscogs.getUserCollection).toHaveBeenCalledWith("linkedfan");
+  });
+
+  it("lets a share link win over ?user=", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/?user=linkedfan#share=${encodeSharedWallState({
+        v: 1,
+        username: "sharer",
+        rows: 1,
+        columns: 1,
+        wallAlbumIds: ["1"],
+        pinnedAlbumIds: [],
+      })}`
+    );
+    const { result } = renderHook(() => useCollection());
+    await waitFor(() => expect(result.current.loadedUsername).toBe("sharer"));
+    expect(mockDiscogs.getUserCollection).toHaveBeenCalledTimes(1);
+    expect(mockDiscogs.getUserCollection.mock.calls[0]![0]).toBe("sharer");
+    // A shared wall keeps its own link.
+    expect(window.location.search).toBe("?user=linkedfan");
+  });
+
+  it("puts the collection that loads in the address, and nothing for a failed load", async () => {
+    const { result } = renderHook(() => useCollection());
+    act(() => result.current.handleUsernameChange("firstone"));
+    await act(async () => {
+      await result.current.loadCollection();
+    });
+    await waitFor(() => expect(window.location.search).toBe("?user=firstone"));
+
+    mockDiscogs.getUserCollection.mockRejectedValue(new Error("nope"));
+    act(() => result.current.handleUsernameChange("broken"));
+    await act(async () => {
+      await result.current.loadCollection();
+    });
+    await waitFor(() => expect(result.current.error).toBe("nope"));
+    expect(window.location.search).toBe("?user=firstone");
   });
 });

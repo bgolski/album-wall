@@ -57,11 +57,11 @@ test("a signed-in visitor finds layouts saved on another device, and new ones ar
   await page.getByRole("button", { name: "Load Collection" }).click();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "Layouts" }).click();
+  await page.getByRole("button", { name: "Saved walls" }).click();
   await expect(page.getByText("From my phone")).toBeVisible();
 
   await page.getByLabel("Name for the current wall").fill("Living room");
-  await page.getByRole("button", { name: "Save current wall" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(() => saves.filter((save) => save.data.includes("Living room")).length).toBe(1);
   const save = saves.find((entry) => entry.data.includes("Living room"))!;
   expect(save.kind).toBe("layouts");
@@ -83,9 +83,9 @@ test("signed out, nothing is sent to an account", async ({ page }) => {
   await page.getByLabel("Discogs username").fill("someone");
   await page.getByRole("button", { name: "Load Collection" }).click();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
-  await page.getByRole("button", { name: "Layouts" }).click();
+  await page.getByRole("button", { name: "Saved walls" }).click();
   await page.getByLabel("Name for the current wall").fill("Local only");
-  await page.getByRole("button", { name: "Save current wall" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Local only", { exact: true }).first()).toBeVisible();
   expect(accountRequests).toBe(0);
 });

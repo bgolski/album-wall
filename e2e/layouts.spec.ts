@@ -15,26 +15,31 @@ test("save a layout, change the wall, compare, put the layout back, and keep it 
   await page.getByRole("button", { name: "Try the demo wall" }).click();
   await expect(page.locator("[data-album-id]").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "Layouts" }).click();
+  await page.getByRole("button", { name: "Saved walls" }).click();
   await page.getByLabel("Name for the current wall").fill("First");
-  await page.getByRole("button", { name: "Save current wall" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const saved = await wallIds(page);
 
   await page.getByRole("button", { name: "Shuffle", exact: true }).click();
   await expect.poll(() => wallIds(page)).not.toEqual(saved);
 
-  await page.getByRole("button", { name: "Compare First with the wall" }).click();
-  const diagram = page.getByRole("group", { name: 'Diagram of "First"' });
-  await expect(diagram).toBeVisible();
-  await expect(diagram.getByRole("button")).toHaveCount(32);
-  await page.getByRole("button", { name: "Start" }).click();
-  await expect(page.getByText(/^Step 1 of \d+$/)).toBeVisible();
-  // A step outlines where its cover comes from, where it goes, or both.
-  await expect(
-    diagram.locator('[data-state="destination"], [data-state="source"]')
-  ).not.toHaveCount(0);
-  await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByText(/^Step 2 of \d+$/)).toBeVisible();
+  await page.getByRole("button", { name: "More for First" }).click();
+  await page.getByRole("menuitem", { name: "Rehang" }).click();
+  const guide = page.getByRole("group", { name: "Hang First" });
+  await expect(guide).toBeVisible();
+  await expect(guide.getByText(/^1 \/ \d+$/)).toBeVisible();
+  await guide.getByRole("button", { name: "Done" }).click();
+  await expect(guide.getByText(/^2 \/ \d+$/)).toBeVisible();
+  await guide.getByRole("button", { name: "Back" }).click();
+  await expect(guide.getByText(/^1 \/ \d+$/)).toBeVisible();
+
+  // Cancelling (here with Escape) leaves only the guide: the panel and its list stay.
+  await page.keyboard.press("Escape");
+  await expect(guide).toHaveCount(0);
+  await expect(page.getByRole("list", { name: "Saved walls" })).toBeVisible();
+  await page.getByRole("button", { name: "More for First" }).click();
+  await page.getByRole("menuitem", { name: "Rehang" }).click();
+  await expect(guide).toBeVisible();
 
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
@@ -44,18 +49,65 @@ test("save a layout, change the wall, compare, put the layout back, and keep it 
     expect(results.violations.map((violation) => violation.id)).toEqual([]);
   }
 
-  await page.getByRole("button", { name: "Put First on the wall" }).click();
+  // The last Done finishes: the saved wall is on screen and the list is back.
+  for (let step = 0; step < 100 && (await guide.isVisible()); step += 1) {
+    await guide.getByRole("button", { name: "Done" }).click();
+  }
+  await expect(guide).toHaveCount(0);
   await expect.poll(() => wallIds(page)).toEqual(saved);
 
   await page.reload();
   await page.getByRole("button", { name: "Try the demo wall" }).click();
-  await page.getByRole("button", { name: "Layouts" }).click();
-  await expect(page.getByRole("list", { name: "Saved layouts" }).getByText("First")).toBeVisible();
+  await page.getByRole("button", { name: "Saved walls" }).click();
+  await expect(page.getByRole("list", { name: "Saved walls" }).getByText("First")).toBeVisible();
 
-  await page.getByRole("button", { name: /^Backup/ }).click();
+  await page.getByRole("button", { name: "Backup", exact: true }).click();
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Save backup file" }).click();
+  await page.getByRole("menuitem", { name: "Save backup file" }).click();
   const file = await (await download).path();
   await page.getByLabel("Load backup file").setInputFiles(file);
-  await expect(page.getByText("Added 0 layouts, skipped 1 already here or damaged.")).toBeVisible();
+  // Finishing the guide counted the wall as hung, so the backup carries that history too.
+  await expect(
+    page.getByText(/^Added 0 saved walls, skipped 1 already here or damaged/)
+  ).toBeVisible();
+});
+
+// The albums on the wall itself (the pool follows it on a phone).
+const onWall = (page: Page) =>
+  page
+    .locator("#grid-container [data-album-id]")
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-album-id")));
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+
+  test("rehanging a saved wall is followed one step at a time, with Done always in reach", async ({
+    page,
+  }) => {
+    await stubNetwork(page);
+    await page.goto("./");
+    await page.getByRole("button", { name: "Try the demo wall" }).click();
+    await expect(page.locator("[data-album-id]").first()).toBeVisible();
+    await page.getByRole("button", { name: "Saved walls" }).click();
+    await page.getByLabel("Name for the current wall").fill("First");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    const saved = await onWall(page);
+    await page.getByRole("button", { name: "Shuffle", exact: true }).click();
+    await expect.poll(() => onWall(page)).not.toEqual(saved);
+
+    await page.getByRole("button", { name: "More for First" }).tap();
+    await page.getByRole("menuitem", { name: "Rehang" }).tap();
+    const guide = page.getByRole("group", { name: "Hang First" });
+    const done = guide.getByRole("button", { name: "Done" });
+    await expect(guide).toBeVisible();
+
+    // Every step fits the bottom sheet: Done never needs a scroll to reach.
+    for (let step = 0; step < 100 && (await guide.isVisible()); step += 1) {
+      await expect(done).toBeInViewport({ ratio: 1 });
+      await done.tap();
+    }
+    await expect(guide).toHaveCount(0);
+    // Finishing puts the saved wall on screen.
+    expect(await onWall(page)).toEqual(saved);
+  });
 });

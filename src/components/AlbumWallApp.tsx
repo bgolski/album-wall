@@ -4,7 +4,7 @@ import { AppContainer } from "./layout/AppContainer";
 import { SearchInput } from "./search/SearchInput";
 import { CollectionManager } from "./collection/CollectionManager";
 import { WelcomeDialog } from "./search/WelcomeDialog";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { SavedWallsContext } from "@/hooks/savedWallsContext";
 import { savedWallsClient } from "@/utils/savedWalls";
 import { DEMO_USERNAME } from "@/utils/demoCollection";
@@ -62,22 +62,22 @@ export default function AlbumWallApp() {
     error: discogs.error,
     onSignIn: () => void discogs.signIn(),
     onSignOut: signOut,
-    onLoadOwn: session ? () => loadOwnCollection(session.username) : undefined,
+    // Offered only while someone else's collection (or the demo) is on the wall: nothing to load
+    // when the visitor's own is already there.
+    onLoadOwn:
+      session && loadedUsername.trim().toLowerCase() !== session.username.toLowerCase()
+        ? () => loadOwnCollection(session.username)
+        : undefined,
   };
 
-  // The form folds into a one-line bar while a collection is on the wall; Change opens it until
-  // the next collection loads.
-  const [changingAt, setChangingAt] = useState<number | null>(null);
+  // The form folds into a one-line bar while a collection is on the wall; a search button on the
+  // bar opens a small box over the page to open another one.
   const shown =
-    albums.length > 0 && loadedUsername && !error && !isPending && changingAt !== loadCount
+    albums.length > 0 && loadedUsername && !error
       ? {
           username: loadedUsername,
           albumCount: albums.length,
           isDemo: loadedUsername === DEMO_USERNAME,
-          onChange: () => {
-            setChangingAt(loadCount);
-            setTimeout(() => document.getElementById("discogs-username")?.focus(), 0);
-          },
         }
       : null;
 

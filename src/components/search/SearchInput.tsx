@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "../layout/AppHeader";
-import { SubmitButton } from "../ui/SubmitButton";
+import { UsernameForm } from "./UsernameForm";
+import { validateDiscogsUsername } from "@/utils/discogs";
 import { FolderPicker } from "./FolderPicker";
 import { OwnCollectionButton, SignInButton } from "../account/SignInButton";
 import type { DiscogsAccountProps } from "../account/types";
@@ -11,8 +13,6 @@ export interface ShownCollection {
   username: string;
   albumCount: number;
   isDemo: boolean;
-  /** Opens the form again to load another collection. */
-  onChange: () => void;
 }
 
 interface SearchInputProps {
@@ -20,7 +20,8 @@ interface SearchInputProps {
   isPending: boolean;
   usernameError: string | null;
   onUsernameChange: (value: string) => void;
-  onLoadCollection: () => void;
+  /** Loads the collection named in the box, or the name given. */
+  onLoadCollection: (name?: string) => void;
   onTryDemo?: (() => void) | undefined;
   account?: DiscogsAccountProps | undefined;
   /** The signed-in visitor's folders, offered while their own username is entered. */
@@ -34,7 +35,8 @@ interface SearchInputProps {
 /**
  * The start screen: "Sign in with Discogs" first (while signed out), then a username box for any
  * public collection. Once a collection is on the wall it shrinks to one line naming it, with its
- * folder and a way to load another.
+ * folder and a search button that opens a small box over the page (so nothing moves) to open
+ * another collection.
  */
 export function SearchInput({
   username,
@@ -56,57 +58,142 @@ export function SearchInput({
     onFolderChange !== undefined &&
     account?.username != null &&
     username.trim().toLowerCase() === account.username.toLowerCase();
-  const inputClassName = `w-full rounded-control bg-raised border px-4 py-2 text-ink focus:outline-hidden focus:border-accent md:flex-1 md:rounded-r-none ${
-    usernameError ? "border-danger" : "border-line"
-  }`;
-
-  const isSubmitDisabled = isPending || !username.trim();
   const offerSignIn = account !== undefined && account.username === null;
   const ownUsername = account?.username ?? null;
   const offerOwn = ownUsername !== null && account?.onLoadOwn !== undefined;
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!isSubmitDisabled) onLoadCollection();
-  };
+  // The box for opening another collection, drawn over the page from the collection bar.
+  const [searching, setSearching] = useState(false);
+  const [draft, setDraft] = useState("");
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!searching) return;
+    const handlePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!searchRef.current?.contains(target) && !searchButtonRef.current?.contains(target)) {
+        setSearching(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSearching(false);
+      searchButtonRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", handlePointer);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointer);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [searching]);
 
   if (shown) {
     return (
       <div className="mb-4 text-center">
         <AppHeader account={account} compact />
-        <div className="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-panel bg-panel px-4 py-2 shadow-sm">
-          <p className="text-ink">
-            {shown.isDemo ? (
-              <span className="font-medium text-accent">Demo wall</span>
-            ) : (
-              <a
-                href={`https://www.discogs.com/user/${encodeURIComponent(shown.username)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-accent hover:underline"
-              >
-                {shown.username}
-              </a>
+        <div className="relative mx-auto max-w-xl">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-panel bg-panel px-4 py-2 shadow-sm">
+            <p className="text-ink">
+              {shown.isDemo ? (
+                <span className="font-medium text-accent">Demo wall</span>
+              ) : (
+                <a
+                  href={`https://www.discogs.com/user/${encodeURIComponent(shown.username)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-accent hover:underline"
+                >
+                  {shown.username}
+                </a>
+              )}
+              <span className="text-muted"> · {shown.albumCount} albums</span>
+            </p>
+            {showFolders && onFolderChange && (
+              <FolderPicker
+                folders={folders}
+                folderId={folderId}
+                disabled={isPending}
+                onChange={onFolderChange}
+                className=""
+              />
             )}
-            <span className="text-muted"> · {shown.albumCount} albums</span>
-          </p>
-          {showFolders && onFolderChange && (
-            <FolderPicker
-              folders={folders}
-              folderId={folderId}
-              disabled={isPending}
-              onChange={onFolderChange}
-              className=""
-            />
+            <button
+              ref={searchButtonRef}
+              type="button"
+              onClick={() => {
+                setDraft("");
+                setSearching((open) => !open);
+              }}
+              aria-label="Open another collection"
+              title="Open another collection"
+              aria-expanded={searching}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-raised text-ink hover:bg-line"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className="h-4 w-4"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+            </button>
+          </div>
+          {searching && (
+            <div
+              ref={searchRef}
+              role="group"
+              aria-label="Open another collection"
+              className="absolute inset-x-0 top-full z-40 mt-2 rounded-panel border border-line bg-panel p-3 shadow-xl"
+            >
+              <UsernameForm
+                value={draft}
+                onChange={setDraft}
+                onSubmit={() => {
+                  const name = draft.trim();
+                  onLoadCollection(name);
+                  // A name that cannot be loaded keeps the box open, with the reason in it.
+                  if (validateDiscogsUsername(name)) setSearching(false);
+                }}
+                isPending={isPending}
+                error={usernameError}
+                autoFocus
+              />
+              {(offerOwn || onTryDemo) && (
+                <div className="mt-2 flex justify-center gap-4 text-sm">
+                  {offerOwn && (
+                    <button
+                      type="button"
+                      className="text-accent hover:underline"
+                      onClick={() => {
+                        setSearching(false);
+                        account!.onLoadOwn!();
+                      }}
+                    >
+                      My collection
+                    </button>
+                  )}
+                  {onTryDemo && (
+                    <button
+                      type="button"
+                      className="text-accent hover:underline"
+                      onClick={() => {
+                        setSearching(false);
+                        onTryDemo();
+                      }}
+                    >
+                      Demo
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
-          <button
-            type="button"
-            onClick={shown.onChange}
-            className="rounded-control bg-raised px-3 py-1 text-sm font-medium text-ink hover:bg-line"
-            aria-label="Load another collection"
-          >
-            Change
-          </button>
         </div>
       </div>
     );
@@ -129,7 +216,7 @@ export function SearchInput({
               aria-hidden="true"
             >
               <span className="h-px flex-1 bg-line" />
-              or open any public collection
+              or
               <span className="h-px flex-1 bg-line" />
             </div>
           </div>
@@ -137,47 +224,23 @@ export function SearchInput({
         {offerSignIn && (
           <div className="mb-5 flex w-full max-w-sm flex-col items-center sm:max-w-md">
             <SignInButton onClick={account.onSignIn} disabled={isPending} status={account.status} />
-            <p className="mt-2 text-xs text-muted">For private collections and folders.</p>
             <div
               className="mt-5 flex w-full items-center gap-3 text-xs text-muted"
               aria-hidden="true"
             >
               <span className="h-px flex-1 bg-line" />
-              or open any public collection
+              or
               <span className="h-px flex-1 bg-line" />
             </div>
           </div>
         )}
-        <form
-          onSubmit={handleSubmit}
-          className="flex w-full max-w-sm flex-col items-stretch gap-2 sm:max-w-md md:flex-row md:items-center md:gap-0"
-        >
-          <label htmlFor="discogs-username" className="sr-only">
-            Discogs username
-          </label>
-          <input
-            id="discogs-username"
-            autoComplete="username"
-            type="text"
-            value={username}
-            onChange={(e) => onUsernameChange(e.target.value)}
-            placeholder={offerSignIn || offerOwn ? "A Discogs username" : "Your Discogs username"}
-            className={inputClassName}
-            disabled={isPending}
-            aria-invalid={usernameError ? true : undefined}
-            aria-describedby={usernameError ? "discogs-username-error" : undefined}
-          />
-          <SubmitButton disabled={isSubmitDisabled} isLoading={isPending} />
-        </form>
-
-        {usernameError && (
-          <p
-            id="discogs-username-error"
-            className="mt-2 w-full max-w-sm text-left text-sm text-danger sm:max-w-md"
-          >
-            {usernameError}
-          </p>
-        )}
+        <UsernameForm
+          value={username}
+          onChange={onUsernameChange}
+          onSubmit={() => onLoadCollection()}
+          isPending={isPending}
+          error={usernameError}
+        />
 
         {showFolders && (
           <FolderPicker

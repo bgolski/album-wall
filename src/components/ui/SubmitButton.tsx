@@ -7,7 +7,7 @@ interface SubmitButtonProps {
 }
 
 /**
- * Renders the collection-load submit button and swaps in a spinner while loading.
+ * Renders the collection-load submit button, a pill at the end of the username field, and swaps in a spinner while loading.
  */
 export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps) {
   return (
@@ -16,7 +16,7 @@ export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps
       onClick={onClick}
       disabled={disabled}
       aria-busy={isLoading}
-      className="flex min-h-[42px] w-full items-center justify-center rounded-control bg-accent px-4 py-2 font-medium text-on-accent disabled:cursor-not-allowed disabled:bg-raised disabled:text-muted md:min-w-[120px] md:w-auto md:rounded-l-none"
+      className="flex min-h-10 shrink-0 items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-panel disabled:text-muted"
     >
       {isLoading ? (
         <>
@@ -24,7 +24,10 @@ export function SubmitButton({ onClick, disabled, isLoading }: SubmitButtonProps
           Loading...
         </>
       ) : (
-        "Load Collection"
+        <>
+          <span aria-hidden="true">Load</span>
+          <span className="sr-only">Load Collection</span>
+        </>
       )}
     </button>
   );

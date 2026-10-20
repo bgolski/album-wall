@@ -15,6 +15,7 @@ import { readCachedCollection, writeCachedCollection } from "@/utils/collectionC
 import { useUndoHistory } from "@/hooks/useUndoHistory";
 import { DEMO_USERNAME, parseDemoCollection } from "@/utils/demoCollection";
 import { getBasePath } from "@/utils/basePath";
+import { setAddressUser, userFromAddress } from "@/utils/loadAddress";
 import { DiscogsSession, proxyErrorCode } from "@/utils/discogsSignIn";
 
 const VALIDATION_ERROR_MESSAGE =
@@ -60,6 +61,10 @@ function getLocationHash() {
 
 function getNoHash() {
   return "";
+}
+
+function getLocationSearch() {
+  return window.location.search;
 }
 
 function getLastUsername() {
@@ -130,11 +135,18 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
   // loaded last time on this device.
   const [typedUsername, setTypedUsername] = useState<string | null>(null);
   const hash = useSyncExternalStore(subscribeToNothing, getLocationHash, getNoHash);
+  // A link such as `?user=someone` opens that collection directly.
+  const search = useSyncExternalStore(subscribeToNothing, getLocationSearch, getNoHash);
+  const linkedUser = useMemo(() => userFromAddress(search), [search]);
   const lastUsername = useSyncExternalStore(subscribeToNothing, getLastUsername, getNoUsername);
   const linkedWallState = useMemo(() => getSharedWallStateFromHash(hash), [hash]);
   const linkedIsDemo = linkedWallState?.username === DEMO_USERNAME;
   const username =
-    typedUsername ?? (linkedIsDemo ? undefined : linkedWallState?.username) ?? lastUsername ?? "";
+    typedUsername ??
+    (linkedIsDemo ? undefined : linkedWallState?.username) ??
+    linkedUser ??
+    lastUsername ??
+    "";
   const [loadedUsername, setLoadedUsername] = useState("");
   // Counts finished loads, so the wall starts afresh even when a load finishes without a
   // visible loading state (a cached collection).
@@ -226,6 +238,9 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
           setLoadCount((count) => count + 1);
           clearHistory();
           if (localStore) saveLastUsername(localStore, usernameToLoad);
+          // The address names the collection, so the page can be bookmarked or shared; a shared
+          // wall keeps its own link.
+          if (!linkedState) setAddressUser(usernameToLoad);
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : GENERIC_ERROR_MESSAGE;
           const code = proxyErrorCode(err);
@@ -273,11 +288,12 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
   };
 
   /**
-   * Validates the current username and loads the user's Discogs collection.
+   * Validates the username (the one in the box, or the one given) and loads the user's Discogs collection.
    * Stores the last successfully loaded username for display after input changes.
    */
-  const loadCollection = async () => {
-    await loadCollectionForUsername(username);
+  const loadCollection = async (name?: string) => {
+    if (name !== undefined) setTypedUsername(name);
+    await loadCollectionForUsername(name ?? username);
   };
 
   /**
@@ -354,6 +370,7 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
       setLoadedUsername(DEMO_USERNAME);
       setLoadCount((count) => count + 1);
       clearHistory();
+      setAddressUser(null);
       setError(null);
       setErrorKind(null);
       setUsernameError(null);
@@ -369,6 +386,14 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
     startedFromLink.current = true;
     queueMicrotask(() => void loadCollectionForUsername(linkedWallState.username, linkedWallState));
   }, [linkedWallState, loadCollectionForUsername]);
+
+  // A `?user=` link loads its collection once, when the page opens (a share link wins).
+  const startedFromUser = useRef(false);
+  useEffect(() => {
+    if (startedFromUser.current || linkedWallState || !linkedUser) return;
+    startedFromUser.current = true;
+    queueMicrotask(() => void loadCollectionForUsername(linkedUser));
+  }, [linkedWallState, linkedUser, loadCollectionForUsername]);
 
   // A demo share link waits for the demo file, then opens the demo once.
   const startedFromDemoLink = useRef(false);

@@ -36,13 +36,9 @@ export function WelcomeDialog({ onTryDemo, onClose }: WelcomeDialogProps) {
         className="w-full max-w-md rounded-panel bg-panel p-5 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="welcome-title" className="mb-2 text-xl font-bold text-ink">
+        <h2 id="welcome-title" className="mb-5 text-xl font-bold text-ink">
           New to Album Wall?
         </h2>
-        <p className="mb-5 text-ink">
-          Sign in with Discogs, or enter a username, to turn a collection into a wall. Want a look
-          first? Try a demo wall of well-known albums.
-        </p>
         <div className="flex flex-col gap-2 sm:flex-row-reverse">
           <button
             type="button"

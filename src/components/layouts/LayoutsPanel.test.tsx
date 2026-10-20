@@ -30,6 +30,7 @@ function fakeStorage() {
 }
 
 function renderPanel(currentWall = wall(["1", "2", "3"]), onApply = vi.fn()) {
+  const onNotice = vi.fn();
   let id = 0;
   const storageOptions = { storage: fakeStorage(), newId: () => `id-${++id}` };
   const view = render(
@@ -40,6 +41,7 @@ function renderPanel(currentWall = wall(["1", "2", "3"]), onApply = vi.fn()) {
       albums={albums}
       onApply={onApply}
       storageOptions={storageOptions}
+      onNotice={onNotice}
     />
   );
   const rerenderWith = (next: SharedWallState) =>
@@ -51,14 +53,21 @@ function renderPanel(currentWall = wall(["1", "2", "3"]), onApply = vi.fn()) {
         albums={albums}
         onApply={onApply}
         storageOptions={storageOptions}
+        onNotice={onNotice}
       />
     );
-  return { onApply, rerenderWith };
+  return { onApply, onNotice, rerenderWith };
 }
 
 function saveAs(name: string) {
   fireEvent.change(screen.getByLabelText("Name for the current wall"), { target: { value: name } });
-  fireEvent.click(screen.getByRole("button", { name: "Save current wall" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+}
+
+/** Opens a saved wall's menu and picks one of its actions. */
+function choose(wallName: string, item: string) {
+  fireEvent.click(screen.getByRole("button", { name: `More for ${wallName}` }));
+  fireEvent.click(screen.getByRole("menuitem", { name: item }));
 }
 
 afterEach(() => {
@@ -75,75 +84,162 @@ describe("LayoutsPanel", () => {
         currentWall={wall(["1"])}
         albums={albums}
         onApply={vi.fn()}
+        onNotice={vi.fn()}
       />
     );
-    expect(screen.queryByText("Layouts")).toBeNull();
+    expect(screen.queryByText("Saved walls")).toBeNull();
   });
 
-  it("keeps the backup in a small menu that says layouts live in this browser", () => {
-    renderPanel();
-    expect(screen.queryByText(/kept in this browser only/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Backup" }));
-    expect(screen.getByText(/kept in this browser only/)).toBeTruthy();
-    // Nothing to back up yet: only loading a file is offered.
-    expect(screen.queryByRole("button", { name: "Save backup file" })).toBeNull();
-    expect(screen.queryByText(/not backed up yet/)).toBeNull();
+  it("is just a name, a Save button and the saved walls, with nothing written on it", () => {
+    const { onNotice } = renderPanel();
+    expect(screen.getByRole("heading", { name: "Saved walls" })).toBeTruthy();
+    expect(screen.getByPlaceholderText("Name")).toBeTruthy();
     saveAs("Autumn");
-    expect(screen.getByText(/Some are not backed up yet/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Backup.*not backed up yet/ })).toBeTruthy();
-    expect(screen.getByText('Saved "Autumn".')).toBeTruthy();
+    // Feedback is a short notice, not text left in the panel.
+    expect(onNotice).toHaveBeenCalledWith("Saved Autumn");
+    expect(screen.queryByRole("status")).toBeNull();
     expect(
-      within(screen.getByRole("list", { name: "Saved layouts" })).getByText("Autumn")
+      within(screen.getByRole("list", { name: "Saved walls" })).getByText("Autumn")
     ).toBeTruthy();
+    // A wall just saved is not selected: it has Use like the others, its name opens a preview,
+    // and its menu holds the rest. No size or date line.
+    const row = screen.getAllByRole("listitem")[0]!;
+    expect(
+      within(row)
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+    ).toEqual(["Autumn", "Use", ""]);
+    expect(row.textContent).toBe("AutumnUse");
+    expect(screen.queryByRole("img", { name: "Showing now" })).toBeNull();
   });
 
-  it("explains a missing name", () => {
-    renderPanel();
+  it("names a wall itself when no name is given", () => {
+    const { onNotice } = renderPanel();
     saveAs("   ");
-    expect(screen.getByText("Give the layout a name.")).toBeTruthy();
+    expect(onNotice).toHaveBeenLastCalledWith("Saved Wall 1");
+    saveAs("");
+    expect(onNotice).toHaveBeenLastCalledWith("Saved Wall 2");
   });
 
-  it("puts a saved wall on the wall, and Undo puts the previous one back", () => {
+  it("puts a saved wall on the wall as one change, with no Undo of its own", () => {
     const { onApply, rerenderWith } = renderPanel(wall(["1", "2", "3"], ["2"]));
     saveAs("Autumn");
     rerenderWith(wall(["4", "5", "6"]));
     fireEvent.click(screen.getByRole("button", { name: "Put Autumn on the wall" }));
     expect(onApply).toHaveBeenLastCalledWith(wall(["1", "2", "3"], ["2"]));
-    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(onApply).toHaveBeenLastCalledWith(wall(["4", "5", "6"]));
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    // Once the wall is that saved wall, Use has nothing left to do.
+    rerenderWith(wall(["1", "2", "3"], ["2"]));
+    expect(screen.queryByRole("button", { name: "Put Autumn on the wall" })).toBeNull();
   });
 
-  it("shows the steps to reach a saved wall", () => {
+  it("marks the saved wall that was used while it is showing, and stops when the wall is edited", () => {
     const { rerenderWith } = renderPanel(wall(["1", "2", "3"]));
     saveAs("Autumn");
+    saveAs("Winter");
+    // Saving does not select anything, even though both match the wall as it is now.
+    expect(screen.queryByRole("img", { name: "Showing now" })).toBeNull();
+    // Use one: only that one is selected, and it has no Use left.
+    fireEvent.click(screen.getByRole("button", { name: "Put Autumn on the wall" }));
+    expect(screen.getAllByRole("img", { name: "Showing now" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Put Autumn on the wall" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Put Winter on the wall" })).toBeTruthy();
+    // Moving an album, or pinning one, is an edit.
+    rerenderWith(wall(["2", "1", "3"]));
+    expect(screen.queryByRole("img", { name: "Showing now" })).toBeNull();
+    rerenderWith(wall(["1", "2", "3"], ["1"]));
+    expect(screen.queryByRole("img", { name: "Showing now" })).toBeNull();
+    rerenderWith(wall(["1", "2", "3"]));
+    expect(screen.getAllByRole("img", { name: "Showing now" })).toHaveLength(1);
+  });
+
+  it("shows a small picture of a saved wall when its name is pressed", () => {
+    const { rerenderWith } = renderPanel(wall(["1", "2", "3"]));
+    saveAs("Autumn");
+    rerenderWith(wall(["4", "5", "6"]));
+    expect(screen.queryByRole("img", { name: "Autumn: 3 albums" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Autumn" }));
+    const picture = screen.getByRole("img", { name: "Autumn: 3 albums" });
+    expect(picture.querySelectorAll("img")).toHaveLength(3);
+    fireEvent.click(screen.getByRole("button", { name: "Autumn" }));
+    expect(screen.queryByRole("img", { name: "Autumn: 3 albums" })).toBeNull();
+  });
+
+  it("guides hanging a saved wall one step at a time, and can be cancelled", () => {
+    const { onApply, rerenderWith } = renderPanel(wall(["1", "2", "3"]));
+    saveAs("Autumn");
     rerenderWith(wall(["2", "1", "6"]));
-    fireEvent.click(screen.getByRole("button", { name: "Compare Autumn with the wall" }));
-    expect(screen.getByRole("group", { name: 'Diagram of "Autumn"' })).toBeTruthy();
-    expect(screen.getByText("1. Take down Album 6 (Artist 6) from row 1, column 3")).toBeTruthy();
-    expect(screen.getByText("5. Hang up Album 3 (Artist 3) at row 1, column 3")).toBeTruthy();
+    choose("Autumn", "Rehang");
+    const guide = screen.getByRole("group", { name: "Hang Autumn" });
+    expect(within(guide).getByText(/^1 \/ \d+$/)).toBeTruthy();
+    fireEvent.click(within(guide).getByRole("button", { name: "Done" }));
+    expect(within(guide).getByText(/^2 \/ \d+$/)).toBeTruthy();
+    // Cancelling goes back to the list, and the wall is untouched.
+    fireEvent.click(within(guide).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("group", { name: "Hang Autumn" })).toBeNull();
+    expect(screen.getByRole("list", { name: "Saved walls" })).toBeTruthy();
+    expect(onApply).not.toHaveBeenCalled();
   });
 
-  it("says when the wall already matches", () => {
-    renderPanel();
+  it("takes over the panel while hanging, and finishing puts the saved wall on screen", () => {
+    const { onApply, onNotice, rerenderWith } = renderPanel(wall(["1", "2", "3"]));
     saveAs("Autumn");
-    fireEvent.click(screen.getByRole("button", { name: "Compare Autumn with the wall" }));
-    expect(screen.getByText(/Nothing to change/)).toBeTruthy();
+    rerenderWith(wall(["4", "5", "6"]));
+    choose("Autumn", "Rehang");
+    // Only the guide is shown.
+    expect(screen.queryByPlaceholderText("Name")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Saved walls" })).toBeNull();
+    for (let i = 0; i < 3; i += 1) fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onApply).toHaveBeenLastCalledWith(wall(["1", "2", "3"]));
+    expect(onNotice).toHaveBeenLastCalledWith("Done");
+    // Back to the list.
+    expect(screen.getByRole("list", { name: "Saved walls" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Hang Autumn" })).toBeNull();
   });
 
-  it("renames and, after confirming, deletes a layout", () => {
+  it("says when the wall already matches, instead of opening a guide", () => {
+    const { onNotice } = renderPanel();
+    saveAs("Autumn");
+    choose("Autumn", "Rehang");
+    expect(onNotice).toHaveBeenLastCalledWith("Already matches");
+    expect(screen.queryByRole("group", { name: "Hang Autumn" })).toBeNull();
+  });
+
+  it("renames and, after confirming, deletes a saved wall", () => {
     renderPanel();
     saveAs("Autumn");
-    fireEvent.click(screen.getByRole("button", { name: "Rename Autumn" }));
+    choose("Autumn", "Rename");
     fireEvent.change(screen.getByLabelText("New name for Autumn"), { target: { value: "Spring" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save name" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" })[1]!);
     expect(screen.getByText("Spring")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete Spring" }));
+    choose("Spring", "Delete");
     fireEvent.click(screen.getByRole("button", { name: "Keep" }));
     expect(screen.getByText("Spring")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Delete Spring" }));
+    choose("Spring", "Delete");
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    expect(screen.queryByRole("list", { name: "Saved layouts" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Saved walls" })).toBeNull();
+  });
+
+  it("closes a menu with Escape", () => {
+    renderPanel();
+    saveAs("Autumn");
+    fireEvent.click(screen.getByRole("button", { name: "More for Autumn" }));
+    expect(screen.getByRole("menu")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("offers a backup file only once there is something to back up", () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Backup" }));
+    expect(screen.getByRole("menuitem", { name: "Load backup file" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Save backup file" })).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+    saveAs("Autumn");
+    fireEvent.click(screen.getByRole("button", { name: "Backup" }));
+    expect(screen.getByRole("menuitem", { name: "Save backup file" })).toBeTruthy();
   });
 
   it("saves a backup file and loads one back", async () => {
@@ -158,24 +254,24 @@ describe("LayoutsPanel", () => {
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => {} });
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
-    renderPanel();
+    const { onNotice } = renderPanel();
     saveAs("Autumn");
-    fireEvent.click(screen.getByRole("button", { name: /^Backup/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Save backup file" }));
+    fireEvent.click(screen.getByRole("button", { name: "Backup" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Save backup file" }));
     expect(click).toHaveBeenCalled();
-    expect(screen.queryByText(/not backed up yet/)).toBeNull();
+    expect(onNotice).toHaveBeenLastCalledWith("Backup saved");
     const backup = await created[0]!.text();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete Autumn" }));
+    choose("Autumn", "Delete");
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     fireEvent.change(screen.getByLabelText("Load backup file"), {
       target: { files: [new File([backup], "layouts.json", { type: "application/json" })] },
     });
-    await waitFor(() => expect(screen.getByText("Added 1 layout.")).toBeTruthy());
+    await waitFor(() => expect(onNotice).toHaveBeenLastCalledWith("Added 1 saved wall."));
     expect(screen.getByText("Autumn")).toBeTruthy();
   });
 
-  it("marks a layout as on the wall, from its row or when saving", () => {
+  it("marks a saved wall as on your wall", () => {
     const storage = fakeStorage();
     let id = 0;
     const storageOptions = { storage, newId: () => `id-${++id}` };
@@ -193,30 +289,28 @@ describe("LayoutsPanel", () => {
           onApply={vi.fn()}
           storageOptions={storageOptions}
           history={history}
+          onNotice={vi.fn()}
         />
       );
     }
     render(<WithHistory />);
-    expect(screen.queryByText(/I hung/)).toBeNull();
+    expect(screen.queryByRole("img", { name: "On my wall" })).toBeNull();
 
     saveAs("Autumn");
-    fireEvent.click(screen.getByRole("button", { name: "Mark Autumn as on my wall" }));
-    expect(screen.getByText('"Autumn" is on your wall.')).toBeTruthy();
-    expect(screen.getByText(/On your wall since/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Mark Autumn as on my wall" })).toBeNull();
+    choose("Autumn", "Mark as on my wall");
+    // Nothing is drawn on the row; the menu says which one it is.
+    expect(screen.queryByRole("img", { name: "On my wall" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More for Autumn" }));
+    expect(screen.getByRole("menuitem", { name: "On my wall" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Mark as on my wall" })).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
 
-    // Marking another layout moves the badge to it.
+    // Marking another saved wall moves it there.
     saveAs("Winter");
-    expect(screen.queryByRole("checkbox")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Mark Winter as on my wall" }));
-    const rows = within(screen.getByRole("list", { name: "Saved layouts" })).getAllByRole(
-      "listitem"
-    );
-    expect(within(rows[1]!).getByText(/On your wall since/)).toBeTruthy();
-    expect(within(rows[0]!).queryByText(/On your wall since/)).toBeNull();
-    expect(
-      within(rows[0]!).getByRole("button", { name: "Mark Autumn as on my wall" })
-    ).toBeTruthy();
+    choose("Winter", "Mark as on my wall");
+    fireEvent.click(screen.getByRole("button", { name: "More for Autumn" }));
+    expect(screen.getByRole("menuitem", { name: "Mark as on my wall" })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
     expect(JSON.parse(storage.getItem("album-wall:hang-history:someone")!).hangs).toEqual([
       { date: "2026-10-14", albumIds: ["1", "2", "3"], layoutId: "id-2" },
     ]);

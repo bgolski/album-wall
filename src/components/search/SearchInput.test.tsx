@@ -130,3 +130,100 @@ describe("SearchInput", () => {
     expect(screen.getByLabelText("Folder")).toBeTruthy();
   });
 });
+
+describe("SearchInput with a collection on the wall", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  function shownSetup(
+    props: { usernameError?: string | null; account?: boolean; demo?: boolean } = {}
+  ) {
+    const onLoadCollection = vi.fn();
+    const onLoadOwn = vi.fn();
+    const onTryDemo = vi.fn();
+    render(
+      <SearchInput
+        username="vinylfan"
+        isPending={false}
+        usernameError={props.usernameError ?? null}
+        onUsernameChange={vi.fn()}
+        onLoadCollection={onLoadCollection}
+        onTryDemo={props.demo ? onTryDemo : undefined}
+        account={
+          props.account
+            ? {
+                username: "me",
+                busy: false,
+                status: "idle",
+                error: null,
+                onSignIn: vi.fn(),
+                onSignOut: vi.fn(),
+                onLoadOwn,
+              }
+            : undefined
+        }
+        shown={{ username: "vinylfan", albumCount: 12, isDemo: false }}
+      />
+    );
+    return { onLoadCollection, onLoadOwn, onTryDemo };
+  }
+
+  const openButton = () => screen.getByRole("button", { name: "Open another collection" });
+
+  it("is one line with a small search button, and no box until it is pressed", () => {
+    shownSetup();
+    expect(screen.getByText(/12 albums/)).toBeTruthy();
+    expect(openButton().textContent).toBe("");
+    expect(screen.queryByLabelText("Discogs username")).toBeNull();
+  });
+
+  it("opens an empty box over the page, and loads the name typed there", () => {
+    const { onLoadCollection } = shownSetup();
+    fireEvent.click(openButton());
+    const input = screen.getByLabelText("Discogs username") as HTMLInputElement;
+    expect(input.value).toBe("");
+    fireEvent.change(input, { target: { value: " another " } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Collection" }));
+    expect(onLoadCollection).toHaveBeenCalledWith("another");
+    expect(screen.queryByLabelText("Discogs username")).toBeNull();
+  });
+
+  it("stays open with the reason when the name cannot be used", () => {
+    const { onLoadCollection } = shownSetup({ usernameError: "Invalid username format." });
+    fireEvent.click(openButton());
+    fireEvent.change(screen.getByLabelText("Discogs username"), { target: { value: "bad name" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Collection" }));
+    expect(onLoadCollection).toHaveBeenCalledWith("bad name");
+    expect(screen.getByLabelText("Discogs username")).toBeTruthy();
+    expect(screen.getByText("Invalid username format.")).toBeTruthy();
+  });
+
+  it("closes with Escape and when something else is pressed", () => {
+    shownSetup();
+    fireEvent.click(openButton());
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByLabelText("Discogs username")).toBeNull();
+    fireEvent.click(openButton());
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByLabelText("Discogs username")).toBeNull();
+  });
+
+  it("offers a way back to your own collection and the demo in the box", () => {
+    const { onLoadOwn, onTryDemo } = shownSetup({ account: true, demo: true });
+    fireEvent.click(openButton());
+    fireEvent.click(screen.getByRole("button", { name: "My collection" }));
+    expect(onLoadOwn).toHaveBeenCalledTimes(1);
+    fireEvent.click(openButton());
+    fireEvent.click(screen.getByRole("button", { name: "Demo" }));
+    expect(onTryDemo).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers neither when there is no account and no demo", () => {
+    shownSetup();
+    fireEvent.click(openButton());
+    expect(screen.queryByRole("button", { name: "My collection" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Demo" })).toBeNull();
+  });
+});

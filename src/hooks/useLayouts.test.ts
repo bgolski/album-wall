@@ -60,7 +60,7 @@ describe("useLayouts", () => {
     act(() => {
       problem = result.current.save("  ", wall(["1"]));
     });
-    expect(problem).toBe("Give the layout a name.");
+    expect(problem).toBe("Give the wall a name.");
     act(() => void result.current.save("Autumn", wall(["1"])));
     const id = result.current.layouts[0]!.id;
     act(() => void result.current.rename(id, "Spring"));
@@ -121,14 +121,14 @@ describe("useLayouts", () => {
     act(() => {
       outcome = target.result.current.importText(backup);
     });
-    expect(outcome).toEqual({ ok: true, message: "Added 1 layout." });
+    expect(outcome).toEqual({ ok: true, message: "Added 1 saved wall." });
     act(() => {
       outcome = target.result.current.importText(backup);
     });
-    expect(outcome.message).toBe("Added 0 layouts, skipped 1 already here or damaged.");
+    expect(outcome.message).toBe("Added 0 saved walls, skipped 1 already here or damaged.");
     act(() => {
       outcome = target.result.current.importText("not a backup");
     });
-    expect(outcome).toEqual({ ok: false, message: "That file is not an Album Wall layouts file." });
+    expect(outcome).toEqual({ ok: false, message: "That is not an Album Wall backup file." });
   });
 });

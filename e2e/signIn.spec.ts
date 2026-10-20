@@ -93,6 +93,22 @@ test("signs in with Discogs, loads a folder, and signs out", async ({ page }) =>
   await expect.poll(() => collectionRequests.at(-1)?.folder).toBe("9");
   await expect(page.locator("[data-album-id]")).toHaveCount(5);
 
+  // Their own collection is on the wall, so nothing offers to load it again; another one does.
+  await account.click();
+  await expect(page.getByRole("button", { name: "Load my collection" })).toHaveCount(0);
+  await account.click();
+  await page.getByRole("button", { name: "Open another collection" }).click();
+  await expect(page.getByRole("button", { name: "My collection" })).toHaveCount(0);
+  await page.getByLabel("Discogs username").fill("someoneelse");
+  await page.getByRole("button", { name: "Load Collection" }).click();
+  await expect(page.getByRole("link", { name: "someoneelse" })).toBeVisible();
+  await account.click();
+  await expect(page.getByRole("button", { name: "Load my collection" })).toBeVisible();
+  await account.click();
+  await page.getByRole("button", { name: "Open another collection" }).click();
+  await expect(page.getByRole("button", { name: "My collection" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
   // Signing out forgets the token in this browser.
   await account.click();
   await expect(page.locator("#account-menu")).toContainText("Collector");

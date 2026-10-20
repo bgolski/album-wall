@@ -133,11 +133,11 @@ describe("RecordGrid tap actions", () => {
     sizeButton.focus();
     fireEvent.click(sizeButton);
     expect(screen.getByRole("heading", { name: "Wall size" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Layouts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Saved walls" }));
     expect(screen.queryByRole("heading", { name: "Wall size" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Layouts" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Close Layouts" }));
-    expect(screen.queryByRole("heading", { name: "Layouts" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Saved walls" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close Saved walls" }));
+    expect(screen.queryByRole("heading", { name: "Saved walls" })).toBeNull();
     expect(screen.getByTestId("docked-panel").hidden).toBe(true);
 
     fireEvent.click(sizeButton);

@@ -37,10 +37,12 @@ for (const name of ["localStorage", "sessionStorage"] as const) {
   }
 }
 
-// The app remembers walls and recently loaded collections in browser storage; start every test
-// without anything a previous test left behind.
+// The app remembers walls and recently loaded collections in browser storage, and names the
+// collection on the wall in the address; start every test without anything a previous test left
+// behind.
 afterEach(() => {
   if (typeof window === "undefined") return;
   window.localStorage.clear();
   window.sessionStorage.clear();
+  window.history.replaceState(null, "", "/");
 });

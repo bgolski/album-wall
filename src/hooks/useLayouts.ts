@@ -30,11 +30,11 @@ interface LayoutOptions {
 }
 
 const MESSAGES: Record<LayoutError["code"], string> = {
-  "empty-name": "Give the layout a name.",
-  limit: `You can keep up to ${MAX_LAYOUTS} layouts. Delete one to save another.`,
-  "invalid-file": "That file is not an Album Wall layouts file.",
+  "empty-name": "Give the wall a name.",
+  limit: `You can keep up to ${MAX_LAYOUTS} saved walls. Delete one to save another.`,
+  "invalid-file": "That is not an Album Wall backup file.",
 };
-const NO_STORAGE = "This browser is not letting the page save anything, so layouts cannot be kept.";
+const NO_STORAGE = "This browser is not letting the page save anything, so walls cannot be saved.";
 const STORAGE_FULL = "This browser's storage is full, so the change was not saved.";
 
 function browserStorage(): LayoutStorage | null {
@@ -153,7 +153,7 @@ export function useLayouts(collectionName: string, options: LayoutOptions = {}) 
       if (problem) return { ok: false, message: problem };
       const restoredHistory =
         result.hangs.length > 0 && options.history && !options.history.merge(result.hangs);
-      const added = `Added ${result.added} ${result.added === 1 ? "layout" : "layouts"}`;
+      const added = `Added ${result.added} ${result.added === 1 ? "saved wall" : "saved walls"}`;
       const skipped =
         result.skipped > 0 ? `, skipped ${result.skipped} already here or damaged` : "";
       const history = restoredHistory ? " and the wall history" : "";

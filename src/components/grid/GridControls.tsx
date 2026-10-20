@@ -9,7 +9,7 @@ interface GridControlsProps {
   /** A short note about the active sort, such as colors still being read. */
   sortStatus?: string | null | undefined;
   onToggleDimensionsConfig: () => void;
-  /** Opens and closes the saved layouts. */
+  /** Opens and closes the saved walls. */
   onToggleLayouts?: (() => void) | undefined;
   showLayouts?: boolean | undefined;
   onTogglePinAll: () => void;
@@ -223,7 +223,7 @@ export function GridControls({
                 aria-expanded={showLayouts}
                 type="button"
               >
-                Layouts
+                Saved walls
               </button>
             )}
             {onShare && (

@@ -150,7 +150,7 @@ describe("GridControls", () => {
     );
   });
 
-  it("offers Share next to Layouts and Export, and gets the link ready on approach", () => {
+  it("offers Share next to Saved walls and Save image, and gets the link ready on approach", () => {
     const onShare = vi.fn();
     const onPrepareShare = vi.fn();
     renderControls({ onShare, onPrepareShare });

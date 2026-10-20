@@ -102,10 +102,7 @@ export function AccountMenu({
           id="account-menu"
           className="absolute right-0 top-11 z-40 w-60 rounded-panel border border-line bg-panel p-2 text-left shadow-xl"
         >
-          <p className="px-3 pb-2 pt-1 text-xs text-muted">
-            Signed in with Discogs as
-            <span className="block truncate text-sm font-semibold text-ink">{username}</span>
-          </p>
+          <p className="truncate px-3 pb-2 pt-1 text-sm font-semibold text-ink">{username}</p>
           <div className="border-t border-line pt-1">
             {onLoadOwn && (
               <button type="button" onClick={choose(onLoadOwn)} disabled={busy} className={item}>
@@ -113,7 +110,7 @@ export function AccountMenu({
               </button>
             )}
             <Link href="/privacy/#saved-walls" className={item}>
-              Saved walls in your account
+              Privacy
             </Link>
             <button type="button" onClick={choose(onSignOut)} className={item}>
               Sign out

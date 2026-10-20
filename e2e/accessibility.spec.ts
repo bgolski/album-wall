@@ -59,14 +59,15 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoViolations(page);
     });
 
-    test("layouts panel with wall history", async ({ page }) => {
+    test("saved walls panel with wall history", async ({ page }) => {
       await loadWall(page);
-      await page.getByRole("button", { name: "Layouts" }).click();
+      await page.getByRole("button", { name: "Saved walls" }).click();
       await page.getByLabel("Name for the current wall").fill("Autumn");
-      await page.getByRole("button", { name: "Save current wall" }).click();
-      await page.getByRole("button", { name: "Mark Autumn as on my wall" }).click();
-      await page.getByRole("button", { name: /^Backup/ }).click();
-      await expect(page.getByText(/On your wall since/)).toBeVisible();
+      await page.getByRole("button", { name: "Save", exact: true }).click();
+      await page.getByRole("button", { name: "More for Autumn" }).click();
+      await page.getByRole("menuitem", { name: "Mark as on my wall" }).click();
+      await page.getByRole("button", { name: "More for Autumn" }).click();
+      await expect(page.getByRole("menuitem", { name: "On my wall" })).toBeVisible();
       await expectNoViolations(page);
     });
 
@@ -103,7 +104,8 @@ for (const colorScheme of ["light", "dark"] as const) {
         await page.goto("./");
         await page.getByLabel("Discogs username").fill("someone");
         await page.getByRole("button", { name: "Load Collection" }).click();
-        await expect(page.getByRole("alert")).toBeVisible();
+        // The framework adds its own, empty, route announcer with the same role.
+        await expect(page.locator("main").getByRole("alert")).toBeVisible();
         await expectNoViolations(page);
       });
     }

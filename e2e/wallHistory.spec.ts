@@ -5,12 +5,14 @@ test("marking a saved layout as on the wall remembers when each record was up", 
   page,
 }) => {
   await loadWall(page);
-  await page.getByRole("button", { name: "Layouts" }).click();
+  await page.getByRole("button", { name: "Saved walls" }).click();
   await page.getByLabel("Name for the current wall").fill("Autumn");
-  await page.getByRole("button", { name: "Save current wall" }).click();
-  await page.getByRole("button", { name: "Mark Autumn as on my wall" }).click();
-  await expect(page.getByText(`"Autumn" is on your wall.`)).toBeVisible();
-  await expect(page.getByText(/On your wall since/)).toBeVisible();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "More for Autumn" }).click();
+  await page.getByRole("menuitem", { name: "Mark as on my wall" }).click();
+  await page.getByRole("button", { name: "More for Autumn" }).click();
+  await expect(page.getByRole("menuitem", { name: "On my wall" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   // A record on the wall says when it was last up.
   await page.locator("[data-album-id]").first().click();
@@ -18,9 +20,11 @@ test("marking a saved layout as on the wall remembers when each record was up", 
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   // Kept in this browser.
+  // The address names the collection, so reloading opens it again.
   await page.reload();
-  await page.getByLabel("Discogs username").fill("someone");
-  await page.getByRole("button", { name: "Load Collection" }).click();
-  await page.getByRole("button", { name: "Layouts" }).click();
-  await expect(page.getByText(/On your wall since/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "someone" })).toBeVisible();
+  await page.getByRole("button", { name: "Saved walls" }).click();
+  await page.getByRole("button", { name: "More for Autumn" }).click();
+  await expect(page.getByRole("menuitem", { name: "On my wall" })).toBeVisible();
+  await page.keyboard.press("Escape");
 });
