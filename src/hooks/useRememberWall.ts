@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { SharedWallState } from "@/types";
 import { saveWall } from "@/utils/savedWall";
+import { localStore } from "@/utils/browserStorage";
 
 /**
  * Remembers the wall on this device so it comes back the next time this collection loads, and
@@ -32,7 +33,8 @@ export function useRememberWall(input: {
   useEffect(() => {
     if (!username) return;
     try {
-      saveWall(window.localStorage, JSON.parse(wallSignature));
+      const storage = localStore();
+      if (storage) saveWall(storage, JSON.parse(wallSignature));
     } catch {
       // Storage is blocked; the wall just is not remembered.
     }

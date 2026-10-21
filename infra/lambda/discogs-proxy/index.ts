@@ -24,6 +24,7 @@ import {
   signedHeaders,
   startSignIn,
 } from "./oauth";
+import { readBody } from "../shared/http";
 
 const BASE_URL = DISCOGS_API;
 const COLLECTION_PAGE_SIZE = 100;
@@ -84,7 +85,6 @@ type Album = {
   id: number;
   title: string;
   cover_image?: string;
-  coverUrl?: string;
   discogsUrl?: string | undefined;
   artist: string;
   genre?: string[];
@@ -497,7 +497,6 @@ async function getUserCollection(
       id: release.id,
       title: basicInfo.title || "",
       cover_image: coverImage,
-      coverUrl: coverImage,
       discogsUrl: getDiscogsReleaseUrl(release),
       artist: extractArtistName(basicInfo.artists),
       genre: basicInfo.genres || [],
@@ -603,9 +602,7 @@ async function createShortLink(event: LambdaEvent) {
   }
 
   try {
-    const body = event.isBase64Encoded
-      ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
-      : (event.body ?? "");
+    const body = readBody(event);
     const id = await storeSharedWall(dynamoClient, tableName, parseShareRequest(body));
     const domain = await getSecureParameter(domainParameter);
     return jsonResponse(200, { url: `https://${domain}/w/${id}` });
@@ -639,9 +636,7 @@ function describeError(error: unknown): string {
  * @returns The parsed body, or null when it is missing or not a JSON object.
  */
 function readJsonBody(event: LambdaEvent): Record<string, unknown> | null {
-  const text = event.isBase64Encoded
-    ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
-    : (event.body ?? "");
+  const text = readBody(event);
   if (text.length > 4000) return null;
   try {
     const value: unknown = JSON.parse(text);
@@ -782,9 +777,7 @@ async function savedWalls(event: LambdaEvent, method: string, path: string) {
     if (path.endsWith("/saved/delete")) {
       return jsonResponse(200, { deleted: await deleteAllSaved(dynamoClient, table, user) });
     }
-    const body = event.isBase64Encoded
-      ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
-      : (event.body ?? "");
+    const body = readBody(event);
     const updatedAt = await storeSaved(dynamoClient, table, user, parseSavedRequest(body));
     return jsonResponse(200, { updatedAt });
   } catch (error) {

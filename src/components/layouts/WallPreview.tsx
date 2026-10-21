@@ -30,7 +30,7 @@ export function WallPreview({
     >
       {wall.wallAlbumIds.map((id, at) => {
         const album = albumsById.get(id);
-        const url = album?.cover_image || album?.coverUrl;
+        const url = album?.cover_image;
         const src = url
           ? coverAddresses(url, coverSources(), { size: PREVIEW_COVER_SIZE })[0]!.src
           : DEFAULT_PLACEHOLDER_IMAGE;

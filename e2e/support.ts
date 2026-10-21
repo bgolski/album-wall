@@ -13,7 +13,6 @@ export const albums = Array.from({ length: 40 }, (_, index) => ({
   id: index + 1,
   title: `Album ${index + 1}`,
   cover_image: `https://example.test/cover-${index + 1}.jpg`,
-  coverUrl: `https://example.test/cover-${index + 1}.jpg`,
   discogsUrl: `https://www.discogs.com/release/${index + 1}`,
   artist: `Artist ${index + 1}`,
   genre: ["Rock"],

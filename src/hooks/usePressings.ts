@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Album } from "@/types";
 import { pressingKey, showEachAlbumOnce } from "@/utils/groupPressings";
+import { localStore } from "@/utils/browserStorage";
 
 type PressingStorage = Pick<Storage, "getItem" | "setItem">;
 interface Settings {
@@ -10,14 +11,6 @@ interface Settings {
 
 // Each album shows once unless the person turned that off for the collection.
 const DEFAULT: Settings = { once: true, chosen: {} };
-
-function browserStorage(): PressingStorage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function readSettings(storage: PressingStorage | null, key: string): Settings {
   try {
@@ -48,7 +41,7 @@ export function usePressings(
   albums: Album[],
   options: { storage?: PressingStorage | null } = {}
 ) {
-  const storage = options.storage === undefined ? browserStorage() : options.storage;
+  const storage = options.storage === undefined ? localStore() : options.storage;
   const key = `album-wall:pressings:${collectionName.trim().toLowerCase()}`;
   const [state, setState] = useState(() => ({ key, settings: readSettings(storage, key) }));
   const settings = state.key === key ? state.settings : readSettings(storage, key);

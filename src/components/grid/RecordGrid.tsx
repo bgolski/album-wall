@@ -198,7 +198,7 @@ export function RecordGrid({
   const share = useShareLinks({
     username,
     wall: wallState,
-    covers: wallAlbums.map((album) => album.cover_image ?? album.coverUrl ?? ""),
+    covers: wallAlbums.map((album) => album.cover_image ?? ""),
     setStatus: exportHooks.setStatus,
   });
   // The short link is asked for as the export panel opens, so it is usually ready by the time the

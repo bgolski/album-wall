@@ -52,7 +52,7 @@ export function PosterPreview({ albums, rows, columns, size, backdrop }: PosterP
     >
       <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {albums.slice(0, rows * columns).map((album, index) => {
-        const url = album.cover_image || album.coverUrl;
+        const url = album.cover_image;
         const src = url
           ? coverAddresses(url, coverSources(), { size: COVER_SIZE })[0]!.src
           : DEFAULT_PLACEHOLDER_IMAGE;

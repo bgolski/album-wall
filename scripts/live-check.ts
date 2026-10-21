@@ -92,9 +92,9 @@ await check("an unknown collection is an error, and is not kept", async () => {
 
 await check("the cover image service resizes a cover", async () => {
   const demo = (await (await get(`${site}demo/collection.json`)).json()) as {
-    albums?: { coverUrl?: string; cover_image?: string }[];
+    albums?: { cover_image?: string }[];
   };
-  const cover = demo.albums?.map((album) => album.coverUrl ?? album.cover_image).find(Boolean);
+  const cover = demo.albums?.map((album) => album.cover_image).find(Boolean);
   expect(cover, "the demo list has no cover address");
   const response = await get(`${services}/img?url=${encodeURIComponent(cover!)}&w=64`, {
     headers: { Origin: origin },

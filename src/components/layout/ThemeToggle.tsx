@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { localStore } from "@/utils/browserStorage";
 
 type Theme = "light" | "dark";
 
@@ -27,7 +28,7 @@ export function ThemeToggle() {
   const handleClick = () => {
     document.documentElement.classList.toggle("dark", next === "dark");
     try {
-      localStorage.setItem(STORAGE_KEY, next);
+      localStore()?.setItem(STORAGE_KEY, next);
     } catch {
       // Private mode or blocked storage: the choice just lasts until the page is closed.
     }

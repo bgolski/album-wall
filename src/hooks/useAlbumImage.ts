@@ -24,7 +24,7 @@ const startWithEverySource = () => ALL_COVER_SOURCES;
  *          and load/error handlers for the image element.
  */
 export function useAlbumImage(album: Album, imageSize?: number) {
-  const coverImage = album.cover_image || album.coverUrl;
+  const coverImage = album.cover_image;
   const sources = useSyncExternalStore(subscribeToCoverSource, coverSources, startWithEverySource);
 
   // Addresses to try, best first, with where each comes from.

@@ -39,7 +39,6 @@ test("Discogs covers come from the app's image service, so a saved wall includes
   const discogsAlbums = albums.map((album) => ({
     ...album,
     cover_image: `https://i.discogs.com/cover/R-${album.id}-1.jpeg`,
-    coverUrl: `https://i.discogs.com/cover/R-${album.id}-1.jpeg`,
   }));
   await page.route(
     (url) => url.searchParams.has("username"),

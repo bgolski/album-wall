@@ -1,4 +1,9 @@
 import { afterEach } from "vitest";
+import { configure } from "@testing-library/react";
+
+// Waits for the page (waitFor, findBy) get the same allowance as the tests: on a busy machine a
+// render that usually takes a few milliseconds can take seconds.
+configure({ asyncUtilTimeout: 10_000 });
 
 /** A minimal in-memory Storage for runtimes whose own localStorage hides the jsdom one. */
 class MemoryStorage implements Storage {

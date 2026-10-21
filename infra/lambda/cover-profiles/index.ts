@@ -8,6 +8,7 @@ import sharp from "sharp";
 import { packProfile, type PackedProfile } from "../../../src/utils/colorCache";
 import { coverProfile } from "../../../src/utils/coverProfile";
 import { allowedCoverUrl, fetchCover, resizeCover } from "../cover-image/index";
+import { readBody } from "../shared/http";
 
 // Cover colors are the same for everyone, so they are measured once here and kept: the app asks
 // for a batch of covers, gets what is kept, and what is missing (up to a few per request) is
@@ -60,11 +61,7 @@ function respond(statusCode: number, body: unknown): ProfileResponse {
  * @returns The distinct allowed addresses, or an error message.
  */
 export function parseUrls(event: ProfileEvent): URL[] | string {
-  const raw = event.body
-    ? event.isBase64Encoded
-      ? Buffer.from(event.body, "base64").toString("utf8")
-      : event.body
-    : "";
+  const raw = readBody(event);
   if (raw.length > MAX_BODY_BYTES) return "That request is too large.";
   let parsed: unknown;
   try {

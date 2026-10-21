@@ -333,7 +333,6 @@ describe("response fields", () => {
     expect(album.id).toBe(42);
     expect(album.title).toBe("Cool Album");
     expect(album.cover_image).toBe("https://example.com/cover.jpg");
-    expect(album.coverUrl).toBe("https://example.com/cover.jpg");
     expect(album.discogsUrl).toBe("https://www.discogs.com/release/100");
     expect(album.artist).toBe("Cool Artist");
     expect(album.genre).toEqual(["Jazz", "Funk"]);

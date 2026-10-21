@@ -9,6 +9,10 @@ const WALL_KEY_PREFIX = "album-wall:wall:";
  * Key used to persist the last entered username.
  */
 const LAST_USERNAME_KEY = "album-wall:last-username";
+/**
+ * Prefix for keys used to store the visitor's folder choice.
+ */
+const FOLDER_KEY_PREFIX = "album-wall:folder:";
 
 /**
  * Normalises a username by trimming whitespace and lower‑casing.
@@ -115,5 +119,45 @@ export function loadLastUsername(storage: Pick<Storage, "getItem">): string | nu
     return trimmed;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The folder the signed-in visitor chose last time on this device.
+ *
+ * @param storage The storage to read, or null.
+ * @param username The signed-in visitor.
+ * @returns The folder id, 0 (the whole collection) when none was chosen.
+ */
+export function loadFolderChoice(
+  storage: Pick<Storage, "getItem"> | null,
+  username: string
+): number {
+  try {
+    const value = Number(storage?.getItem(`${FOLDER_KEY_PREFIX}${username}`));
+    return Number.isInteger(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Remembers the signed-in visitor's folder choice.
+ *
+ * @param storage The storage to write, or null.
+ * @param username The signed-in visitor.
+ * @param folderId Folder id; 0 clears the stored choice.
+ */
+export function saveFolderChoice(
+  storage: Pick<Storage, "setItem" | "removeItem"> | null,
+  username: string,
+  folderId: number
+): void {
+  try {
+    const key = `${FOLDER_KEY_PREFIX}${username}`;
+    if (folderId) storage?.setItem(key, String(folderId));
+    else storage?.removeItem(key);
+  } catch {
+    // Not remembered.
   }
 }

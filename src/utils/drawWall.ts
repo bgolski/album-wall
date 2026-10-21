@@ -80,7 +80,7 @@ export async function drawWall(options: {
   const images = await Promise.all(
     tiles.map(async (tile) => {
       const album = byId.get(tile.dataset.albumId ?? "");
-      const cover = album?.cover_image || album?.coverUrl;
+      const cover = album?.cover_image;
       if (!cover) return placeholderImage;
       for (const { src } of coverAddresses(cover, sources)) {
         const image = await loadImage(src);

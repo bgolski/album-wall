@@ -38,7 +38,7 @@ function Tiles({ albums, columns }: { albums: Album[]; columns: number }) {
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       {albums.map((album, at) => {
-        const url = album.cover_image || album.coverUrl;
+        const url = album.cover_image;
         const src = url
           ? coverAddresses(url, coverSources(), { size: PREVIEW_COVER_SIZE })[0]!.src
           : DEFAULT_PLACEHOLDER_IMAGE;

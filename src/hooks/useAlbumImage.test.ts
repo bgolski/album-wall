@@ -26,7 +26,7 @@ const albumWithCoverUrl: Album = {
   id: 2,
   title: "Album With CoverUrl",
   artist: "Artist",
-  coverUrl: "http://example.com/coverurl.jpg",
+  cover_image: "http://example.com/coverurl.jpg",
 };
 
 const albumWithoutCover: Album = {
@@ -57,11 +57,6 @@ describe("useAlbumImage hook", () => {
     expect(result.current.imageSource).toBe(DEFAULT_PLACEHOLDER_IMAGE);
   });
 
-  it("uses coverUrl when cover_image is absent", () => {
-    const { result } = renderHook(() => useAlbumImage(albumWithCoverUrl));
-    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.coverUrl!));
-  });
-
   it("tries the cover's own address when the proxied copy fails, then the placeholder", () => {
     const { result } = renderHook(() => useAlbumImage(albumWithCover));
     act(() => result.current.handleImageError());
@@ -89,7 +84,7 @@ describe("useAlbumImage hook", () => {
     });
     expect(result.current.imageSource).toBe(proxied(albumWithCover.cover_image!));
     rerender({ album: albumWithCoverUrl });
-    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.coverUrl!));
+    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.cover_image!));
   });
 });
 
@@ -105,7 +100,7 @@ describe("useAlbumImage with a changing album", () => {
 
     rerender({ album: albumWithCoverUrl });
     expect(result.current.imageError).toBe(false);
-    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.coverUrl!));
+    expect(result.current.imageSource).toBe(proxied(albumWithCoverUrl.cover_image!));
   });
 
   it("uses the placeholder for an album with no cover and recovers when one appears", () => {

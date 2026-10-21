@@ -5,7 +5,6 @@ export interface Album {
   id: number;
   title: string;
   cover_image?: string;
-  coverUrl?: string; // For backward compatibility
   discogsUrl?: string;
   artist: string;
   genre?: string[];

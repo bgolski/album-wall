@@ -44,7 +44,7 @@ export async function requestPoster(input: {
   const { albums, rows, columns, size, background } = input;
   const covers = Array.from({ length: rows * columns }, (_, index) => {
     const album = albums[index];
-    return album?.cover_image || album?.coverUrl || "";
+    return album?.cover_image || "";
   });
 
   let response: Response;

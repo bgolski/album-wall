@@ -112,7 +112,7 @@ export function Rehang({ currentWall, target, name, albumsById, onCancel, onFini
   const album = (id: string) => albumsById.get(id);
   const titleOf = (id: string) => album(id)?.title || "An album no longer in the collection";
   const cover = (id: string) => {
-    const url = album(id)?.cover_image || album(id)?.coverUrl;
+    const url = album(id)?.cover_image;
     if (!url) return DEFAULT_PLACEHOLDER_IMAGE;
     return coverAddresses(url, coverSources(), { size: COVER_SIZE })[0]!.src;
   };

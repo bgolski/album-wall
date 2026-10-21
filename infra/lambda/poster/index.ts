@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { allowedCoverUrl, fetchCover } from "../cover-image/index";
+import { readBody } from "../shared/http";
 import {
   POSTER_PIXELS,
   POSTER_RADIUS,
@@ -303,9 +304,7 @@ export const createPosterHandler = (
       return { statusCode: 204, headers: { ...CORS, "access-control-max-age": "86400" }, body: "" };
     }
     if (method !== "POST") return respond(405, "Only POST is supported.");
-    const text = event.isBase64Encoded
-      ? Buffer.from(event.body ?? "", "base64").toString("utf8")
-      : (event.body ?? "");
+    const text = readBody(event);
     const request = parsePosterRequest(text);
     if (typeof request === "string") return respond(400, request);
 

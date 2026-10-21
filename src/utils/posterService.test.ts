@@ -4,7 +4,7 @@ import { PosterError, requestPoster } from "./posterService";
 
 const albums = [
   { id: 1, title: "A", artist: "x", cover_image: "https://i.discogs.com/a.jpg" },
-  { id: 2, title: "B", artist: "y", coverUrl: "https://coverartarchive.org/b.jpg" },
+  { id: 2, title: "B", artist: "y", cover_image: "https://coverartarchive.org/b.jpg" },
   { id: 3, title: "C", artist: "z" },
 ] as Album[];
 

@@ -4,6 +4,7 @@ import type { CoverColor } from "@/utils/colorBasics";
 import type { CoverProfile } from "@/utils/coverProfile";
 import { loadProfileCache, saveProfileCache } from "@/utils/colorCache";
 import { readCoverProfile } from "@/utils/readCoverProfile";
+import { localStore } from "@/utils/browserStorage";
 import { fetchSharedProfiles, profileServiceUrl } from "@/utils/sharedProfiles";
 
 interface CoverColorOptions {
@@ -24,16 +25,6 @@ interface CoverColorOptions {
 const defaultShared = profileServiceUrl
   ? (urls: string[], signal: AbortSignal) => fetchSharedProfiles(urls, { signal })
   : null;
-
-const coverUrlOf = (album: Album) => album.cover_image || album.coverUrl || "";
-
-function defaultStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 // Measurements run when the browser is idle, so they never get in the way of drawing the wall.
 function whenIdle(task: () => void) {
@@ -74,7 +65,7 @@ export function useCoverColors(albums: Album[], enabled: boolean, options: Cover
         ...new Set(
           albums
             .filter((album) => !album.profile)
-            .map(coverUrlOf)
+            .map((album) => album.cover_image || "")
             .filter(Boolean)
         ),
       ]
@@ -91,7 +82,7 @@ export function useCoverColors(albums: Album[], enabled: boolean, options: Cover
     let sinceSave = 0;
     let flushTimer: ReturnType<typeof setTimeout> | undefined;
     let queue: string[] = [];
-    const store = storage === undefined ? defaultStorage() : storage;
+    const store = storage === undefined ? localStore() : storage;
     let remembered = new Map<string, CoverProfile>();
 
     const flush = () => {
@@ -171,7 +162,7 @@ export function useCoverColors(albums: Album[], enabled: boolean, options: Cover
     const waiting = new Set<string>();
     const covers = new Set<string>();
     for (const album of albums) {
-      const url = coverUrlOf(album);
+      const url = album.cover_image || "";
       if (url) covers.add(url);
       const profile = album.profile ?? (measured.has(url) ? measured.get(url) : undefined);
       if (profile !== undefined) {

@@ -9,6 +9,7 @@ import {
   type HangRecord,
 } from "@/utils/hangHistory";
 import { useAccountSync } from "./useAccountSync";
+import { localStore } from "@/utils/browserStorage";
 
 type HistoryStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -22,14 +23,6 @@ interface HangHistoryOptions {
 const NO_STORAGE = "Can't save in this browser";
 const STORAGE_FULL = "Storage is full";
 
-function browserStorage(): HistoryStorage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Remembers which walls the user hung and when, for one collection, in this browser. Every change
  * returns `null` when it worked or a message saying why it did not.
@@ -39,7 +32,7 @@ function browserStorage(): HistoryStorage | null {
  * @returns The records, when each album was last hung, and the actions.
  */
 export function useHangHistory(collectionName: string, options: HangHistoryOptions = {}) {
-  const storage = options.storage === undefined ? browserStorage() : options.storage;
+  const storage = options.storage === undefined ? localStore() : options.storage;
   const now = options.now ?? (() => new Date());
   const key = hangHistoryKey(collectionName);
 

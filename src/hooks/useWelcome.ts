@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { loadLastUsername } from "@/utils/savedWall";
+import { localStore } from "@/utils/browserStorage";
 
 const WELCOME_DISMISSED_KEY = "album-wall:welcome-dismissed";
 
@@ -23,7 +24,8 @@ function subscribe(listener: () => void) {
 function isFirstVisit(): boolean {
   try {
     if (window.location.hash.includes("share=")) return false;
-    const storage = window.localStorage;
+    const storage = localStore();
+    if (!storage) return false;
     return !storage.getItem(WELCOME_DISMISSED_KEY) && !loadLastUsername(storage);
   } catch {
     return false;
@@ -57,7 +59,7 @@ export function useWelcome(demoAvailable: boolean, hasWall: boolean) {
 
   const dismiss = useCallback(() => {
     try {
-      window.localStorage.setItem(WELCOME_DISMISSED_KEY, "1");
+      localStore()?.setItem(WELCOME_DISMISSED_KEY, "1");
     } catch {
       // Storage is blocked; the welcome is not shown in that case anyway.
     }

@@ -15,6 +15,7 @@ import {
   type SavedLayout,
 } from "@/utils/layoutStore";
 import { useAccountSync } from "./useAccountSync";
+import { localStore } from "@/utils/browserStorage";
 
 type LayoutStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -36,14 +37,6 @@ const MESSAGES: Record<LayoutError["code"], string> = {
 };
 const NO_STORAGE = "Can't save in this browser";
 const STORAGE_FULL = "Storage is full";
-
-function browserStorage(): LayoutStorage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function read(storage: LayoutStorage | null, key: string): string | null {
   try {
@@ -78,7 +71,7 @@ function askToKeepStorage() {
  * @returns The layouts, the actions, and whether any layout has not been exported yet.
  */
 export function useLayouts(collectionName: string, options: LayoutOptions = {}) {
-  const storage = options.storage === undefined ? browserStorage() : options.storage;
+  const storage = options.storage === undefined ? localStore() : options.storage;
   const now = options.now ?? (() => new Date());
   const newId = options.newId ?? makeId;
   const key = layoutsKey(collectionName);

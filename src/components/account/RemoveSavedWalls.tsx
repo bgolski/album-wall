@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { SESSION_KEY, parseSession } from "@/utils/discogsSignIn";
 import { savedWallsClient } from "@/utils/savedWalls";
+import { localStore } from "@/utils/browserStorage";
 
 /**
  * Removes everything the signed-in visitor keeps in their account (saved layouts and wall
@@ -14,7 +15,7 @@ export function RemoveSavedWalls() {
     () => () => undefined,
     () => {
       try {
-        return window.localStorage.getItem(SESSION_KEY);
+        return localStore()?.getItem(SESSION_KEY) ?? null;
       } catch {
         return null;
       }

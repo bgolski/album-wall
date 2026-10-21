@@ -10,13 +10,20 @@ import {
 import { getUserCollection, validateDiscogsUsername } from "@/utils/discogs";
 import { Album, SharedWallState } from "@/types";
 import { getSharedWallStateFromHash, orderAlbumsBySharedWall } from "@/utils/shareState";
-import { loadLastUsername, loadSavedWall, saveLastUsername } from "@/utils/savedWall";
+import {
+  loadLastUsername,
+  loadSavedWall,
+  saveLastUsername,
+  loadFolderChoice,
+  saveFolderChoice,
+} from "@/utils/savedWall";
 import { readCachedCollection, writeCachedCollection } from "@/utils/collectionCache";
 import { useUndoHistory } from "@/hooks/useUndoHistory";
 import { DEMO_USERNAME, parseDemoCollection } from "@/utils/demoCollection";
 import { getBasePath } from "@/utils/basePath";
 import { setAddressUser, userFromAddress } from "@/utils/loadAddress";
 import { DiscogsSession, proxyErrorCode } from "@/utils/discogsSignIn";
+import { localStore, sessionStore } from "@/utils/browserStorage";
 
 const VALIDATION_ERROR_MESSAGE = "Letters, numbers, dots, dashes and underscores only";
 const DEMO_MISSING_MESSAGE = "Demo unavailable";
@@ -24,7 +31,6 @@ const GENERIC_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
 const PRIVATE_SHARED_WALL_MESSAGE =
   "This wall was shared from a private Discogs collection, so only its owner can open it here. If it is yours, sign in with Discogs. Otherwise ask them for a saved image of the wall, or to make their collection public on Discogs.";
 const SIGNED_OUT_MESSAGE = "Signed out";
-const FOLDER_KEY_PREFIX = "album-wall:folder:";
 
 /** Why a load failed, when the app can say more than the message. */
 export type CollectionErrorKind =
@@ -66,7 +72,7 @@ function getLocationSearch() {
 }
 
 function getLastUsername() {
-  const storage = getStorage("localStorage");
+  const storage = localStore();
   return storage ? loadLastUsername(storage) : null;
 }
 
@@ -74,49 +80,8 @@ function getNoUsername() {
   return null;
 }
 
-/**
- * Returns the named browser storage, or null where it is missing or blocked: some browsers throw
- * as soon as the property is read when site data is disabled.
- *
- * @param name Which storage to read.
- * @returns The storage, or null.
- */
-function getStorage(name: "localStorage" | "sessionStorage"): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window[name];
-  } catch {
-    return null;
-  }
-}
-
 function sameName(a: string, b: string) {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
-/**
- * The folder the signed-in visitor chose last time on this device.
- *
- * @param username The signed-in visitor.
- * @returns The folder id, 0 (the whole collection) when none was chosen.
- */
-function loadFolderChoice(username: string): number {
-  try {
-    const value = Number(getStorage("localStorage")?.getItem(`${FOLDER_KEY_PREFIX}${username}`));
-    return Number.isInteger(value) && value > 0 ? value : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function saveFolderChoice(username: string, folderId: number) {
-  try {
-    const storage = getStorage("localStorage");
-    const key = `${FOLDER_KEY_PREFIX}${username}`;
-    if (folderId) storage?.setItem(key, String(folderId));
-    else storage?.removeItem(key);
-  } catch {
-    // Not remembered.
-  }
 }
 
 /**
@@ -158,7 +123,7 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
     ? 0
     : chosenFolder && sameName(chosenFolder.username, session.username)
       ? chosenFolder.id
-      : loadFolderChoice(session.username.toLowerCase());
+      : loadFolderChoice(localStore(), session.username.toLowerCase());
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [sharedWallState, setSharedWallState] = useState<SharedWallState | null>(null);
   const [demoAlbums, setDemoAlbums] = useState<Album[] | null>(null);
@@ -206,26 +171,24 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
       // opens with the whole collection, which holds every folder's records.
       const loadFolder = own && !linkedState ? folder : 0;
       const cacheKey = loadFolder ? `${usernameToLoad}#${loadFolder}` : usernameToLoad;
-      const localStore = getStorage("localStorage");
-      const savedState = localStore ? loadSavedWall(localStore, usernameToLoad) : null;
+      const store = localStore();
+      const savedState = store ? loadSavedWall(store, usernameToLoad) : null;
       const wallState =
         linkedState ?? (savedState ? { ...savedState, username: usernameToLoad } : null);
       setSharedWallState(wallState);
 
       startTransition(async () => {
         try {
-          const sessionStore = getStorage("sessionStorage");
+          const storage = sessionStore();
           const cached =
-            fresh || !sessionStore
-              ? null
-              : readCachedCollection(sessionStore, cacheKey, Date.now());
+            fresh || !storage ? null : readCachedCollection(storage, cacheKey, Date.now());
           const collection =
             cached ??
             (await (session
               ? getUserCollection(usernameToLoad, undefined, { session, folderId: loadFolder })
               : getUserCollection(usernameToLoad)));
-          if (!cached && sessionStore) {
-            writeCachedCollection(sessionStore, cacheKey, collection, Date.now());
+          if (!cached && storage) {
+            writeCachedCollection(storage, cacheKey, collection, Date.now());
           }
           setAlbums(
             wallState && wallState.username === usernameToLoad
@@ -235,7 +198,7 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
           setLoadedUsername(usernameToLoad);
           setLoadCount((count) => count + 1);
           clearHistory();
-          if (localStore) saveLastUsername(localStore, usernameToLoad);
+          if (store) saveLastUsername(store, usernameToLoad);
           // The address names the collection, so the page can be bookmarked or shared; a shared
           // wall keeps its own link.
           if (!linkedState) setAddressUser(usernameToLoad);
@@ -268,7 +231,7 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
   const chooseFolder = (id: number) => {
     if (!session) return;
     setChosenFolder({ username: session.username, id });
-    saveFolderChoice(session.username.toLowerCase(), id);
+    saveFolderChoice(localStore(), session.username.toLowerCase(), id);
     if (sameName(username, session.username)) {
       setSharedWallState(null);
       void loadCollectionForUsername(session.username, null, false, id);
@@ -360,8 +323,8 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
   const loadDemo = useCallback(
     (linkedState: SharedWallState | null = null) => {
       if (!demoAlbums) return;
-      const localStore = getStorage("localStorage");
-      const savedState = localStore ? loadSavedWall(localStore, DEMO_USERNAME) : null;
+      const store = localStore();
+      const savedState = store ? loadSavedWall(store, DEMO_USERNAME) : null;
       const wallState = linkedState ?? savedState;
       setSharedWallState(wallState);
       setAlbums(wallState ? orderAlbumsBySharedWall(demoAlbums, wallState) : demoAlbums);

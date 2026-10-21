@@ -13,16 +13,9 @@ import {
   startDiscogsSignIn,
 } from "@/utils/discogsSignIn";
 import { clearCachedCollections } from "@/utils/collectionCache";
+import { localStore, sessionStore } from "@/utils/browserStorage";
 
 const listeners = new Set<() => void>();
-
-function getStorage(name: "localStorage" | "sessionStorage"): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window[name];
-  } catch {
-    return null;
-  }
-}
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -47,7 +40,7 @@ let lastSession: DiscogsSession | null = null;
 function getSession(): DiscogsSession | null {
   let raw: string | null = null;
   try {
-    raw = getStorage("localStorage")?.getItem(SESSION_KEY) ?? null;
+    raw = localStore()?.getItem(SESSION_KEY) ?? null;
   } catch {
     raw = null;
   }
@@ -92,9 +85,9 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
     handledReturn.current = true;
     const answer = readSignInReturn(window.location.search);
     if (!answer) return;
-    const sessionStore = getStorage("sessionStorage");
-    const pending = sessionStore ? loadPending(sessionStore) : null;
-    if (sessionStore) clearPending(sessionStore);
+    const storage = sessionStore();
+    const pending = storage ? loadPending(storage) : null;
+    if (storage) clearPending(storage);
     // Take Discogs' answer out of the address and put back the wall the visitor left from.
     const restoreAddress = () =>
       window.history.replaceState(null, "", `${callbackAddress()}${pending?.returnHash ?? ""}`);
@@ -113,9 +106,9 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
     queueMicrotask(() => setStatus("finishing"));
     void finishDiscogsSignIn(pending, answer.verifier)
       .then((next) => {
-        const localStore = getStorage("localStorage");
+        const store = localStore();
         restoreAddress();
-        if (!localStore || !saveSession(localStore, next)) {
+        if (!store || !saveSession(store, next)) {
           setError("This browser blocks sign-in");
           return;
         }
@@ -136,10 +129,10 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
     setError(null);
     setStatus("redirecting");
     try {
-      const sessionStore = getStorage("sessionStorage");
-      if (!sessionStore) throw new Error("This browser does not allow signing in.");
+      const storage = sessionStore();
+      if (!storage) throw new Error("This browser does not allow signing in.");
       const started = await startDiscogsSignIn(callbackAddress());
-      const saved = savePending(sessionStore, {
+      const saved = savePending(storage, {
         token: started.token,
         secret: started.secret,
         returnHash: window.location.hash,
@@ -157,10 +150,10 @@ export function useDiscogsSignIn(navigate: (url: string) => void = goTo) {
    */
   const signOut = useCallback(() => {
     const current = getSession();
-    const localStore = getStorage("localStorage");
-    const sessionStore = getStorage("sessionStorage");
-    if (localStore) clearSession(localStore);
-    if (sessionStore && current) clearCachedCollections(sessionStore, current.username);
+    const store = localStore();
+    const storage = sessionStore();
+    if (store) clearSession(store);
+    if (storage && current) clearCachedCollections(storage, current.username);
     setJustSignedIn(null);
     setError(null);
     notify();
