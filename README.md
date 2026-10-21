@@ -83,7 +83,7 @@ npm test               # unit tests
 npm run type-check
 npm run lint
 npm run test:a11y      # Playwright + axe against the static build
-npm run check:live     # the deployed site and its services, from outside (a weekly GitHub Actions workflow for it is in docs/github-workflows/)
+npm run check:live     # the deployed site and its services, from outside (also runs weekly in GitHub Actions)
 cd infra && npm ci && npx jest && npx cdk synth album-wall
 ```
 

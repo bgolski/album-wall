@@ -1,5 +1,3 @@
-# Copy this file to .github/workflows/live-check.yml to run the live check every week. It is kept
-# here because a token without the workflow scope cannot push files under .github/workflows.
 name: Live check
 
 # Checks the deployed site and its services from the outside every week, and on demand. A failure
