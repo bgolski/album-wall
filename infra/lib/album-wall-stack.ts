@@ -12,8 +12,8 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
+import { appFunction, SHARP_BUNDLING } from "./appFunction";
 
 const DISCOGS_TOKEN_PARAMETER_NAME = "/album-wall/discogs-token";
 const DISCOGS_CONSUMER_KEY_PARAMETER_NAME = "/album-wall/discogs-consumer-key";
@@ -103,15 +103,8 @@ export class AlbumWallStack extends cdk.Stack {
       }
     );
 
-    const discogsProxyFunction = new lambdaNodejs.NodejsFunction(this, "DiscogsProxyFunction", {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      architecture: lambda.Architecture.ARM_64,
-      logGroup: new logs.LogGroup(this, "DiscogsProxyLogs", {
-        retention: logs.RetentionDays.TWO_WEEKS,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
+    const discogsProxyFunction = appFunction(this, "DiscogsProxy", {
       entry: "lambda/discogs-proxy/index.ts",
-      handler: "handler",
       description: "Discogs proxy for the album-wall static frontend.",
       timeout: cdk.Duration.seconds(30),
       memorySize: 256,
@@ -189,15 +182,8 @@ export class AlbumWallStack extends cdk.Stack {
       timeToLiveAttribute: "expires",
     });
 
-    const sharePage = new lambdaNodejs.NodejsFunction(this, "SharePageFunction", {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      architecture: lambda.Architecture.ARM_64,
-      logGroup: new logs.LogGroup(this, "SharePageLogs", {
-        retention: logs.RetentionDays.TWO_WEEKS,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
+    const sharePage = appFunction(this, "SharePage", {
       entry: "lambda/share-page/index.ts",
-      handler: "handler",
       description: "Short share links for album-wall: link page and wall picture.",
       timeout: cdk.Duration.seconds(20),
       memorySize: 1024,
@@ -361,26 +347,14 @@ function handler(event) {
       // Everything in it can be measured again.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-    const profiles = new lambdaNodejs.NodejsFunction(this, "CoverProfilesFunction", {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      architecture: lambda.Architecture.ARM_64,
+    const profiles = appFunction(this, "CoverProfiles", {
       entry: "lambda/cover-profiles/index.ts",
-      handler: "handler",
       description: "Album-wall cover colors: kept profiles, and a few measured on demand.",
       timeout: cdk.Duration.seconds(25),
       memorySize: 1024,
       reservedConcurrentExecutions: COVER_PROFILES_CONCURRENCY,
       environment: { PROFILE_TABLE_NAME: table.tableName },
-      logGroup: new logs.LogGroup(this, "CoverProfilesLogs", {
-        retention: logs.RetentionDays.TWO_WEEKS,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
-      bundling: {
-        target: "node22",
-        // sharp has native parts: install the Linux ARM build whatever machine deploys.
-        nodeModules: ["sharp"],
-        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
-      },
+      bundling: SHARP_BUNDLING,
     });
     table.grantReadWriteData(profiles);
     const url = profiles.addFunctionUrl({
@@ -412,11 +386,8 @@ function handler(event) {
    * @returns The poster function.
    */
   private addPoster(distribution: cloudfront.Distribution, table: dynamodb.Table) {
-    const poster = new lambdaNodejs.NodejsFunction(this, "PosterFunction", {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      architecture: lambda.Architecture.ARM_64,
+    const poster = appFunction(this, "Poster", {
       entry: "lambda/poster/index.ts",
-      handler: "handler",
       description: "Album-wall posters: the wall drawn at print size, a few a day.",
       timeout: cdk.Duration.seconds(POSTER_TIMEOUT_SECONDS),
       memorySize: POSTER_MEMORY_MB,
@@ -425,16 +396,7 @@ function handler(event) {
         SHARE_TABLE_NAME: table.tableName,
         POSTER_DAILY_CAP: String(POSTER_DAILY_CAP),
       },
-      logGroup: new logs.LogGroup(this, "PosterLogs", {
-        retention: logs.RetentionDays.TWO_WEEKS,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
-      bundling: {
-        target: "node22",
-        // sharp has native parts: install the Linux ARM build whatever machine deploys.
-        nodeModules: ["sharp"],
-        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
-      },
+      bundling: SHARP_BUNDLING,
     });
     // Only the day's counter, and only to add to it.
     poster.addToRolePolicy(
@@ -499,25 +461,13 @@ function handler(event) {
    * @returns The cover image function, for alarms.
    */
   private addCoverImages(distribution: cloudfront.Distribution) {
-    const coverImage = new lambdaNodejs.NodejsFunction(this, "CoverImageFunction", {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      architecture: lambda.Architecture.ARM_64,
+    const coverImage = appFunction(this, "CoverImage", {
       entry: "lambda/cover-image/index.ts",
-      handler: "handler",
       description: "Album-wall cover images: allowed covers resized for the app.",
       timeout: cdk.Duration.seconds(12),
       memorySize: 1024,
       reservedConcurrentExecutions: COVER_IMAGE_CONCURRENCY,
-      logGroup: new logs.LogGroup(this, "CoverImageLogs", {
-        retention: logs.RetentionDays.TWO_WEEKS,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      }),
-      bundling: {
-        target: "node22",
-        // sharp has native parts: install the Linux ARM build whatever machine deploys.
-        nodeModules: ["sharp"],
-        environment: { npm_config_os: "linux", npm_config_cpu: "arm64", npm_config_libc: "glibc" },
-      },
+      bundling: SHARP_BUNDLING,
     });
 
     const origin = origins.FunctionUrlOrigin.withOriginAccessControl(

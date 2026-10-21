@@ -21,7 +21,7 @@ test.describe("with motion", () => {
     await page.goto("./");
     const welcome = page.getByRole("region", { name: "New to Album Wall?" });
     await expect(welcome).toBeHidden();
-    await expect(welcome).toBeVisible({ timeout: 6000 });
+    await expect(welcome).toBeVisible();
   });
 });
 
@@ -50,12 +50,10 @@ test.describe("on a phone", () => {
     expect(await introOn(page)).toBe(true);
     await expect(page.getByRole("button", { name: "Sign in with Discogs" })).toBeVisible();
     await expect
-      .poll(
-        () =>
-          page.evaluate(
-            () => getComputedStyle(document.querySelector(".record-backdrop")!).visibility
-          ),
-        { timeout: 6000 }
+      .poll(() =>
+        page.evaluate(
+          () => getComputedStyle(document.querySelector(".record-backdrop")!).visibility
+        )
       )
       .toBe("hidden");
     await page.reload();

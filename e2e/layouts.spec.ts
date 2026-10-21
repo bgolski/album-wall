@@ -10,6 +10,8 @@ const wallIds = (page: Page) =>
 test("save a layout, change the wall, compare, put the layout back, and keep it after a reload", async ({
   page,
 }) => {
+  // It follows a whole rehang, one Done per step (about forty), so it needs more time than most.
+  test.slow();
   await stubNetwork(page);
   await page.goto("./");
   await page.getByRole("button", { name: "Try the demo wall" }).click();

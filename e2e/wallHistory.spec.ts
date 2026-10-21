@@ -31,9 +31,12 @@ test("marking a saved layout as on the wall remembers when each record was up", 
 
 test("an earlier wall can be looked at and put back from History", async ({ page }) => {
   await loadWall(page);
-  const firstTitle = async () =>
-    page.locator("[data-album-id]").first().getAttribute("data-album-id");
-  const before = await firstTitle();
+  // The whole order, since a shuffle can leave any one place as it was.
+  const wallIds = () =>
+    page
+      .locator("#grid-container [data-album-id]")
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-album-id")));
+  const before = await wallIds();
 
   await page.getByRole("button", { name: "Saved walls" }).click();
   await expect(page.getByRole("heading", { name: "History" })).toHaveCount(0);
@@ -50,7 +53,7 @@ test("an earlier wall can be looked at and put back from History", async ({ page
 
   // Change the wall, then put the earlier one back.
   await page.getByRole("button", { name: "Shuffle" }).click();
-  expect(await firstTitle()).not.toBe(before);
+  await expect.poll(wallIds).not.toEqual(before);
   await history.getByRole("button", { name: /^Use the wall from/ }).click();
-  expect(await firstTitle()).toBe(before);
+  await expect.poll(wallIds).toEqual(before);
 });
