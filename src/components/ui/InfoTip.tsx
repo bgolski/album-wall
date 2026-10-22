@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useDismiss } from "@/hooks/useDismiss";
 
 interface InfoTipProps {
   /** Id of the explanation, for the option's `aria-describedby`. */
@@ -39,28 +40,18 @@ export function InfoTip({ id, label, text }: InfoTipProps) {
     setPlace({ left, bottom: window.innerHeight - box.top + GAP, width });
   };
 
+  const close = () => {
+    setOpen(false);
+    setHovered(false);
+  };
+
+  useDismiss({ open: shown, inside: [buttonRef], onDismiss: close });
+
   useEffect(() => {
     if (!shown) return;
-    const close = () => {
-      setOpen(false);
-      setHovered(false);
-    };
-    const handlePointer = (event: PointerEvent) => {
-      if (!buttonRef.current?.contains(event.target as Node)) close();
-    };
-    // Caught first and marked handled, so Escape closes the explanation and not the panel around it.
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      close();
-    };
-    document.addEventListener("pointerdown", handlePointer);
-    document.addEventListener("keydown", handleKey, true);
     window.addEventListener("scroll", measure, true);
     window.addEventListener("resize", measure);
     return () => {
-      document.removeEventListener("pointerdown", handlePointer);
-      document.removeEventListener("keydown", handleKey, true);
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
     };

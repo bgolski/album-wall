@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { DiscogsAccountProps } from "./types";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
+import { useDismiss } from "@/hooks/useDismiss";
 
 /**
  * The account control in the header corner. Signed in, a round button with the visitor's initial
@@ -21,24 +22,7 @@ export function AccountMenu({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const handlePointer = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", handlePointer);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointer);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
+  useDismiss({ open, inside: [rootRef], onDismiss: () => setOpen(false), returnFocus: buttonRef });
 
   const cornerButton =
     "flex h-9 items-center justify-center rounded-control border border-line bg-raised text-ink transition-colors hover:bg-line disabled:opacity-60";

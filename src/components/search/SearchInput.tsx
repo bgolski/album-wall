@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AppHeader } from "../layout/AppHeader";
+import { useDismiss } from "@/hooks/useDismiss";
 import { UsernameForm } from "./UsernameForm";
 import { validateDiscogsUsername } from "@/utils/discogs";
 import { FolderPicker } from "./FolderPicker";
@@ -67,26 +68,12 @@ export function SearchInput({
   const [draft, setDraft] = useState("");
   const searchRef = useRef<HTMLDivElement | null>(null);
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    if (!searching) return;
-    const handlePointer = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (!searchRef.current?.contains(target) && !searchButtonRef.current?.contains(target)) {
-        setSearching(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setSearching(false);
-      searchButtonRef.current?.focus();
-    };
-    document.addEventListener("pointerdown", handlePointer);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointer);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [searching]);
+  useDismiss({
+    open: searching,
+    inside: [searchRef, searchButtonRef],
+    onDismiss: () => setSearching(false),
+    returnFocus: searchButtonRef,
+  });
 
   if (shown) {
     return (
