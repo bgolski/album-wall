@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef, type Dispatch, type SetStateAction } from "react";
 import { wallDisplayName } from "@/utils/demoCollection";
 import { Album } from "@/types";
 import { fitIntoFrame, type ExportBackdrop, type ExportPreset } from "@/utils/exportFrame";
@@ -8,23 +8,16 @@ import { drawWall } from "@/utils/drawWall";
 import { makeGuide } from "@/utils/guide";
 import { paperFor } from "@/utils/guideLayout";
 import { DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
+import { downloadBlob } from "@/utils/download";
+import { isAbortError } from "@/utils/errors";
+import type { ToastState } from "@/components/ui/Toast";
 
 const EXPORT_TIMEOUT_MS = 20000;
-const STATUS_VISIBLE_MS = 4000;
-const ACTION_VISIBLE_MS = 15000;
 // Largest canvas side to capture; browsers on phones refuse much bigger canvases.
 const MAX_CAPTURE_SIDE = 4096;
 // Pixels in an image saved at the screen's own size, on any device: an 8 x 4 wall comes to about
 // 2450 x 1225, roughly 290 pixels per cover, so a phone saves as sharp an image as a computer.
 const EXPORT_PIXELS = 3_000_000;
-
-export interface ExportStatus {
-  message: string;
-  tone: "info" | "error";
-  action?: { label: string; run: () => void };
-  /** Work is under way: the message stays up, with a spinner, until it is replaced or cleared. */
-  busy?: boolean;
-}
 
 /**
  * The wall panel's current background, so an exported image matches light or dark mode.
@@ -94,18 +87,6 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   ]);
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
 /**
  * Manages export UI state and provides the image export, guide export and share-link actions for
  * the current wall.
@@ -114,21 +95,15 @@ function downloadBlob(blob: Blob, filename: string) {
  * @param albums Albums to include in export output.
  * @returns Export state, grid ref, and export handlers.
  */
-export function useGridExport(username: string, albums: Album[]) {
+export function useGridExport(
+  username: string,
+  albums: Album[],
+  show: Dispatch<SetStateAction<ToastState | null>>
+) {
   const [isExporting, setIsExporting] = useState(false);
-  const [status, setStatus] = useState<ExportStatus | null>(null);
   const setStatusMessage = (message: string | null) =>
-    setStatus(message ? { message, tone: "info" } : null);
+    show(message ? { message, tone: "info" } : null);
 
-  // A toast goes away on its own; one that offers an action stays longer so it can be used.
-  useEffect(() => {
-    if (!status || status.busy) return;
-    const timer = window.setTimeout(
-      () => setStatus(null),
-      status.action ? ACTION_VISIBLE_MS : STATUS_VISIBLE_MS
-    );
-    return () => window.clearTimeout(timer);
-  }, [status]);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const userDisplayName = wallDisplayName(username) || "Anonymous";
@@ -236,7 +211,7 @@ export function useGridExport(username: string, albums: Album[]) {
 
     try {
       setIsExporting(true);
-      setStatus({ message: work.preparing, tone: "info", busy: true });
+      show({ message: work.preparing, tone: "info", busy: true });
       const { blob, filename, coversLeftOut: missing } = await make();
       const file = new File([blob], filename, { type: blob.type });
       const leftOut = missing > 0 ? `, ${missing} left out` : "";
@@ -251,15 +226,14 @@ export function useGridExport(username: string, albums: Album[]) {
         // Safari only opens the share sheet right after a tap, and capturing the wall takes a
         // while. Offer a button so the share happens from a fresh tap instead of failing.
         if (error instanceof DOMException && error.name === "NotAllowedError") {
-          setStatus({
+          show({
             message: "Ready",
             tone: "info",
             action: {
               label: "Share",
               run: () => {
                 void tryNativeShare(file).catch((shareError) => {
-                  if (shareError instanceof DOMException && shareError.name === "AbortError")
-                    return;
+                  if (isAbortError(shareError)) return;
                   console.error("Error sharing file:", shareError);
                   downloadBlob(blob, filename);
                   setStatusMessage("Saved");
@@ -275,21 +249,21 @@ export function useGridExport(username: string, albums: Album[]) {
       downloadBlob(blob, filename);
       setStatusMessage(savedMessage);
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
+      if (isAbortError(error)) {
         setStatusMessage("Canceled");
         return;
       }
 
       console.error("Error exporting:", error);
       // A poster says why in its own words (used up for the day, service unreachable).
-      setStatus({
+      show({
         message: error instanceof PosterError ? error.message : work.failed,
         tone: "error",
       });
     } finally {
       setIsExporting(false);
       // A share that needed no message leaves the progress notice up; clear it.
-      setStatus((current) => (current?.busy ? null : current));
+      show((current) => (current?.busy ? null : current));
     }
   };
 
@@ -302,7 +276,7 @@ export function useGridExport(username: string, albums: Album[]) {
    */
   const shareOrSaveImage = async (preset?: ExportPreset, backdrop?: ExportBackdrop) => {
     if (!gridRef.current || albums.length === 0) {
-      setStatus({ message: "No albums", tone: "error" });
+      show({ message: "No albums", tone: "error" });
       return;
     }
     await deliver(
@@ -326,7 +300,7 @@ export function useGridExport(username: string, albums: Album[]) {
     changes?: { since: string; lines: string[] }
   ) => {
     if (!gridRef.current || wall.albums.length === 0) {
-      setStatus({ message: "No albums", tone: "error" });
+      show({ message: "No albums", tone: "error" });
       return;
     }
     const grid = gridRef.current;
@@ -363,7 +337,7 @@ export function useGridExport(username: string, albums: Album[]) {
     options: { size: PosterSize; background: "dark" | "light" | "record" }
   ) => {
     if (wall.albums.length === 0) {
-      setStatus({ message: "No albums", tone: "error" });
+      show({ message: "No albums", tone: "error" });
       return;
     }
     await deliver(
@@ -381,8 +355,6 @@ export function useGridExport(username: string, albums: Album[]) {
 
   return {
     isExporting,
-    status,
-    setStatus,
     gridRef,
     shareOrSaveImage,
     saveGuide,

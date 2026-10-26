@@ -5,6 +5,7 @@ import { useGridDimensions } from "@/hooks/useGridDimensions";
 import { useAlbumPinning } from "@/hooks/useAlbumPinning";
 import { useAlbumSorting } from "@/hooks/useAlbumSorting";
 import { useGridExport } from "@/hooks/useGridExport";
+import { useToast } from "@/hooks/useToast";
 import { useAlbumShuffle } from "@/hooks/useAlbumShuffle";
 import { useAlbumLabels } from "@/hooks/useAlbumLabels";
 import { useGradientBuilder } from "@/hooks/useGradientBuilder";
@@ -80,7 +81,8 @@ export function RecordGrid({
   );
   const pinning = useAlbumPinning(sharedHere?.pinnedAlbumIds);
   const sorting = useAlbumSorting();
-  const exportHooks = useGridExport(username, albums);
+  const { toast, show, notify } = useToast();
+  const exportHooks = useGridExport(username, albums, show);
   const { shuffleUnpinnedAlbums } = useAlbumShuffle();
   const {
     rows,
@@ -199,7 +201,7 @@ export function RecordGrid({
     username,
     wall: wallState,
     covers: wallAlbums.map((album) => album.cover_image ?? ""),
-    setStatus: exportHooks.setStatus,
+    setStatus: show,
   });
   // The short link is asked for as the export panel opens, so it is usually ready by the time the
   // link is shared.
@@ -258,7 +260,7 @@ export function RecordGrid({
   const handleUndo = () => {
     if (!onUndo?.()) return;
     move.cancelMove();
-    exportHooks.setStatus({ message: "Undid the last change.", tone: "info" });
+    notify("Undid the last change.");
   };
   useUndoShortcut(handleUndo);
 
@@ -291,7 +293,7 @@ export function RecordGrid({
                 mode={groupMode}
                 choices={groups.choices}
                 onBuild={groups.build}
-                onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
+                onNotice={notify}
               />
             )
           }
@@ -311,7 +313,7 @@ export function RecordGrid({
         />
       </div>
 
-      <Toast toast={exportHooks.status} onDismiss={() => exportHooks.setStatus(null)} />
+      <Toast toast={toast} onDismiss={() => show(null)} />
 
       {movingAlbum && (
         <div
@@ -462,7 +464,7 @@ export function RecordGrid({
               albums={albums}
               onApply={applyWall}
               history={history}
-              onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
+              onNotice={notify}
             />
 
             <GradientPanel
@@ -476,7 +478,7 @@ export function RecordGrid({
               onBuild={gradient.build}
               suggestions={gradient.suggestions}
               canPreferRested={history.hangs.length > 0}
-              onNotice={(message) => exportHooks.setStatus({ message, tone: "info" })}
+              onNotice={notify}
             />
           </DockedPanel>
         </div>

@@ -1,8 +1,16 @@
-import type { ExportStatus } from "@/hooks/useGridExport";
 import { LoadingSpinner } from "./LoadingSpinner";
 
+/** A short message near the bottom of the screen. */
+export interface ToastState {
+  message: string;
+  tone: "info" | "error";
+  action?: { label: string; run: () => void };
+  /** Work is under way: the message stays up, with a spinner, until it is replaced or cleared. */
+  busy?: boolean;
+}
+
 interface ToastProps {
-  toast: ExportStatus | null;
+  toast: ToastState | null;
   onDismiss: () => void;
 }
 

@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type FormEvent } from "react";
+import { downloadBlob } from "@/utils/download";
 import { MoreMenu } from "../ui/MoreMenu";
 import type { MenuItem } from "../ui/MoreMenu";
 import type { Album, SharedWallState } from "@/types";
@@ -142,14 +143,7 @@ export function LayoutsPanel({
 
   const handleExport = () => {
     const blob = new Blob([exportText()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `album-wall-layouts-${wallDisplayName(collectionName)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadBlob(blob, `album-wall-layouts-${wallDisplayName(collectionName)}.json`);
     onNotice("Backup saved");
   };
 

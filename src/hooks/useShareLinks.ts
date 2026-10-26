@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { SharedWallState } from "@/types";
-import type { ExportStatus } from "@/hooks/useGridExport";
+import type { ToastState } from "@/components/ui/Toast";
+import { isAbortError } from "@/utils/errors";
 import { buildSharedWallUrl, encodeSharedWallState } from "@/utils/shareState";
 import { copyLink } from "@/utils/copyText";
 import { wallDisplayName } from "@/utils/demoCollection";
@@ -22,7 +23,7 @@ export function useShareLinks(input: {
   username: string;
   wall: SharedWallState;
   covers: string[];
-  setStatus: (status: ExportStatus | null) => void;
+  setStatus: (status: ToastState | null) => void;
 }) {
   const { username, wall, covers, setStatus } = input;
   // Short links by long link: requests under way, and the ones that came back.
@@ -107,7 +108,7 @@ export function useShareLinks(input: {
     try {
       await share(shareUrl);
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (isAbortError(error)) return;
       // Safari opens the share sheet only straight after a tap; waiting for the short link can
       // use that up, so offer a button that shares from a fresh tap.
       if (!readyUrl && error instanceof DOMException && error.name === "NotAllowedError") {

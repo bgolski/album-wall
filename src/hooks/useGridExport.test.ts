@@ -1,10 +1,18 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useGridExport } from "./useGridExport";
+import { useToast } from "./useToast";
+import type { Album } from "@/types";
 import { drawWall } from "@/utils/drawWall";
 import { makeGuide } from "@/utils/guide";
 import { drawRecordBackground } from "@/utils/recordBackground";
 import { PosterError, requestPoster } from "@/utils/posterService";
+
+// The export hook reports through the page's toast; read the two together.
+function useExportWithToast(username: string, albums: Album[]) {
+  const { toast, show } = useToast();
+  return { ...useGridExport(username, albums, show), status: toast };
+}
 
 vi.mock("@/utils/drawWall", () => ({
   drawWall: vi.fn(),
@@ -78,7 +86,7 @@ describe("useGridExport", () => {
   const albums = [{ id: 1, title: "Album 1", artist: "Artist 1", imageUrl: "" }];
 
   it("reports in the status line when there is no grid or there are no albums", async () => {
-    const { result } = renderHook(() => useGridExport(username, []));
+    const { result } = renderHook(() => useExportWithToast(username, []));
     await act(async () => {
       await result.current.shareOrSaveImage();
     });
@@ -87,7 +95,7 @@ describe("useGridExport", () => {
   });
 
   it("reports in the status line when grid is missing even with albums", async () => {
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     // gridRef.current stays null
     await act(async () => {
       await result.current.shareOrSaveImage();
@@ -99,7 +107,7 @@ describe("useGridExport", () => {
 
   it("reports in the status line when albums are empty even with a grid present", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, []));
+    const { result } = renderHook(() => useExportWithToast(username, []));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -113,7 +121,7 @@ describe("useGridExport", () => {
 
   it("downloads when share is not available", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -132,7 +140,7 @@ describe("useGridExport", () => {
 
   it("says how many covers could not be included", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -149,7 +157,7 @@ describe("useGridExport", () => {
 
   it("passes correct filename to downloadBlob", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("testuser", albums));
+    const { result } = renderHook(() => useExportWithToast("testuser", albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -169,7 +177,7 @@ describe("useGridExport", () => {
 
   it("uses native share when supported", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -188,7 +196,7 @@ describe("useGridExport", () => {
 
   it("offers a Share image button when Safari refuses the share after the capture", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -219,7 +227,7 @@ describe("useGridExport", () => {
 
   it("names the demo wall's image Demo_album_wall.png, not after its reserved username", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("~demo", albums));
+    const { result } = renderHook(() => useExportWithToast("~demo", albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -238,7 +246,7 @@ describe("useGridExport", () => {
 
   it("uses Anonymous_album_wall.png filename when username is empty", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("", albums));
+    const { result } = renderHook(() => useExportWithToast("", albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -258,7 +266,7 @@ describe("useGridExport", () => {
 
   it("handles AbortError from share as cancelation", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -278,7 +286,7 @@ describe("useGridExport", () => {
 
   it("handles generic export errors in the status line", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport(username, albums));
+    const { result } = renderHook(() => useExportWithToast(username, albums));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -299,7 +307,7 @@ describe("useGridExport", () => {
   it("clears the status after a few seconds", async () => {
     vi.useFakeTimers();
     try {
-      const { result } = renderHook(() => useGridExport(username, []));
+      const { result } = renderHook(() => useExportWithToast(username, []));
       await act(async () => {
         await result.current.shareOrSaveImage();
       });
@@ -318,7 +326,7 @@ describe("useGridExport sized images", () => {
   it("draws the wall centred on a canvas of the preset size and names the file after it", async () => {
     const grid = createGridWithLabels();
     const { result } = renderHook(() =>
-      useGridExport("testuser", [{ id: 1, title: "A", artist: "B" }])
+      useExportWithToast("testuser", [{ id: 1, title: "A", artist: "B" }])
     );
     act(() => {
       result.current.gridRef.current = grid;
@@ -368,7 +376,9 @@ describe("useGridExport capture size", () => {
     const grid = createGridWithLabels();
     Object.defineProperty(grid, "offsetWidth", { value: width });
     Object.defineProperty(grid, "offsetHeight", { value: height });
-    const { result } = renderHook(() => useGridExport("u", [{ id: 1, title: "A", artist: "B" }]));
+    const { result } = renderHook(() =>
+      useExportWithToast("u", [{ id: 1, title: "A", artist: "B" }])
+    );
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -416,7 +426,9 @@ describe("useGridExport image size at the screen's own size", () => {
     const grid = createGridWithLabels();
     Object.defineProperty(grid, "offsetWidth", { value: width });
     Object.defineProperty(grid, "offsetHeight", { value: height });
-    const { result } = renderHook(() => useGridExport("u", [{ id: 1, title: "A", artist: "B" }]));
+    const { result } = renderHook(() =>
+      useExportWithToast("u", [{ id: 1, title: "A", artist: "B" }])
+    );
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -454,7 +466,9 @@ describe("useGridExport image size at the screen's own size", () => {
 describe("useGridExport progress", () => {
   it("shows a busy notice while the image is prepared and clears it after a silent share", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("u", [{ id: 1, title: "A", artist: "B" }]));
+    const { result } = renderHook(() =>
+      useExportWithToast("u", [{ id: 1, title: "A", artist: "B" }])
+    );
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -493,7 +507,7 @@ describe("useGridExport background and guide", () => {
 
   it("draws a picture on the chosen colour", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -521,7 +535,7 @@ describe("useGridExport background and guide", () => {
 
   it("draws the record behind the wall, and the wall on nothing so the record shows through", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -548,7 +562,7 @@ describe("useGridExport background and guide", () => {
 
   it("makes the hanging guide from the wall's albums and saves it as a PDF", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -579,7 +593,7 @@ describe("useGridExport background and guide", () => {
 
   it("passes the steps from the wall hung last time on to the guide", async () => {
     const grid = createGridWithLabels();
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     act(() => {
       result.current.gridRef.current = grid;
     });
@@ -598,7 +612,7 @@ describe("useGridExport background and guide", () => {
   });
 
   it("says so when the guide cannot be made", async () => {
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     act(() => {
       result.current.gridRef.current = createGridWithLabels();
     });
@@ -613,7 +627,7 @@ describe("useGridExport background and guide", () => {
   });
 
   it("has nothing to make a guide of without albums", async () => {
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     act(() => {
       result.current.gridRef.current = createGridWithLabels();
     });
@@ -629,7 +643,7 @@ describe("useGridExport poster", () => {
   const wall = { albums: [album], rows: 4, columns: 8 };
 
   it("has the poster drawn by the service and saves it as a JPEG named for its size", async () => {
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     vi.mocked(requestPoster).mockResolvedValue({
       blob: new Blob(["jpeg"], { type: "image/jpeg" }),
       coversLeftOut: 0,
@@ -654,7 +668,7 @@ describe("useGridExport poster", () => {
   });
 
   it("says why a poster could not be made", async () => {
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     vi.mocked(requestPoster).mockRejectedValue(new PosterError("Posters are used up for today"));
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -669,7 +683,7 @@ describe("useGridExport poster", () => {
   });
 
   it("has nothing to make a poster of without albums", async () => {
-    const { result } = renderHook(() => useGridExport("testuser", [album]));
+    const { result } = renderHook(() => useExportWithToast("testuser", [album]));
     await act(async () => {
       await result.current.savePoster(
         { albums: [], rows: 4, columns: 8 },
