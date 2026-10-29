@@ -211,6 +211,15 @@ describe("LayoutsPanel", () => {
     expect(screen.queryByRole("group", { name: "Hang Autumn" })).toBeNull();
   });
 
+  it("says the wall already matches when only the pins differ", () => {
+    const { onNotice, rerenderWith } = renderPanel(wall(["1", "2", "3"], ["2"]));
+    saveAs("Autumn");
+    rerenderWith(wall(["1", "2", "3"]));
+    choose("Autumn", "Rehang");
+    expect(onNotice).toHaveBeenLastCalledWith("Already matches");
+    expect(screen.queryByRole("group", { name: "Hang Autumn" })).toBeNull();
+  });
+
   it("renames and, after confirming, deletes a saved wall", () => {
     renderPanel();
     saveAs("Autumn");

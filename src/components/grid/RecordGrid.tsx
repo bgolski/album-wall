@@ -21,10 +21,7 @@ import { useHangHistory } from "@/hooks/useHangHistory";
 import { usePressings } from "@/hooks/usePressings";
 import { recentlyHungCost } from "@/utils/hangHistory";
 import { buildSharedWallState, orderAlbumsBySharedWall } from "@/utils/shareState";
-import { diffWalls } from "@/utils/diffWalls";
-import { rehangSteps } from "@/utils/rehangSteps";
-import { stepSentence } from "@/utils/rehangText";
-import { formatDay } from "@/utils/hangHistory";
+import { hangChanges } from "@/utils/hangChanges";
 import { GridControls } from "./GridControls";
 import { CoverSourceNotice } from "./CoverSourceNotice";
 import { GridDimensionsConfig } from "./GridDimensionsConfig";
@@ -155,40 +152,27 @@ export function RecordGrid({
     defaultSize: DEFAULT_ROWS * DEFAULT_COLUMNS,
   });
 
-  const wallState = buildSharedWallState({
-    username,
-    rows,
-    columns,
-    wallAlbumIds: wallAlbums.map((album) => String(album.id)),
-    pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
-      wallAlbums.some((album) => String(album.id) === albumId)
-    ),
-  });
+  const wallState = useMemo(
+    () =>
+      buildSharedWallState({
+        username,
+        rows,
+        columns,
+        wallAlbumIds: wallAlbums.map((album) => String(album.id)),
+        pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
+          wallAlbums.some((album) => String(album.id) === albumId)
+        ),
+      }),
+    [username, rows, columns, wallAlbums, pinnedAlbums]
+  );
   useRememberWall({ username, wall: wallState, pinnedAlbums, onPinsChange });
 
   // What it takes to change the wall hung last time (marked as on the real wall) into this one,
   // for the hanging guide.
-  const lastHung = history.hangs[history.hangs.length - 1];
-  const hangChanges = (() => {
-    if (!lastHung) return null;
-    const lastColumns = lastHung.columns ?? columns;
-    const before = buildSharedWallState({
-      username,
-      rows: lastHung.rows ?? Math.max(1, Math.ceil(lastHung.albumIds.length / lastColumns)),
-      columns: lastColumns,
-      wallAlbumIds: lastHung.albumIds,
-      pinnedAlbumIds: [],
-    });
-    const steps = rehangSteps(diffWalls(before, wallState));
-    if (steps.length === 0) return null;
-    const byId = new Map(collection.map((album) => [String(album.id), album]));
-    const titleOf = (id: string) => byId.get(id)?.title || "An album no longer in the collection";
-    const where = (spot: { row: number; column: number }) => `R${spot.row} C${spot.column}`;
-    return {
-      since: formatDay(lastHung.date),
-      lines: steps.map((step) => stepSentence(step, titleOf, where)),
-    };
-  })();
+  const guideSteps = useMemo(
+    () => hangChanges(history.hangs[history.hangs.length - 1], wallState, collection),
+    [history.hangs, wallState, collection]
+  );
 
   const drag = useWallDrag({
     wallAlbums,
@@ -442,11 +426,11 @@ export function RecordGrid({
               onSaveImage={(preset, backdrop) =>
                 void exportHooks.shareOrSaveImage(preset, backdrop)
               }
-              stepCount={hangChanges?.lines.length ?? 0}
+              stepCount={guideSteps?.lines.length ?? 0}
               onSaveGuide={(withSteps) =>
                 void exportHooks.saveGuide(
                   { albums: wallAlbums, rows, columns },
-                  withSteps && hangChanges ? hangChanges : undefined
+                  withSteps && guideSteps ? guideSteps : undefined
                 )
               }
               onSavePoster={(size, background) =>

@@ -1,3 +1,5 @@
+import { buildSharedWallState } from "./shareState";
+import type { SharedWallState } from "@/types";
 /** One wall the user hung: the day, and the albums on it in wall order. */
 export interface HangRecord {
   /** Day it was hung, `YYYY-MM-DD` in the user's time zone. */
@@ -169,4 +171,43 @@ export function formatDay(day: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
     new Date(year!, (month ?? 1) - 1, date ?? 1)
   );
+}
+
+/**
+ * A remembered wall as a wall that can be shown or put back. A record from before the shape was
+ * kept takes the given width and as many rows as its albums need.
+ *
+ * @param hang The record from a previous wall.
+ * @param username The collection name to use as the wall's username.
+ * @param fallbackColumns Width used when the record lacks a saved width.
+ * @returns A wall state matching the remembered albums and the best shape available.
+ */
+export function wallOfHang(
+  hang: HangRecord,
+  username: string,
+  fallbackColumns: number
+): SharedWallState {
+  const columns = hang.columns ?? fallbackColumns;
+  const rows = hang.rows ?? Math.max(1, Math.ceil(hang.albumIds.length / columns));
+  return buildSharedWallState({
+    username,
+    rows,
+    columns,
+    wallAlbumIds: hang.albumIds,
+    pinnedAlbumIds: [],
+  });
+}
+
+/**
+ * How many of these album ids are no longer in the collection.
+ *
+ * @param ids Album ids to check.
+ * @param albumsById Map of every known album.
+ * @returns The number of ids not found.
+ */
+export function countMissing(
+  ids: readonly string[],
+  albumsById: ReadonlyMap<string, unknown>
+): number {
+  return ids.filter((id) => !albumsById.has(id)).length;
 }

@@ -7,8 +7,8 @@ import { useLayouts } from "@/hooks/useLayouts";
 import type { useHangHistory } from "@/hooks/useHangHistory";
 import { wallDisplayName } from "@/utils/demoCollection";
 import type { SavedLayout } from "@/utils/layoutStore";
-import { buildSharedWallState, buildSharedWallUrl } from "@/utils/shareState";
-import { formatDay, type HangRecord } from "@/utils/hangHistory";
+import { buildSharedWallUrl } from "@/utils/shareState";
+import { formatDay, type HangRecord, wallOfHang, countMissing } from "@/utils/hangHistory";
 import { Rehang } from "./Rehang";
 import { diffWalls } from "@/utils/diffWalls";
 import { rehangSteps } from "@/utils/rehangSteps";
@@ -106,29 +106,22 @@ export function LayoutsPanel({
   // Using a saved wall is one change to the wall, so the toolbar's Undo puts the old one back.
   const handleApply = (layout: SavedLayout) => {
     setUsed(layout.id);
-    const missing = layout.wall.wallAlbumIds.filter((id) => !albumsById.has(id)).length;
+    const missing = countMissing(layout.wall.wallAlbumIds, albumsById);
     onApply(layout.wall);
     if (missing > 0) onNotice(`${missing} no longer in the collection`);
   };
 
   // An earlier wall as a wall that can be put back. A record from before the shape was kept takes
   // it from the saved wall it came from, or from the wall as it is now.
-  const wallOfHang = (hang: HangRecord): SharedWallState => {
+  const wallOfHangHere = (hang: HangRecord): SharedWallState => {
     const saved = hang.layoutId ? layouts.find((layout) => layout.id === hang.layoutId) : undefined;
-    const columns = hang.columns ?? saved?.wall.columns ?? currentWall.columns;
-    return buildSharedWallState({
-      username: collectionName,
-      rows: hang.rows ?? Math.max(1, Math.ceil(hang.albumIds.length / columns)),
-      columns,
-      wallAlbumIds: hang.albumIds,
-      pinnedAlbumIds: [],
-    });
+    return wallOfHang(hang, collectionName, saved?.wall.columns ?? currentWall.columns);
   };
 
   const handleUseHang = (hang: HangRecord) => {
     setUsed(null);
-    const missing = hang.albumIds.filter((id) => !albumsById.has(id)).length;
-    onApply(wallOfHang(hang));
+    const missing = countMissing(hang.albumIds, albumsById);
+    onApply(wallOfHangHere(hang));
     if (missing > 0) onNotice(`${missing} no longer in the collection`);
   };
 
@@ -414,7 +407,7 @@ export function LayoutsPanel({
                       </button>
                     </div>
                     {lookingAt === hang.date && (
-                      <WallPreview name={day} wall={wallOfHang(hang)} albumsById={albumsById} />
+                      <WallPreview name={day} wall={wallOfHangHere(hang)} albumsById={albumsById} />
                     )}
                   </li>
                 );
