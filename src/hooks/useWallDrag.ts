@@ -15,6 +15,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { Album } from "@/types";
 import { swapAlbums } from "@/utils/dragAndDropHelpers";
+import { dragId } from "@/utils/albumKey";
 
 /** What screen readers hear about moving albums by keyboard. */
 export const DRAG_INSTRUCTIONS = {
@@ -62,7 +63,6 @@ export const wallCollisionDetection: CollisionDetection = (args) => {
  * Dragging covers between the wall and the pool by mouse, touch or keyboard: the dragged album
  * swaps places with the one it is dropped on, and each step is announced for screen readers.
  *
- * @param input.wallAlbums The wall in the order shown, for naming slots.
  * @param input.displayedAlbums Albums on the wall.
  * @param input.poolItems Albums in the pool.
  * @param input.pinnedAlbums Ids of pinned albums.
@@ -70,13 +70,12 @@ export const wallCollisionDetection: CollisionDetection = (args) => {
  * @returns Sensors, the album being dragged, handlers and announcements for DndContext.
  */
 export function useWallDrag(input: {
-  wallAlbums: Album[];
   displayedAlbums: Album[];
   poolItems: Album[];
   pinnedAlbums: Set<string>;
   onAlbumsReorder: (albums: Album[]) => void;
 }) {
-  const { wallAlbums, displayedAlbums, poolItems, pinnedAlbums, onAlbumsReorder } = input;
+  const { displayedAlbums, poolItems, pinnedAlbums, onAlbumsReorder } = input;
   const [draggedAlbum, setDraggedAlbum] = useState<Album | null>(null);
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } });
@@ -97,7 +96,7 @@ export function useWallDrag(input: {
   const onDragStart = (event: DragStartEvent) => {
     const id = String(event.active.id);
     setDraggedAlbum(
-      [...displayedAlbums, ...poolItems].find((album) => `album-${album.id}` === id) ?? null
+      [...displayedAlbums, ...poolItems].find((album) => dragId(album) === id) ?? null
     );
   };
 
@@ -111,16 +110,8 @@ export function useWallDrag(input: {
     const { active, over } = event;
     if (!over) return;
 
-    const { newDisplayedAlbums, newPoolItems } = swapAlbums(
-      displayedAlbums,
-      poolItems,
-      active.id,
-      over.id,
-      pinnedAlbums
-    );
-    if (newDisplayedAlbums === displayedAlbums && newPoolItems === poolItems) return;
-
-    onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
+    const next = swapAlbums([...displayedAlbums, ...poolItems], active.id, over.id, pinnedAlbums);
+    if (next) onAlbumsReorder(next);
   };
 
   /**
@@ -131,23 +122,18 @@ export function useWallDrag(input: {
    * @returns The album and its place, or null when it is in neither list.
    */
   const describeAlbum = (id: UniqueIdentifier) => {
-    const wallIndex = wallAlbums.findIndex((album) => `album-${album.id}` === id);
-    if (wallIndex !== -1) {
-      const album = wallAlbums[wallIndex]!;
-      return {
-        name: `${album.title || "Untitled"} by ${album.artist}`,
-        place: `wall slot ${wallIndex + 1}`,
-      };
-    }
-    const poolIndex = poolItems.findIndex((album) => `album-${album.id}` === id);
-    if (poolIndex !== -1) {
-      const album = poolItems[poolIndex]!;
-      return {
-        name: `${album.title || "Untitled"} by ${album.artist}`,
-        place: `pool position ${poolIndex + 1}`,
-      };
-    }
-    return null;
+    const all = [...displayedAlbums, ...poolItems];
+    const index = all.findIndex((album) => dragId(album) === id);
+    if (index === -1) return null;
+    const album = all[index]!;
+    const place =
+      index < displayedAlbums.length
+        ? `wall slot ${index + 1}`
+        : `pool position ${index - displayedAlbums.length + 1}`;
+    return {
+      name: `${album.title || "Untitled"} by ${album.artist}`,
+      place,
+    };
   };
 
   const announcements: Announcements = {

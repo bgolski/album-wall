@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Album } from "@/types";
 import { swapAlbums } from "@/utils/dragAndDropHelpers";
+import { dragId } from "@/utils/albumKey";
 
 /**
  * Taps on covers: a tap opens the album's details, and "Move" in the details picks the album up
@@ -50,19 +51,18 @@ export function useMoveMode(input: {
       return;
     }
 
-    const { newDisplayedAlbums, newPoolItems } = swapAlbums(
-      displayedAlbums,
-      poolItems,
-      `album-${movingAlbum.id}`,
-      `album-${album.id}`,
+    const next = swapAlbums(
+      [...displayedAlbums, ...poolItems],
+      dragId(movingAlbum),
+      dragId(album),
       pinnedAlbums
     );
-    if (newDisplayedAlbums === displayedAlbums && newPoolItems === poolItems) {
+    if (next === null) {
       setMoveMessage("That one is pinned");
       return;
     }
 
-    onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
+    onAlbumsReorder(next);
     cancelMove();
   };
 

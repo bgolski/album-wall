@@ -5,6 +5,7 @@ import { Album } from "@/types";
 import Image from "next/image";
 import { useAlbumImage } from "@/hooks/useAlbumImage";
 import { useNearViewport } from "@/hooks/useNearViewport";
+import { dragId, albumKey } from "@/utils/albumKey";
 import { PinButton } from "./PinButton";
 import { AlbumLabels } from "./AlbumLabels";
 import { AlbumBorder } from "./AlbumBorder";
@@ -35,7 +36,7 @@ export function SortableRecord({
 }: SortableRecordProps) {
   const recordRef = useRef<HTMLDivElement | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `album-${album.id}`,
+    id: dragId(album),
     disabled: isPinned,
   });
 
@@ -116,7 +117,7 @@ export function SortableRecord({
             isPinned={isPinned}
             title={album.title || "album"}
             disabled={disablePinning || !onPinToggle}
-            onToggle={() => onPinToggle?.(String(album.id))}
+            onToggle={() => onPinToggle?.(albumKey(album))}
           />
           {canOpenDiscogs && (
             <>

@@ -8,6 +8,7 @@ import type { useHangHistory } from "@/hooks/useHangHistory";
 import { wallDisplayName } from "@/utils/demoCollection";
 import type { SavedLayout } from "@/utils/layoutStore";
 import { buildSharedWallUrl } from "@/utils/shareState";
+import { albumKey } from "@/utils/albumKey";
 import { formatDay, type HangRecord, wallOfHang, countMissing } from "@/utils/hangHistory";
 import { Rehang } from "./Rehang";
 import { diffWalls } from "@/utils/diffWalls";
@@ -74,7 +75,7 @@ export function LayoutsPanel({
 
   if (!isVisible) return null;
 
-  const albumsById = new Map(albums.map((album) => [String(album.id), album]));
+  const albumsById = new Map(albums.map((album) => [albumKey(album), album]));
 
   // The saved wall most recently marked as on the real wall.
   const onWallId = history?.hangs[history.hangs.length - 1]?.layoutId;

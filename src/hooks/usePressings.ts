@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Album } from "@/types";
+import { albumKey } from "@/utils/albumKey";
 import { pressingKey, showEachAlbumOnce } from "@/utils/groupPressings";
 import { localStore } from "@/utils/browserStorage";
 
@@ -75,7 +76,7 @@ export function usePressings(
     setOnce: (once: boolean) => save({ ...settings, once }),
     /** Shows `album` instead of the pressing standing for it now. */
     choose: (album: Album) =>
-      save({ ...settings, chosen: { ...settings.chosen, [pressingKey(album)]: String(album.id) } }),
+      save({ ...settings, chosen: { ...settings.chosen, [pressingKey(album)]: albumKey(album) } }),
     otherPressings,
     /** Keeps the albums set aside at the end when what is shown is reordered. */
     withHidden: (next: Album[]) => [...next, ...hidden],

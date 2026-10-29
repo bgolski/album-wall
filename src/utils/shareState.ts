@@ -1,4 +1,5 @@
 import { Album, SharedWallState } from "@/types";
+import { albumKey } from "./albumKey";
 
 const SHARE_HASH_KEY = "share";
 
@@ -239,12 +240,12 @@ export function orderAlbumsBySharedWall(
   albums: Album[],
   sharedWallState: SharedWallState
 ): Album[] {
-  const albumMap = new Map(albums.map((album) => [String(album.id), album]));
+  const albumMap = new Map(albums.map((album) => [albumKey(album), album]));
   const sharedWallAlbums = sharedWallState.wallAlbumIds
     .map((albumId) => albumMap.get(albumId))
     .filter((album): album is Album => Boolean(album));
-  const sharedWallAlbumIds = new Set(sharedWallAlbums.map((album) => String(album.id)));
-  const remainingAlbums = albums.filter((album) => !sharedWallAlbumIds.has(String(album.id)));
+  const sharedWallAlbumIds = new Set(sharedWallAlbums.map(albumKey));
+  const remainingAlbums = albums.filter((album) => !sharedWallAlbumIds.has(albumKey(album)));
 
   return [...sharedWallAlbums, ...remainingAlbums];
 }

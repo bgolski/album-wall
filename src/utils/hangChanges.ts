@@ -3,6 +3,7 @@ import { diffWalls } from "./diffWalls";
 import { rehangSteps } from "./rehangSteps";
 import { stepSentence } from "./rehangText";
 import { wallOfHang, formatDay, type HangRecord } from "./hangHistory";
+import { albumKey } from "./albumKey";
 
 /**
  * What it takes to turn the wall hung last time into this one, for the hanging guide.
@@ -34,7 +35,7 @@ export function hangChanges(
 
   if (steps.length === 0) return null;
 
-  const byId = new Map(collection.map((album) => [String(album.id), album]));
+  const byId = new Map(collection.map((album) => [albumKey(album), album]));
   const titleOf = (id: string) => byId.get(id)?.title || "An album no longer in the collection";
   const where = (spot: { row: number; column: number }) => `R${spot.row} C${spot.column}`;
 

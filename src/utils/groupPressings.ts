@@ -1,4 +1,5 @@
 import type { Album } from "@/types";
+import { albumKey } from "./albumKey";
 
 // Words that mark an edition of an album rather than a different album, when they appear in
 // brackets or after a dash: "Abbey Road (Remastered)", "Rumours - Deluxe Edition".
@@ -75,13 +76,13 @@ export function showEachAlbumOnce(
   }
   const standing = new Map<string, string>();
   for (const [key, pressings] of groups) {
-    const pick = pressings.find((album) => String(album.id) === chosen[key]) ?? pressings[0]!;
-    standing.set(key, String(pick.id));
+    const pick = pressings.find((album) => albumKey(album) === chosen[key]) ?? pressings[0]!;
+    standing.set(key, albumKey(pick));
   }
   const shown: Album[] = [];
   const hidden: Album[] = [];
   for (const album of albums) {
-    (standing.get(pressingKey(album)) === String(album.id) ? shown : hidden).push(album);
+    (standing.get(pressingKey(album)) === albumKey(album) ? shown : hidden).push(album);
   }
   return { shown, hidden, groups: [...groups.values()].filter((set) => set.length > 1) };
 }

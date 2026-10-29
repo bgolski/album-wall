@@ -4,6 +4,7 @@ import type { CoverColor } from "@/utils/colorBasics";
 import { oklabToHex } from "@/utils/gradientTargets";
 import { namedMainColors } from "@/utils/colorName";
 import { buildGradientWall, type WallGradient } from "./buildGradientWall";
+import { albumKey } from "@/utils/albumKey";
 
 /** A gradient suggested from what is in the collection. */
 export interface SuggestedGradient extends WallGradient {
@@ -40,7 +41,7 @@ export function colorFamilies(
 ): Family[] {
   const shades = new Map<string, CoverColor[]>();
   for (const album of albums) {
-    const profile = profiles[String(album.id)];
+    const profile = profiles[albumKey(album)];
     if (!profile) continue;
     for (const { name, color } of namedMainColors(profile)) {
       shades.set(name, [...(shades.get(name) ?? []), color]);

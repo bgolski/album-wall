@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Album } from "@/types";
 import type { CoverColor } from "@/utils/colorBasics";
+import { albumKey } from "@/utils/albumKey";
 import type { CoverProfile } from "@/utils/coverProfile";
 import { loadProfileCache, saveProfileCache } from "@/utils/colorCache";
 import { readCoverProfile } from "@/utils/readCoverProfile";
@@ -166,8 +167,8 @@ export function useCoverColors(albums: Album[], enabled: boolean, options: Cover
       if (url) covers.add(url);
       const profile = album.profile ?? (measured.has(url) ? measured.get(url) : undefined);
       if (profile !== undefined) {
-        profiles[String(album.id)] = profile;
-        colors[String(album.id)] = profile ? profile.color : null;
+        profiles[albumKey(album)] = profile;
+        colors[albumKey(album)] = profile ? profile.color : null;
       } else if (enabled && url) waiting.add(url);
     }
     return { colors, profiles, pending: waiting.size, total: covers.size };

@@ -19,6 +19,7 @@ import { useOpenPanel, type WallPanel } from "@/hooks/useOpenPanel";
 import { useWallResize } from "@/hooks/useWallResize";
 import { useHangHistory } from "@/hooks/useHangHistory";
 import { usePressings } from "@/hooks/usePressings";
+import { albumKey } from "@/utils/albumKey";
 import { recentlyHungCost } from "@/utils/hangHistory";
 import { buildSharedWallState, orderAlbumsBySharedWall } from "@/utils/shareState";
 import { hangChanges } from "@/utils/hangChanges";
@@ -158,9 +159,9 @@ export function RecordGrid({
         username,
         rows,
         columns,
-        wallAlbumIds: wallAlbums.map((album) => String(album.id)),
+        wallAlbumIds: wallAlbums.map(albumKey),
         pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
-          wallAlbums.some((album) => String(album.id) === albumId)
+          wallAlbums.some((album) => albumKey(album) === albumId)
         ),
       }),
     [username, rows, columns, wallAlbums, pinnedAlbums]
@@ -175,8 +176,7 @@ export function RecordGrid({
   );
 
   const drag = useWallDrag({
-    wallAlbums,
-    displayedAlbums: wallAlbums,
+    displayedAlbums,
     poolItems,
     pinnedAlbums,
     onAlbumsReorder: reorderByHand,
@@ -322,15 +322,15 @@ export function RecordGrid({
       {sheetAlbum && (
         <AlbumActionSheet
           album={sheetAlbum}
-          isPinned={pinnedAlbums.has(String(sheetAlbum.id))}
+          isPinned={pinnedAlbums.has(albumKey(sheetAlbum))}
           canPin={displayedAlbums.some((album) => album.id === sheetAlbum.id)}
-          {...(String(sheetAlbum.id) in gradient.profiles
-            ? { colorProfile: gradient.profiles[String(sheetAlbum.id)] ?? null }
+          {...(albumKey(sheetAlbum) in gradient.profiles
+            ? { colorProfile: gradient.profiles[albumKey(sheetAlbum)] ?? null }
             : sheetAlbum.profile
               ? { colorProfile: sheetAlbum.profile }
               : {})}
           {...(history.hangs.length > 0
-            ? { lastHungOn: history.lastHung.get(String(sheetAlbum.id)) ?? null }
+            ? { lastHungOn: history.lastHung.get(albumKey(sheetAlbum)) ?? null }
             : {})}
           {...(pressings.once && pressings.otherPressings(sheetAlbum).length > 0
             ? {
@@ -355,7 +355,7 @@ export function RecordGrid({
             : {})}
           onClose={move.closeSheet}
           onTogglePin={() => {
-            togglePinAlbum(String(sheetAlbum.id));
+            togglePinAlbum(albumKey(sheetAlbum));
             move.closeSheet();
           }}
           onMove={() => move.startMove(sheetAlbum)}

@@ -1,4 +1,5 @@
 import type { Album } from "@/types";
+import { albumKey } from "@/utils/albumKey";
 
 /**
  * Changing the wall's size: albums that a smaller wall pushes back into the pool are unpinned
@@ -22,7 +23,7 @@ export function useWallResize(input: {
 
   const unpinAlbumsBeyond = (newSize: number) => {
     if (newSize < displayedAlbums.length) {
-      removePinsForAlbums(displayedAlbums.slice(newSize).map((album) => String(album.id)));
+      removePinsForAlbums(displayedAlbums.slice(newSize).map(albumKey));
     }
   };
 

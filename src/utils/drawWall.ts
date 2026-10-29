@@ -1,6 +1,7 @@
 import type { Album } from "@/types";
 import { coverSources } from "./coverSource";
 import { coverAddresses } from "./imageProxy";
+import { albumKey } from "./albumKey";
 
 // Longest wait for one cover before it is left out of the image.
 const LOAD_TIMEOUT_MS = 8000;
@@ -71,7 +72,7 @@ export async function drawWall(options: {
   context.fillStyle = background;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const byId = new Map(albums.map((album) => [String(album.id), album]));
+  const byId = new Map(albums.map((album) => [albumKey(album), album]));
   const tiles = Array.from(grid.querySelectorAll<HTMLElement>("[data-album-id]"));
   const sources = coverSources();
   const placeholderImage = await loadImage(placeholder);

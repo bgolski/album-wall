@@ -1,4 +1,5 @@
 import { Album } from "@/types";
+import { albumKey } from "@/utils/albumKey";
 
 /**
  * Provides shuffle behavior that preserves pinned album positions in the displayed grid.
@@ -26,9 +27,9 @@ export function useAlbumShuffle() {
 
     // Sort displayed albums into pinned and unpinned arrays
     displayedAlbums.forEach((album, index) => {
-      if (pinnedAlbums.has(String(album.id))) {
+      if (pinnedAlbums.has(albumKey(album))) {
         pinnedAlbumsArray.push(album);
-        pinnedIndicesMap.set(String(album.id), index);
+        pinnedIndicesMap.set(albumKey(album), index);
       } else {
         unpinnedAlbumsArray.push(album);
       }
@@ -52,7 +53,7 @@ export function useAlbumShuffle() {
 
     // Place pinned albums back at their original positions
     pinnedAlbumsArray.forEach((pinnedAlbum) => {
-      const albumId = String(pinnedAlbum.id);
+      const albumId = albumKey(pinnedAlbum);
       const originalIndex = pinnedIndicesMap.get(albumId);
       if (originalIndex !== undefined) {
         newDisplayedAlbums[originalIndex] = pinnedAlbum;

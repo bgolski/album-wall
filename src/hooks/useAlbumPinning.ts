@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Album } from "@/types";
+import { albumKey } from "@/utils/albumKey";
 
 /**
  * Tracks pinned albums and exposes helpers for toggling pins within the displayed grid.
@@ -33,14 +34,14 @@ export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
    * @param displayedAlbums Albums currently shown in the wall grid.
    */
   const togglePinAll = (displayedAlbums: Album[]) => {
-    const allPinned = displayedAlbums.every((album) => pinnedAlbums.has(String(album.id)));
+    const allPinned = displayedAlbums.every((album) => pinnedAlbums.has(albumKey(album)));
 
     if (allPinned) {
       // Unpin all displayed albums
       setPinnedAlbums((prev) => {
         const newPinned = new Set(prev);
         displayedAlbums.forEach((album) => {
-          newPinned.delete(String(album.id));
+          newPinned.delete(albumKey(album));
         });
         return newPinned;
       });
@@ -49,7 +50,7 @@ export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
       setPinnedAlbums((prev) => {
         const newPinned = new Set(prev);
         displayedAlbums.forEach((album) => {
-          newPinned.add(String(album.id));
+          newPinned.add(albumKey(album));
         });
         return newPinned;
       });
@@ -87,7 +88,7 @@ export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
   const areAllPinned = (displayedAlbums: Album[]) => {
     return (
       displayedAlbums.length > 0 &&
-      displayedAlbums.every((album) => pinnedAlbums.has(String(album.id)))
+      displayedAlbums.every((album) => pinnedAlbums.has(albumKey(album)))
     );
   };
 

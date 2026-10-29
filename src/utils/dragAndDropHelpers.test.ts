@@ -4,108 +4,65 @@ import type { Album } from "@/types";
 
 const createAlbum = (id: number): Album => ({ id, title: `Title ${id}`, artist: "artist" });
 const albums = (...ids: number[]) => ids.map(createAlbum);
-const ids = (list: Album[]) => list.map((album) => album.id);
+const ids = (list: Album[] | null) => list?.map((album) => album.id);
 
 describe("swapAlbums", () => {
-  const wall = albums(1, 2, 3, 4, 5, 6);
-  const pool = albums(7, 8, 9);
+  // The wall (1-6) followed by the pool (7-9): a swap works the same anywhere in the list.
+  const all = albums(1, 2, 3, 4, 5, 6, 7, 8, 9);
   const none = new Set<string>();
 
-  it("swaps two wall albums and leaves every other slot in place", () => {
-    const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, "album-5", "album-2", none);
-    expect(ids(newDisplayedAlbums)).toEqual([1, 5, 3, 4, 2, 6]);
-    expect(ids(newPoolItems)).toEqual([7, 8, 9]);
+  it("swaps two wall albums and leaves every other place as it was", () => {
+    expect(ids(swapAlbums(all, "album-5", "album-2", none))).toEqual([1, 5, 3, 4, 2, 6, 7, 8, 9]);
   });
 
-  it("swaps adjacent albums and the first and last slots", () => {
-    expect(ids(swapAlbums(wall, pool, "album-1", "album-2", none).newDisplayedAlbums)).toEqual([
-      2, 1, 3, 4, 5, 6,
-    ]);
-    expect(ids(swapAlbums(wall, pool, "album-6", "album-1", none).newDisplayedAlbums)).toEqual([
-      6, 2, 3, 4, 5, 1,
-    ]);
+  it("swaps adjacent albums and the first and last places", () => {
+    expect(ids(swapAlbums(all, "album-1", "album-2", none))).toEqual([2, 1, 3, 4, 5, 6, 7, 8, 9]);
+    expect(ids(swapAlbums(all, "album-9", "album-1", none))).toEqual([9, 2, 3, 4, 5, 6, 7, 8, 1]);
   });
 
   it("swaps two pool albums", () => {
-    const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, "album-9", "album-7", none);
-    expect(ids(newDisplayedAlbums)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(ids(newPoolItems)).toEqual([9, 8, 7]);
+    expect(ids(swapAlbums(all, "album-9", "album-7", none))).toEqual([1, 2, 3, 4, 5, 6, 9, 8, 7]);
   });
 
-  it("swaps a wall album into the pool slot of the album it was dropped on", () => {
-    const { newDisplayedAlbums, newPoolItems } = swapAlbums(
-      albums(1, 2, 3),
-      albums(4, 5),
-      "album-1",
-      "album-5",
-      none
-    );
-    expect(ids(newDisplayedAlbums)).toEqual([5, 2, 3]);
-    expect(ids(newPoolItems)).toEqual([4, 1]);
+  it("swaps between the wall and the pool in either direction", () => {
+    expect(ids(swapAlbums(all, "album-1", "album-8", none))).toEqual([8, 2, 3, 4, 5, 6, 7, 1, 9]);
+    expect(ids(swapAlbums(all, "album-8", "album-3", none))).toEqual([1, 2, 8, 4, 5, 6, 7, 3, 9]);
   });
 
-  it("swaps a pool album into the wall slot of the album it was dropped on", () => {
-    const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, "album-8", "album-3", none);
-    expect(ids(newDisplayedAlbums)).toEqual([1, 2, 8, 4, 5, 6]);
-    expect(ids(newPoolItems)).toEqual([7, 3, 9]);
-  });
-
-  it("never duplicates or loses an album and keeps both list lengths", () => {
+  it("never duplicates or loses an album", () => {
     const pairs: [string, string][] = [
       ["album-1", "album-8"],
-      ["album-8", "album-1"],
       ["album-6", "album-9"],
       ["album-2", "album-5"],
-      ["album-7", "album-9"],
     ];
     for (const [activeId, overId] of pairs) {
-      const { newDisplayedAlbums, newPoolItems } = swapAlbums(wall, pool, activeId, overId, none);
-      expect(newDisplayedAlbums).toHaveLength(wall.length);
-      expect(newPoolItems).toHaveLength(pool.length);
-      expect([...ids(newDisplayedAlbums), ...ids(newPoolItems)].sort((a, b) => a - b)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-      ]);
+      const result = swapAlbums(all, activeId, overId, none);
+      expect(result).toHaveLength(all.length);
+      expect(ids(result)?.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     }
   });
 
-  it("keeps pinned albums in their slots while others swap around them", () => {
+  it("keeps pinned albums in place while others swap around them", () => {
     const pinned = new Set(["3", "4"]);
-    const { newDisplayedAlbums } = swapAlbums(wall, pool, "album-6", "album-1", pinned);
-    expect(ids(newDisplayedAlbums)).toEqual([6, 2, 3, 4, 5, 1]);
+    expect(ids(swapAlbums(all, "album-6", "album-1", pinned))).toEqual([6, 2, 3, 4, 5, 1, 7, 8, 9]);
   });
 
-  it("does nothing when the drop target or the dragged album is pinned", () => {
+  it("swaps nothing when the dragged album or its target is pinned", () => {
     const pinned = new Set(["2"]);
-    const pinnedPairs: [string, string][] = [
-      ["album-5", "album-2"],
-      ["album-2", "album-5"],
-      ["album-8", "album-2"],
-    ];
-    for (const [activeId, overId] of pinnedPairs) {
-      const result = swapAlbums(wall, pool, activeId, overId, pinned);
-      expect(result.newDisplayedAlbums).toBe(wall);
-      expect(result.newPoolItems).toBe(pool);
-    }
+    expect(swapAlbums(all, "album-5", "album-2", pinned)).toBeNull();
+    expect(swapAlbums(all, "album-2", "album-5", pinned)).toBeNull();
+    expect(swapAlbums(all, "album-8", "album-2", pinned)).toBeNull();
   });
 
-  it("does nothing when dropped on itself or on an unknown album", () => {
-    const noOpPairs: [string, string][] = [
-      ["album-3", "album-3"],
-      ["album-3", "album-99"],
-      ["album-99", "album-3"],
-    ];
-    for (const [activeId, overId] of noOpPairs) {
-      const result = swapAlbums(wall, pool, activeId, overId, none);
-      expect(result.newDisplayedAlbums).toBe(wall);
-      expect(result.newPoolItems).toBe(pool);
-    }
+  it("swaps nothing when dropped on itself or on an unknown album", () => {
+    expect(swapAlbums(all, "album-3", "album-3", none)).toBeNull();
+    expect(swapAlbums(all, "album-3", "album-99", none)).toBeNull();
+    expect(swapAlbums(all, "album-99", "album-3", none)).toBeNull();
   });
 
-  it("does not modify the input arrays", () => {
-    const wallCopy = [...wall];
-    const poolCopy = [...pool];
-    swapAlbums(wall, pool, "album-1", "album-8", none);
-    expect(wall).toEqual(wallCopy);
-    expect(pool).toEqual(poolCopy);
+  it("does not modify the list it is given", () => {
+    const copy = [...all];
+    swapAlbums(all, "album-1", "album-8", none);
+    expect(all).toEqual(copy);
   });
 });

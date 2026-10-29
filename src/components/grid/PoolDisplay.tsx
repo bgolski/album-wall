@@ -3,6 +3,7 @@ import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
 import { filterAlbums } from "@/utils/filterAlbums";
+import { dragId } from "@/utils/albumKey";
 import { TILE_COVER_SIZE } from "@/utils/imageProxy";
 import { PoolSearch } from "./PoolSearch";
 
@@ -42,7 +43,7 @@ export function PoolDisplay({ albums, onSelect, moveSourceId, showAlbumLabels }:
       )}
       <div className="grid grid-cols-4 gap-2 sm:gap-3 md:grid-cols-6 md:gap-4 lg:grid-cols-8 3xl:grid-cols-6">
         <SortableContext
-          items={visibleAlbums.map((album) => `album-${album.id}`)}
+          items={visibleAlbums.map((album) => dragId(album))}
           strategy={rectSwappingStrategy}
         >
           {visibleAlbums.map((album) => (
