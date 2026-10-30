@@ -1,6 +1,7 @@
 import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import sharp from "sharp";
+import type { FunctionUrlEvent } from "../shared/http";
 
 // The link preview image size most apps expect (Open Graph's large image).
 const IMAGE_WIDTH = 1200;
@@ -19,11 +20,6 @@ const SHARE_ID = /^\/w\/([A-Za-z0-9]{8})(\.jpg)?$/;
 // are sent straight to the app. iMessage fetches previews as facebookexternalhit and Twitterbot.
 const PREVIEW_FETCHERS =
   /facebookexternalhit|facebot|twitterbot|slackbot|discordbot|whatsapp|telegrambot|linkedinbot|applebot|googlebot|bingbot|redditbot|skypeuripreview|pinterest|embedly|iframely|vkshare|mastodon|bluesky|signal/i;
-
-type ShareEvent = {
-  rawPath?: string;
-  headers?: Record<string, string | undefined>;
-};
 
 type ShareResponse = {
   statusCode: number;
@@ -254,7 +250,7 @@ export async function drawWallImage(
  * @param event Function URL request (through CloudFront).
  * @returns A redirect, the preview page or the image.
  */
-export async function handler(event: ShareEvent): Promise<ShareResponse> {
+export async function handler(event: FunctionUrlEvent): Promise<ShareResponse> {
   const match = SHARE_ID.exec(event.rawPath ?? "/");
   if (!match) return redirect(defaultApp(), "public, max-age=3600");
 

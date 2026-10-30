@@ -1,5 +1,4 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { ShareInputError, parseShareRequest, storeSharedWall } from "./share";
 import {
   IdentityCache,
@@ -13,7 +12,6 @@ import {
 import {
   AccessToken,
   Consumer,
-  DISCOGS_API,
   SignInError,
   USER_AGENT,
   finishSignIn,
@@ -24,374 +22,15 @@ import {
   signedHeaders,
   startSignIn,
 } from "./oauth";
-import { readBody } from "../shared/http";
-
-const BASE_URL = DISCOGS_API;
-const COLLECTION_PAGE_SIZE = 100;
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 1000;
-// Measured on a 75-album collection: about 0.7 s per warm page of 100 and 573 bytes per album in
-// the response, so the 6 MB response limit allows roughly 10,000 albums. The limits below stay
-// well inside that and inside the function's 30 s timeout.
-const REQUEST_TIMEOUT_MS = 5000;
-const TIME_BUDGET_MS = 25000;
-const PAGE_CONCURRENCY = 4;
-const MAX_COLLECTION_ITEMS = 8000;
+import { type FunctionUrlEvent, jsonResponse, readBody, readJsonBody } from "../shared/http";
+import { getSecureParameter } from "../shared/parameters";
+import { getFolders, getUserCollection, statusOf, validateDiscogsUsername } from "./collection";
 
 // How long CloudFront keeps a public collection: long enough that reloads are quick, short enough
 // that new records show up soon.
 const PUBLIC_CACHE = "public, max-age=300";
 
-type DiscogsArtist = {
-  name: string;
-  join?: string;
-};
-
-type DiscogsRelease = {
-  id: number;
-  basic_information: {
-    id?: number;
-    /** The master release that groups every pressing of one album; 0 or missing when none. */
-    master_id?: number;
-    title?: string;
-    cover_image?: string;
-    artists?: DiscogsArtist[];
-    genres?: string[];
-    styles?: string[];
-    year?: number;
-    labels?: { name: string }[];
-    formats?: DiscogsFormat[];
-  };
-  date_added?: string;
-};
-
-type DiscogsFormat = {
-  name?: string;
-  text?: string;
-  descriptions?: string[];
-};
-
-type DiscogsCollectionResponse = {
-  pagination?: {
-    page?: number;
-    pages?: number;
-    per_page?: number;
-    items?: number;
-  };
-  releases?: DiscogsRelease[];
-};
-
-type Album = {
-  id: number;
-  title: string;
-  cover_image?: string;
-  discogsUrl?: string | undefined;
-  artist: string;
-  genre?: string[];
-  styles?: string[];
-  year?: string;
-  label?: string;
-  format?: string[];
-  dateAdded?: string;
-  /** Discogs master release shared by every pressing of the album, when there is one. */
-  masterId?: number;
-};
-
-type LambdaEvent = {
-  rawPath?: string;
-  headers?: Record<string, string | undefined> | null;
-  body?: string | null;
-  isBase64Encoded?: boolean;
-  queryStringParameters?: Record<string, string | undefined> | null;
-  requestContext?: {
-    http?: {
-      method?: string;
-    };
-  };
-};
-
-const ssmClient = new SSMClient({});
 const dynamoClient = new DynamoDBClient({});
-const cachedParameters = new Map<string, string>();
-
-/**
- * Builds a JSON Lambda response with the default content type header.
- *
- * @param statusCode HTTP status code to return.
- * @param body JSON-serializable response body.
- * @param cacheControl Cache-Control for CloudFront and browsers; `no-store` unless told otherwise.
- * @returns Lambda Function URL response payload.
- */
-function jsonResponse(
-  statusCode: number,
-  body: Record<string, unknown>,
-  cacheControl = "no-store"
-) {
-  return {
-    statusCode,
-    headers: {
-      "content-type": "application/json",
-      // Nothing is cached unless a response says so: errors and signed-in answers never are.
-      "cache-control": cacheControl,
-    },
-    body: JSON.stringify(body),
-  };
-}
-
-/**
- * Reads a secure parameter from SSM and caches it in-memory for warm Lambda invocations.
- *
- * @param parameterName SecureString parameter path to read.
- * @returns Decrypted parameter value.
- */
-async function getSecureParameter(parameterName: string): Promise<string> {
-  const cachedValue = cachedParameters.get(parameterName);
-
-  if (cachedValue) {
-    return cachedValue;
-  }
-
-  const response = await ssmClient.send(
-    new GetParameterCommand({
-      Name: parameterName,
-      WithDecryption: true,
-    })
-  );
-
-  const value = response.Parameter?.Value?.trim();
-
-  if (!value) {
-    throw new Error(`Missing secure parameter: ${parameterName}`);
-  }
-
-  cachedParameters.set(parameterName, value);
-  return value;
-}
-
-/**
- * Validates the basic character rules for a Discogs username before making API calls.
- *
- * @param username Discogs username to validate.
- * @returns True when the username matches the expected format.
- */
-function validateDiscogsUsername(username: string): boolean {
-  return /^[a-zA-Z0-9._-]{2,}$/.test(username.trim());
-}
-
-/**
- * Removes the number Discogs appends to tell apart artists who share a name,
- * for example "Travis Scott (2)" becomes "Travis Scott".
- *
- * @param name Artist name as returned by Discogs.
- * @returns The name without a trailing " (n)".
- */
-export function cleanArtistName(name: string): string {
-  return name.replace(/\s+\(\d+\)$/, "");
-}
-
-/**
- * Builds a display-friendly artist string from Discogs artist metadata.
- *
- * @param artistEntries Discogs artist entries, including optional join strings.
- * @returns A normalized artist label or `"Unknown Artist"` when none is available.
- */
-function extractArtistName(artistEntries?: DiscogsArtist[]): string {
-  if (!artistEntries || artistEntries.length === 0) {
-    return "Unknown Artist";
-  }
-
-  const artists = artistEntries.map((artist) => ({
-    ...artist,
-    name: cleanArtistName(artist.name),
-  }));
-
-  // Discogs puts each separator on the artist before it ("Tony Bennett" join "&", "Amy
-  // Winehouse" join ""), without surrounding spaces; a missing join or "," means a comma.
-  return artists
-    .map((artist, index) => {
-      if (index === artists.length - 1) {
-        return artist.name;
-      }
-
-      const join = artist.join?.trim();
-      return `${artist.name}${!join || join === "," ? ", " : ` ${join} `}`;
-    })
-    .join("");
-}
-
-/**
- * Converts Discogs release metadata into a public Discogs release page URL.
- *
- * @param release Collection release payload from Discogs.
- * @returns A public Discogs URL when a release id can be resolved.
- */
-function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
-  const releaseId = release.basic_information.id ?? release.id;
-
-  if (!releaseId) {
-    return undefined;
-  }
-
-  return `https://www.discogs.com/release/${releaseId}`;
-}
-
-/**
- * Lists a release's format details, such as "LP", "Album", "Reissue" or a vinyl color, once each
- * in Discogs order. The format name itself ("Vinyl") says nothing on a record wall.
- *
- * @param formats Discogs format entries for the release.
- * @returns Descriptions and free text of every format, without repeats.
- */
-function extractFormatDetails(formats?: DiscogsFormat[]): string[] {
-  const details = (formats ?? []).flatMap((format) => [
-    ...(format.descriptions ?? []),
-    ...(format.text ? [format.text] : []),
-  ]);
-  return [...new Set(details.map((detail) => detail.trim()).filter(Boolean))];
-}
-
-/**
- * Normalizes the time a record was added to the collection to an ISO timestamp in UTC.
- *
- * @param dateAdded Discogs `date_added`, such as "2017-03-14T10:45:25-07:00".
- * @returns The ISO timestamp, or an empty string when it is missing or unreadable.
- */
-function normalizeDateAdded(dateAdded?: string): string {
-  const time = dateAdded ? Date.parse(dateAdded) : NaN;
-  return Number.isNaN(time) ? "" : new Date(time).toISOString();
-}
-
-type DiscogsError = Error & { statusCode?: number; retryAfterMs?: number; timedOut?: boolean };
-
-/**
- * Creates an error carrying the HTTP status that the response mapper turns into a reply.
- *
- * @param message Human-readable message.
- * @param statusCode HTTP status to associate with the failure.
- * @param retryAfterMs How long Discogs asked the client to wait, when it said.
- * @returns The error.
- */
-function httpError(message: string, statusCode: number, retryAfterMs?: number): DiscogsError {
-  const error: DiscogsError = new Error(message);
-  error.statusCode = statusCode;
-  if (retryAfterMs !== undefined) error.retryAfterMs = retryAfterMs;
-  return error;
-}
-
-/**
- * Reads a Retry-After header given in seconds.
- *
- * @param value Header value, if any.
- * @returns The wait in milliseconds, or undefined when it is absent or not a number of seconds.
- */
-function parseRetryAfterMs(value: string | null): number | undefined {
-  if (!value) return undefined;
-  const seconds = Number(value);
-  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : undefined;
-}
-
-/**
- * Runs a Discogs request, retrying only what can succeed on a second try: network errors and 5xx
- * responses with exponential backoff, and a 429 once when Discogs asks for a wait that fits in
- * the time left. Other 4xx responses and timeouts are never retried.
- *
- * @param request Async request callback to execute.
- * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
- * @param retries Remaining retry attempts.
- * @param delay Delay in milliseconds before the next retry.
- * @returns The resolved request result.
- */
-async function makeRequestWithRetry<T>(
-  request: () => Promise<T>,
-  deadline: number,
-  retries = MAX_RETRIES,
-  delay = RETRY_DELAY_MS
-): Promise<T> {
-  if (Date.now() >= deadline) {
-    throw httpError("Loading the collection took too long.", 504);
-  }
-
-  try {
-    return await request();
-  } catch (error) {
-    const statusCode =
-      error instanceof Error && "statusCode" in error
-        ? Number((error as DiscogsError).statusCode)
-        : undefined;
-
-    if (statusCode === 429) {
-      const wait = (error as DiscogsError).retryAfterMs;
-      const timeLeft = deadline - Date.now();
-      if (wait === undefined || retries <= 0 || wait + REQUEST_TIMEOUT_MS > timeLeft) throw error;
-      await new Promise((resolve) => setTimeout(resolve, wait));
-      return makeRequestWithRetry(request, deadline, 0, delay);
-    }
-
-    const retryable =
-      !(error as DiscogsError).timedOut && (statusCode === undefined || statusCode >= 500);
-    if (!retryable || retries <= 0) throw error;
-
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    return makeRequestWithRetry(request, deadline, retries - 1, delay * 2);
-  }
-}
-
-/**
- * Fetches a single page from the Discogs collection endpoint.
- *
- * @param username Discogs username whose collection should be loaded.
- * @param headers Builds the request headers (a signed-in request needs a new nonce each time).
- * @param page Collection page number to fetch.
- * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
- * @param folderId Collection folder; 0 is the whole collection.
- * @returns One page of the Discogs collection response.
- */
-async function fetchCollectionPage(
-  username: string,
-  headers: () => Record<string, string>,
-  page: number,
-  deadline: number,
-  folderId = 0
-): Promise<DiscogsCollectionResponse> {
-  const requestUrl = new URL(
-    `${BASE_URL}/users/${username}/collection/folders/${folderId}/releases`
-  );
-
-  requestUrl.searchParams.set("per_page", String(COLLECTION_PAGE_SIZE));
-  requestUrl.searchParams.set("sort", "artist");
-  requestUrl.searchParams.set("page", String(page));
-
-  return makeRequestWithRetry(async () => {
-    let response: Response;
-
-    try {
-      response = await fetch(requestUrl, {
-        headers: headers(),
-        signal: AbortSignal.timeout(
-          Math.min(REQUEST_TIMEOUT_MS, Math.max(deadline - Date.now(), 1))
-        ),
-      });
-    } catch (error) {
-      const errorName = (error as { name?: string } | null)?.name;
-      if (errorName === "TimeoutError" || errorName === "AbortError") {
-        throw Object.assign(httpError("Discogs took too long to respond.", 504), {
-          timedOut: true,
-        });
-      }
-      throw error;
-    }
-
-    if (!response.ok) {
-      throw httpError(
-        `Discogs request failed with status ${response.status}`,
-        response.status,
-        parseRetryAfterMs(response.headers.get("Retry-After"))
-      );
-    }
-
-    return (await response.json()) as DiscogsCollectionResponse;
-  }, deadline);
-}
 
 /**
  * Reads the app's consumer key and secret.
@@ -437,81 +76,6 @@ async function getRequestHeaders(
 }
 
 /**
- * Fetches and normalizes a user's Discogs collection into the frontend album shape.
- *
- * @param username Discogs username whose collection should be loaded.
- * @param access The visitor's access token, when signed in.
- * @param folderId Collection folder; 0 is the whole collection.
- * @returns Normalized album array sorted by Discogs artist order.
- */
-async function getUserCollection(
-  username: string,
-  access: AccessToken | null = null,
-  folderId = 0
-): Promise<Album[]> {
-  if (!username.trim()) {
-    throw new Error("Username cannot be empty");
-  }
-
-  if (!validateDiscogsUsername(username)) {
-    throw new Error(
-      "Invalid username format. Usernames should contain only letters, numbers, dots, underscores, or hyphens."
-    );
-  }
-
-  const deadline = Date.now() + TIME_BUDGET_MS;
-  const headers = await getRequestHeaders(access);
-  const firstPage = await fetchCollectionPage(username, headers, 1, deadline, folderId);
-  const allReleases = [...(firstPage.releases || [])];
-  const totalPages = Math.max(firstPage.pagination?.pages || 1, 1);
-  const totalItems = firstPage.pagination?.items ?? allReleases.length;
-
-  if (totalItems > MAX_COLLECTION_ITEMS) {
-    throw httpError(
-      `This collection has ${totalItems} records; the limit is ${MAX_COLLECTION_ITEMS}.`,
-      413
-    );
-  }
-
-  // Later pages load a few at a time, in page order, to stay inside Discogs's rate limit.
-  for (let first = 2; first <= totalPages; first += PAGE_CONCURRENCY) {
-    const pages = Array.from(
-      { length: Math.min(PAGE_CONCURRENCY, totalPages - first + 1) },
-      (_, offset) => first + offset
-    );
-    const responses = await Promise.all(
-      pages.map((page) => fetchCollectionPage(username, headers, page, deadline, folderId))
-    );
-    for (const pageResponse of responses) allReleases.push(...(pageResponse.releases || []));
-  }
-
-  if (!allReleases.length) {
-    return [];
-  }
-
-  return allReleases.map((release) => {
-    const basicInfo = release.basic_information;
-    const coverImage = basicInfo.cover_image || "";
-
-    return {
-      id: release.id,
-      title: basicInfo.title || "",
-      cover_image: coverImage,
-      discogsUrl: getDiscogsReleaseUrl(release),
-      artist: extractArtistName(basicInfo.artists),
-      genre: basicInfo.genres || [],
-      styles: basicInfo.styles || [],
-      // Discogs gives 0 when the year is unknown.
-      year: basicInfo.year ? String(basicInfo.year) : "",
-      label: basicInfo.labels?.[0]?.name ? cleanArtistName(basicInfo.labels[0].name) : "",
-      format: extractFormatDetails(basicInfo.formats),
-      dateAdded: normalizeDateAdded(release.date_added),
-      ...(basicInfo.master_id ? { masterId: basicInfo.master_id } : {}),
-    };
-  });
-}
-
-/**
  * Converts runtime failures into client-facing HTTP responses.
  *
  * @param error Failure thrown while fetching or normalizing the collection.
@@ -520,10 +84,7 @@ async function getUserCollection(
  * @returns Consistent JSON error response for the frontend.
  */
 function mapErrorToResponse(error: unknown, username: string, signedIn = false) {
-  const statusCode =
-    error instanceof Error && "statusCode" in error
-      ? Number((error as Error & { statusCode?: number }).statusCode)
-      : undefined;
+  const statusCode = statusOf(error);
 
   if (statusCode === 403) {
     return jsonResponse(403, {
@@ -594,7 +155,7 @@ function mapErrorToResponse(error: unknown, username: string, signedIn = false) 
  * @param event Function URL request with the wall as JSON.
  * @returns `{ url }`, or an error.
  */
-async function createShortLink(event: LambdaEvent) {
+async function createShortLink(event: FunctionUrlEvent) {
   const tableName = process.env.SHARE_TABLE_NAME;
   const domainParameter = process.env.SHARE_DOMAIN_PARAMETER_NAME;
   if (!tableName || !domainParameter) {
@@ -624,28 +185,9 @@ function describeError(error: unknown): string {
   if (!(error instanceof Error)) return "Unknown error";
   // Errors without a status come from elsewhere (the network, the runtime); only their kind is
   // kept, in case their text repeats part of a request.
-  const statusCode = (error as DiscogsError).statusCode;
+  const statusCode = statusOf(error);
   if (!statusCode) return error.name;
   return `${error.name}: ${error.message} (${statusCode})`;
-}
-
-/**
- * Reads a JSON request body.
- *
- * @param event Function URL request.
- * @returns The parsed body, or null when it is missing or not a JSON object.
- */
-function readJsonBody(event: LambdaEvent): Record<string, unknown> | null {
-  const text = readBody(event);
-  if (text.length > 4000) return null;
-  try {
-    const value: unknown = JSON.parse(text);
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -669,7 +211,7 @@ function signInErrorResponse(error: unknown) {
  * @param event Function URL request.
  * @returns The Discogs approval page plus the request token and secret for the browser to hold.
  */
-async function startOAuth(event: LambdaEvent) {
+async function startOAuth(event: FunctionUrlEvent) {
   const callback = readJsonBody(event)?.callback;
   if (!isAllowedCallback(callback)) {
     return jsonResponse(400, { error: "Sign-in is only possible from the Album Wall app." });
@@ -687,7 +229,7 @@ async function startOAuth(event: LambdaEvent) {
  * @param event Function URL request.
  * @returns The visitor's access token and secret, for their browser to keep, and their username.
  */
-async function finishOAuth(event: LambdaEvent) {
+async function finishOAuth(event: FunctionUrlEvent) {
   const body = readJsonBody(event);
   const { token, secret, verifier } = body ?? {};
   if (!isTokenValue(token) || !isTokenValue(secret) || !isTokenValue(verifier)) {
@@ -709,27 +251,7 @@ async function finishOAuth(event: LambdaEvent) {
  */
 async function listFolders(username: string, access: AccessToken) {
   try {
-    const headers = signedHeaders(await getConsumer(), access);
-    let response: Response;
-    try {
-      response = await fetch(`${BASE_URL}/users/${username}/collection/folders`, {
-        headers,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-    } catch {
-      throw httpError("Discogs took too long to respond.", 504);
-    }
-    if (!response.ok) throw httpError("Discogs could not list the folders.", response.status);
-    const body = (await response.json()) as {
-      folders?: { id?: unknown; name?: unknown; count?: unknown }[];
-    };
-    const folders = (body.folders ?? [])
-      .filter((folder) => Number.isInteger(folder.id) && typeof folder.name === "string")
-      .map((folder) => ({
-        id: folder.id as number,
-        name: folder.name as string,
-        count: Number.isInteger(folder.count) ? (folder.count as number) : 0,
-      }));
+    const folders = await getFolders(username, signedHeaders(await getConsumer(), access));
     return jsonResponse(200, { folders });
   } catch (error) {
     console.error("Error listing Discogs folders:", describeError(error));
@@ -752,7 +274,7 @@ const identities = new IdentityCache(async (token, secret) =>
  * @param path Request path without a trailing slash.
  * @returns The saved data, when it was saved, or an error.
  */
-async function savedWalls(event: LambdaEvent, method: string, path: string) {
+async function savedWalls(event: FunctionUrlEvent, method: string, path: string) {
   const table = process.env.SAVED_TABLE_NAME;
   if (!table) return jsonResponse(404, { error: "Saving walls to an account is not set up." });
   const headers = event.headers ?? {};
@@ -795,7 +317,7 @@ async function savedWalls(event: LambdaEvent, method: string, path: string) {
  * @param event Function URL request event with query parameters.
  * @returns Normalized album payload or a descriptive error response.
  */
-export async function handler(event: LambdaEvent) {
+export async function handler(event: FunctionUrlEvent) {
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath?.replace(/\/+$/, "") ?? "";
 
@@ -857,7 +379,7 @@ export async function handler(event: LambdaEvent) {
   }
 
   try {
-    const albums = await getUserCollection(username, access, folderId);
+    const albums = await getUserCollection(username, () => getRequestHeaders(access), folderId);
 
     // A public collection is the same for everyone, so CloudFront may keep it for a few minutes; a
     // signed-in visitor's answer can hold private records and is never kept.

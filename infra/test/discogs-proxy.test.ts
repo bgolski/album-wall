@@ -4,7 +4,7 @@ jest.mock("@aws-sdk/client-ssm", () => ({
   GetParameterCommand: jest.fn((input) => ({ input })),
 }));
 
-import { cleanArtistName } from "../lambda/discogs-proxy/index";
+import { cleanArtistName } from "../lambda/discogs-proxy/collection";
 
 type Handler = typeof import("../lambda/discogs-proxy/index").handler;
 type HandlerEvent = Parameters<Handler>[0];

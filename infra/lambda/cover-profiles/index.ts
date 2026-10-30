@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { packProfile, type PackedProfile } from "../../../src/utils/colorCache";
 import { coverProfile } from "../../../src/utils/coverProfile";
 import { allowedCoverUrl, fetchCover, resizeCover } from "../cover-image/index";
-import { readBody } from "../shared/http";
+import { type FunctionUrlEvent, jsonResponse, readBody } from "../shared/http";
 
 // Cover colors are the same for everyone, so they are measured once here and kept: the app asks
 // for a batch of covers, gets what is kept, and what is missing (up to a few per request) is
@@ -27,12 +27,6 @@ const KEEP_SECONDS = 365 * 24 * 60 * 60;
 /** Bumped when profiles measured earlier should be measured again. */
 export const PROFILE_VERSION = 1;
 
-type ProfileEvent = {
-  body?: string | null;
-  isBase64Encoded?: boolean;
-  requestContext?: { http?: { method?: string } };
-};
-
 type ProfileResponse = { statusCode: number; headers: Record<string, string>; body: string };
 
 /** What the handler needs from the outside, so it can be tested without AWS or the network. */
@@ -45,13 +39,8 @@ export interface ProfileStore {
   save(url: string, profile: PackedProfile): Promise<void>;
 }
 
-function respond(statusCode: number, body: unknown): ProfileResponse {
-  return {
-    statusCode,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-    body: JSON.stringify(body),
-  };
-}
+const respond = (statusCode: number, body: unknown): ProfileResponse =>
+  jsonResponse(statusCode, body);
 
 /**
  * Reads the cover addresses from a request body: a JSON object with a `urls` list of allowed
@@ -60,7 +49,7 @@ function respond(statusCode: number, body: unknown): ProfileResponse {
  * @param event The request.
  * @returns The distinct allowed addresses, or an error message.
  */
-export function parseUrls(event: ProfileEvent): URL[] | string {
+export function parseUrls(event: FunctionUrlEvent): URL[] | string {
   const raw = readBody(event);
   if (raw.length > MAX_BODY_BYTES) return "That request is too large.";
   let parsed: unknown;
@@ -89,7 +78,7 @@ export function parseUrls(event: ProfileEvent): URL[] | string {
  *          `{ profiles: { [address]: packed profile } }` for the covers it has or could measure.
  */
 export const createHandler = (store: ProfileStore) =>
-  async function handler(event: ProfileEvent): Promise<ProfileResponse> {
+  async function handler(event: FunctionUrlEvent): Promise<ProfileResponse> {
     if ((event.requestContext?.http?.method ?? "POST") !== "POST") {
       return respond(405, { error: "Method not allowed." });
     }

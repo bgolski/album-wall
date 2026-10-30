@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import type { FunctionUrlEvent } from "../shared/http";
 
 // The sizes the app asks for: measuring colors, wall tiles, and saved images.
 export const WIDTHS = [64, 320, 600] as const;
@@ -14,12 +15,6 @@ const IMAGE_CACHE = "public, max-age=31536000, immutable";
 // A bad request stays bad, and a missing cover rarely comes back, so both are cached a while.
 const BAD_REQUEST_CACHE = "public, max-age=86400";
 const NOT_FOUND_CACHE = "public, max-age=3600";
-
-type ImageEvent = {
-  rawPath?: string;
-  rawQueryString?: string;
-  requestContext?: { http?: { method?: string } };
-};
 
 type ImageResponse = {
   statusCode: number;
@@ -78,7 +73,7 @@ function respond(statusCode: number, body: string, cacheControl: string): ImageR
 }
 
 /** Reads the request: the cover address and one of the allowed widths, and nothing else. */
-function parseRequest(event: ImageEvent): { url: URL; width: number } | string {
+function parseRequest(event: FunctionUrlEvent): { url: URL; width: number } | string {
   const method = event.requestContext?.http?.method ?? "GET";
   if (method !== "GET" && method !== "HEAD") return "Only GET is supported.";
   if (event.rawPath !== "/img") return "Unknown path.";
@@ -186,7 +181,7 @@ export function resizeCover(source: Buffer, width: number): Promise<Buffer> {
  * @param load Downloads a cover; tests pass their own.
  */
 export const createHandler = (load: (url: URL) => Promise<Buffer>) =>
-  async function handler(event: ImageEvent): Promise<ImageResponse> {
+  async function handler(event: FunctionUrlEvent): Promise<ImageResponse> {
     const request = parseRequest(event);
     if (typeof request === "string") return respond(400, request, BAD_REQUEST_CACHE);
 

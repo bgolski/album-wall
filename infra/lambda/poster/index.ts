@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { allowedCoverUrl, fetchCover } from "../cover-image/index";
-import { readBody } from "../shared/http";
+import { type FunctionUrlEvent, readBody } from "../shared/http";
 import {
   POSTER_PIXELS,
   POSTER_RADIUS,
@@ -29,12 +29,6 @@ const MAX_TILES = 150;
 const MAX_BODY_BYTES = 64_000;
 const COVER_PARALLELISM = 8;
 const JPEG_QUALITY = 90;
-
-type PosterEvent = {
-  body?: string;
-  isBase64Encoded?: boolean;
-  requestContext?: { http?: { method?: string } };
-};
 
 export interface PosterRequest {
   size: PosterSize;
@@ -298,7 +292,7 @@ export const createPosterHandler = (
     render?: typeof renderPoster;
   } = {}
 ) =>
-  async function handle(event: PosterEvent): Promise<PosterResult> {
+  async function handle(event: FunctionUrlEvent): Promise<PosterResult> {
     const method = event.requestContext?.http?.method ?? "POST";
     if (method === "OPTIONS") {
       return { statusCode: 204, headers: { ...CORS, "access-control-max-age": "86400" }, body: "" };
@@ -340,7 +334,7 @@ export const createPosterHandler = (
 // lifts the 6 MB limit a plain response has (a large poster is tens of megabytes).
 interface StreamingRuntime {
   streamifyResponse(
-    handler: (event: PosterEvent, stream: NodeJS.WritableStream) => Promise<void>
+    handler: (event: FunctionUrlEvent, stream: NodeJS.WritableStream) => Promise<void>
   ): unknown;
   HttpResponseStream: {
     from(

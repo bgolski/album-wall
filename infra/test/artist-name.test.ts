@@ -4,7 +4,8 @@ jest.mock("@aws-sdk/client-ssm", () => ({
   GetParameterCommand: jest.fn((input) => ({ input })),
 }));
 
-import { cleanArtistName, handler } from "../lambda/discogs-proxy/index";
+import { handler } from "../lambda/discogs-proxy/index";
+import { cleanArtistName } from "../lambda/discogs-proxy/collection";
 
 describe("cleanArtistName", () => {
   it.each([
