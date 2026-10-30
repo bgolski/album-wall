@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { getBasePath } from "@/utils/basePath";
-import Footer from "@/components/layout/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { RegisterServiceWorker } from "@/components/layout/RegisterServiceWorker";
 
 const basePath = getBasePath();

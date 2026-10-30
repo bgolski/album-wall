@@ -13,7 +13,7 @@ import {
 // What a signed-in visitor keeps in their account: a collection's saved layouts and its wall
 // history, each as the same JSON text the browser keeps in local storage. The server only checks
 // it is JSON; the browser checks the contents when it loads them.
-export const SAVED_KINDS = ["layouts", "history"] as const;
+const SAVED_KINDS = ["layouts", "history"] as const;
 export type SavedKind = (typeof SAVED_KINDS)[number];
 // The browser keeps at most 20 layouts and 50 walls of history per collection; both fit easily.
 const MAX_DATA_BYTES = 64_000;

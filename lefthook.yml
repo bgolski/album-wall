@@ -3,6 +3,11 @@ glob_matcher: doublestar
 pre-commit:
   jobs:
     - name: lint and format
-      glob: "src/**/*.{js,jsx,ts,tsx}"
+      glob: "{src,e2e,scripts,infra/bin,infra/lib,infra/lambda,infra/test}/**/*.{js,jsx,ts,tsx,mjs}"
       run: npx eslint --fix {staged_files} && npx prettier --write {staged_files}
       stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: unused code
+      run: npm run check:unused

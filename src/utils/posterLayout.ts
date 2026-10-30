@@ -8,9 +8,9 @@ export const POSTER_PIXELS: Record<PosterSize, { short: number; long: number }> 
 };
 
 /** The gap between covers and their rounded corners, as shares of a cover; the margin, as a share of the short side. */
-export const POSTER_GAP = 0.12;
+const POSTER_GAP = 0.12;
 export const POSTER_RADIUS = 0.07;
-export const POSTER_MARGIN = 0.05;
+const POSTER_MARGIN = 0.05;
 
 /**
  * The shape of the poster for a wall: sideways when the wall is wider than it is tall.

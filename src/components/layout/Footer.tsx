@@ -20,5 +20,3 @@ export function Footer({ ownerName = "Bradley Golski" }: FooterProps) {
     </footer>
   );
 }
-
-export default Footer;

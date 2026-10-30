@@ -104,7 +104,7 @@ export function fitLightnessToCollection(
  * @param profiles Measured covers.
  * @returns The count, or null.
  */
-export function coversOfOneColor(stops: GradientStop[], profiles: CoverProfile[]): number | null {
+function coversOfOneColor(stops: GradientStop[], profiles: CoverProfile[]): number | null {
   const first = stops[0]?.color;
   if (!first || chromaOf(first) < NEUTRAL_CHROMA) return null;
   const hue = hueOf(first);

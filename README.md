@@ -82,7 +82,8 @@ Checks:
 npm test               # unit tests
 npm run type-check
 npm run lint
-npm run test:a11y      # Playwright + axe against the static build
+npm run test:e2e       # Playwright + axe against the static build
+npm run check:unused   # exports, files and dependencies nothing uses
 npm run check:live     # the deployed site and its services, from outside (also runs weekly in GitHub Actions)
 cd infra && npm ci && npx jest && npx cdk synth album-wall
 ```

@@ -2,7 +2,7 @@ import { chromaOf, hueOf, NEUTRAL_CHROMA, type CoverColor } from "./colorBasics"
 import type { CoverProfile, PaletteEntry } from "./coverProfile";
 
 /** Palette colors covering less of a cover than this are details (a logo, a sticker), not one of its colors. */
-export const MAIN_COLOR_SHARE = 0.15;
+const MAIN_COLOR_SHARE = 0.15;
 // Muted warm colors below this colorfulness read as brown or tan rather than orange or yellow.
 const BROWN_CHROMA = 0.09;
 

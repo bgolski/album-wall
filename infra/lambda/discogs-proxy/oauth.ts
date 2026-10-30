@@ -6,7 +6,7 @@ import { APP_ORIGINS } from "./share";
 // is stored, and no token or secret is ever logged.
 
 export const DISCOGS_API = "https://api.discogs.com";
-export const AUTHORIZE_URL = "https://www.discogs.com/oauth/authorize";
+const AUTHORIZE_URL = "https://www.discogs.com/oauth/authorize";
 export const USER_AGENT = "AlbumWall/1.0 +https://bradleygolski.com/album-wall/";
 const REQUEST_TIMEOUT_MS = 8000;
 // Discogs tokens, secrets and verifiers are short runs of letters and digits.

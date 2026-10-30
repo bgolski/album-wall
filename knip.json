@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/*.ts",
+        "public/sw.js"
+      ],
+      "ignoreDependencies": [
+        "postcss-load-config"
+      ]
+    },
+    "infra": {
+      "entry": [
+        "bin/infra.ts",
+        "lambda/*/index.ts"
+      ],
+      "ignoreDependencies": [
+        "esbuild",
+        "ts-node"
+      ]
+    }
+  }
+}

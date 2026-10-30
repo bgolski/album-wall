@@ -24,7 +24,7 @@ export type ImageLoader = (src: string) => Promise<HTMLImageElement | null>;
  * @param src Image address.
  * @returns The loaded image, or null when it fails or takes too long.
  */
-export const loadReadableImage: ImageLoader = (src) =>
+const loadReadableImage: ImageLoader = (src) =>
   new Promise((resolve) => {
     const image = new Image();
     image.crossOrigin = "anonymous";

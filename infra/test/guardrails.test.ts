@@ -13,11 +13,11 @@ const template = (() => {
     env: { account: "123456789012", region: "us-east-1" },
   });
   return Template.fromStack(stack);
-})().toJSON() as {
-  Resources: Record<string, { Type: string; Properties: Record<string, any> }>;
-};
+})().toJSON();
 
-const resources = Object.values(template.Resources);
+// The CDK hands the template over as untyped JSON.
+type TemplateJson = ReturnType<Template["toJSON"]>;
+const resources: { Type: string; Properties: TemplateJson }[] = Object.values(template.Resources);
 const ofType = (type: string) => resources.filter((resource) => resource.Type === type);
 
 // Everything the stack may contain. A resource type that is not here is new: look at what it costs
@@ -198,8 +198,9 @@ describe("spending alerts", () => {
   it("keeps the $1 budget with alerts on the first cent and on a forecast over $1", () => {
     const [budget] = ofType("AWS::Budgets::Budget");
     expect(Number(budget!.Properties.Budget.BudgetLimit.Amount)).toBeLessThanOrEqual(1);
-    const kinds = (budget!.Properties.NotificationsWithSubscribers as any[]).map(
-      (entry) => `${entry.Notification.NotificationType}>${entry.Notification.Threshold}`
+    const kinds = budget!.Properties.NotificationsWithSubscribers.map(
+      (entry: TemplateJson) =>
+        `${entry.Notification.NotificationType}>${entry.Notification.Threshold}`
     );
     expect(kinds).toEqual(expect.arrayContaining(["ACTUAL>1", "FORECASTED>100"]));
   });

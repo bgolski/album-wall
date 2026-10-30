@@ -32,9 +32,11 @@
 - Install: `npm install`
 - Dev server: `npm run dev` (Next.js + Turbopack)
 - Lint: `npm run lint` (or `npm run lint:fix`)
+- Format: `npm run format` (or `npm run format:check`), over `src`, `e2e`, `scripts` and `infra`
+- Unused code: `npm run check:unused` (knip; also runs before each push)
 - Typecheck: `npm run type-check`
-- Static build: `npm run build:static`, run with `npm run start`
-- Static build checks: `npm run check:static-output` (after `build:static`), `npm run test:a11y` (axe scans of the built site; needs `npx playwright install chromium` once), and Lighthouse with `npx @lhci/cli@0.15.1 autorun`. Set `NEXT_PUBLIC_BASE_PATH=/album-wall` for all three. `build:static` fails when `NEXT_PUBLIC_DISCOGS_PROXY_URL` or `NEXT_PUBLIC_BASE_PATH` is missing.
+- Static build: `npm run build:static`, run with `npm run start` (serves `out/` under `NEXT_PUBLIC_BASE_PATH` on port 3100)
+- Static build checks: `npm run check:static-output` (after `build:static`), `npm run test:e2e` (Playwright and axe against the built site; needs `npx playwright install chromium` once), and Lighthouse with `npx @lhci/cli@0.15.1 autorun`. Set `NEXT_PUBLIC_BASE_PATH=/album-wall` for all three. `build:static` fails when `NEXT_PUBLIC_DISCOGS_PROXY_URL` or `NEXT_PUBLIC_BASE_PATH` is missing.
 - SSR build: `npm run build:ssr`, run with `npm run start:next`
 
 ## Feature readiness criteria
@@ -52,5 +54,5 @@
 - Prefer mobile-first layout decisions for toolbars, forms, grids, and panels so dense desktop UIs do not simply compress into unusable phone layouts.
 
 ## Deployment notes
-- Static export writes to `out/`; `npm run start` serves it on port 3001.
+- Static export writes to `out/`; `npm run start` serves it on port 3100.
 - SSR uses Next.js server on port 3001.

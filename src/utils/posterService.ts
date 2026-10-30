@@ -12,7 +12,7 @@ export const POSTER_SIZES: readonly { id: PosterSize; label: string }[] = [
  * Where posters are made: the app's own service on the short link domain. An empty value turns
  * posters off.
  */
-export const POSTER_SERVICE =
+const POSTER_SERVICE =
   process.env.NEXT_PUBLIC_POSTER_SERVICE_URL ?? "https://albumwall.bradleygolski.com/poster";
 
 /** Why a poster could not be made, in words for the screen. */

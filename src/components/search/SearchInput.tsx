@@ -9,7 +9,7 @@ import type { DiscogsAccountProps } from "../account/types";
 import type { DiscogsFolder } from "@/utils/discogsSignIn";
 
 /** The collection on the wall, shown in one line in place of the form. */
-export interface ShownCollection {
+interface ShownCollection {
   /** The Discogs username, or the demo's name. */
   username: string;
   albumCount: number;

@@ -26,36 +26,6 @@ export interface Album {
   profile?: CoverProfile;
 }
 
-export interface DiscogsRelease {
-  id: number;
-  basic_information: {
-    id?: number;
-    title?: string;
-    cover_image?: string;
-    resource_url?: string;
-    artists?: {
-      name: string;
-      join?: string;
-    }[];
-    genres?: string[];
-    styles?: string[];
-    year?: number;
-    labels?: { name: string }[];
-    formats?: { name?: string; text?: string; descriptions?: string[] }[];
-  };
-  date_added?: string;
-}
-
-export interface DiscogsCollectionResponse {
-  pagination?: {
-    page?: number;
-    pages?: number;
-    per_page?: number;
-    items?: number;
-  };
-  releases?: DiscogsRelease[];
-}
-
 export interface SharedWallState {
   v: 1;
   username: string;
