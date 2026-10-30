@@ -1,19 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { Album } from "@/types";
 import { ExportPanel } from "./ExportPanel";
+import { makeAlbums } from "@/test/fixtures";
 
 afterEach(() => {
   cleanup();
   document.documentElement.classList.remove("dark");
 });
 
-const albums = Array.from({ length: 8 }, (_, index) => ({
-  id: index + 1,
-  title: `Album ${index + 1}`,
+const albums = makeAlbums(8, (id) => ({
   artist: "Artist",
-  cover_image: `https://example.test/${index + 1}.jpg`,
-})) as Album[];
+  cover_image: `https://example.test/${id}.jpg`,
+}));
 
 function renderPanel(overrides: Partial<Parameters<typeof ExportPanel>[0]> = {}) {
   const onSaveImage = vi.fn();

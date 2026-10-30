@@ -4,6 +4,7 @@ import type { Album } from "@/types";
 import type { CoverColor } from "@/utils/colorBasics";
 import type { CoverProfile } from "@/utils/coverProfile";
 import { RecordGrid } from "./RecordGrid";
+import { makeAlbums } from "@/test/fixtures";
 
 // The measuring itself is tested with the hook; here the grid is given profiles directly.
 const measuring = vi.hoisted(() => ({
@@ -23,11 +24,7 @@ vi.mock("@/hooks/useCoverColors", () => ({
   },
 }));
 
-const albums: Album[] = Array.from({ length: 40 }, (_, index) => ({
-  id: index + 1,
-  title: `Album ${index + 1}`,
-  artist: `Artist ${index + 1}`,
-}));
+const albums = makeAlbums(40);
 
 const colorAt = (hue: number): CoverColor => ({
   l: 0.7,

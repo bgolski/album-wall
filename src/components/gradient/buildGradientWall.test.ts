@@ -9,6 +9,7 @@ import {
   gradientStops,
   wallTargets,
 } from "./buildGradientWall";
+import { makeAlbum } from "@/test/fixtures";
 
 // A cover that is one flat color all over.
 function flat(hex: string): CoverProfile {
@@ -16,7 +17,8 @@ function flat(hex: string): CoverProfile {
   return { color, palette: [{ color, share: 1 }], regions: Array.from({ length: 9 }, () => color) };
 }
 
-const album = (id: number, artist = `Artist ${id}`): Album => ({ id, title: `T${id}`, artist });
+const album = (id: number, artist = `Artist ${id}`): Album =>
+  makeAlbum(id, { title: `T${id}`, artist });
 
 function build(
   covers: [Album, CoverProfile | null][],

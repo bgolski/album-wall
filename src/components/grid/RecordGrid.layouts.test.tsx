@@ -2,12 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Album } from "@/types";
 import { RecordGrid } from "./RecordGrid";
+import { makeAlbums } from "@/test/fixtures";
 
-const albums: Album[] = Array.from({ length: 40 }, (_, index) => ({
-  id: index + 1,
-  title: `Album ${index + 1}`,
-  artist: `Artist ${index + 1}`,
-}));
+const albums = makeAlbums(40);
 
 const tile = (title: string) =>
   screen.getByAltText(title).closest("[data-album-id]") as HTMLElement;

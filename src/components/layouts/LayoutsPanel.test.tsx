@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { Album, SharedWallState } from "@/types";
+import type { SharedWallState } from "@/types";
 import { LayoutsPanel } from "./LayoutsPanel";
 import { useHangHistory } from "@/hooks/useHangHistory";
+import { makeAlbums } from "@/test/fixtures";
 
-const albums: Album[] = Array.from({ length: 6 }, (_, i) => ({
-  id: i + 1,
-  title: `Album ${i + 1}`,
-  artist: `Artist ${i + 1}`,
-}));
+const albums = makeAlbums(6);
 
 const wall = (ids: string[], pins: string[] = []): SharedWallState => ({
   v: 1,

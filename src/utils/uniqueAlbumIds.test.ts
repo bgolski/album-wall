@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { giveCopiesUniqueIds } from "./uniqueAlbumIds";
 import type { Album } from "@/types";
+import { makeAlbum } from "@/test/fixtures";
 
-const album = (id: number, title: string): Album => ({ id, title, artist: "Artist" });
+const album = (id: number, title: string): Album => makeAlbum(id, { title, artist: "Artist" });
 
 describe("giveCopiesUniqueIds", () => {
   it("leaves a collection without duplicates unchanged", () => {

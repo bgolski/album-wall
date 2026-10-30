@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Album } from "@/types";
 import { guideEntries, paginateEntries, paperFor } from "./guideLayout";
+import { makeAlbum } from "@/test/fixtures";
 
-const album = (id: number, title: string, artist: string) => ({ id, title, artist }) as Album;
+const album = (id: number, title: string, artist: string): Album =>
+  makeAlbum(id, { title, artist });
 
 describe("guideEntries", () => {
   it("numbers rows and columns from 1, row by row", () => {

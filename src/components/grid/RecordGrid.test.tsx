@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { Album } from "@/types";
 import { RecordGrid } from "./RecordGrid";
-import { Album } from "@/types";
 import { decodeSharedWallState } from "@/utils/shareState";
+import { makeAlbums } from "@/test/fixtures";
 
-const albums: Album[] = Array.from({ length: 40 }, (_, index) => ({
-  id: index + 1,
-  title: `Album ${index + 1}`,
-  artist: `Artist ${index + 1}`,
-}));
+const albums = makeAlbums(40);
 
 function renderGrid(onAlbumsReorder = vi.fn(), wideScreen = true) {
   vi.stubGlobal(

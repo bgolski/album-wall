@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Album } from "@/types";
 import { RecordGrid } from "./RecordGrid";
+import { makeAlbum } from "@/test/fixtures";
 
 // The parent owns the order, as the app does.
 function Wall({ initial }: { initial: Album[] }) {
@@ -10,11 +11,9 @@ function Wall({ initial }: { initial: Album[] }) {
   return <RecordGrid username="someone" albums={albums} onAlbumsReorder={setAlbums} />;
 }
 
-const albums: Album[] = ["Delta", "Alpha", "Charlie", "Bravo"].map((artist, index) => ({
-  id: index + 1,
-  title: `Album ${index + 1}`,
-  artist,
-}));
+const albums = ["Delta", "Alpha", "Charlie", "Bravo"].map((artist, index) =>
+  makeAlbum(index + 1, { artist })
+);
 
 const wallArtists = () =>
   [...document.querySelectorAll("[data-album-id]")]
