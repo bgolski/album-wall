@@ -169,5 +169,3 @@ export async function getUserCollection(
     signal?.removeEventListener("abort", abortWithCaller);
   }
 }
-
-export { GENERIC_PROXY_ERROR_MESSAGE };

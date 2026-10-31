@@ -340,10 +340,6 @@ export async function getUserCollection(
   getHeaders: () => Promise<() => Record<string, string>>,
   folderId = 0
 ): Promise<Album[]> {
-  if (!username.trim()) {
-    throw new Error("Username cannot be empty");
-  }
-
   if (!validateDiscogsUsername(username)) {
     throw new Error(
       "Invalid username format. Usernames should contain only letters, numbers, dots, underscores, or hyphens."
@@ -374,10 +370,6 @@ export async function getUserCollection(
       pages.map((page) => fetchCollectionPage(username, headers, page, deadline, folderId))
     );
     for (const pageResponse of responses) allReleases.push(...(pageResponse.releases || []));
-  }
-
-  if (!allReleases.length) {
-    return [];
   }
 
   return allReleases.map((release) => {

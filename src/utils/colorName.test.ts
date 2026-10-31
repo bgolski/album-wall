@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colorName, mainColorNames, mainColors, namedMainColors } from "./colorName";
+import { colorName, mainColors, namedMainColors } from "./colorName";
 import { hexToOklab } from "./gradientTargets";
 
 const named = (hex: string) => colorName(hexToOklab(hex)!);
@@ -15,34 +15,6 @@ describe("colorName", () => {
 
   it("names neutrals by lightness", () => {
     expect(["#111111", "#808080", "#f5f5f5"].map(named)).toEqual(["black", "gray", "white"]);
-  });
-});
-
-describe("mainColorNames", () => {
-  it("lists the colors covering a good part of the cover, biggest first, without repeats", () => {
-    const pink = hexToOklab("#df9eba")!;
-    const black = hexToOklab("#211f25")!;
-    const rose = hexToOklab("#e8a5c0")!;
-    const red = hexToOklab("#ff0000")!;
-    expect(
-      mainColorNames({
-        color: pink,
-        palette: [
-          { color: pink, share: 0.4 },
-          { color: black, share: 0.32 },
-          { color: rose, share: 0.2 },
-          { color: red, share: 0.08 },
-        ],
-        regions: [],
-      })
-    ).toEqual(["pink", "black"]);
-  });
-
-  it("falls back to the biggest color when nothing covers much of the cover", () => {
-    const blue = hexToOklab("#1976d2")!;
-    expect(
-      mainColorNames({ color: blue, palette: [{ color: blue, share: 0.1 }], regions: [] })
-    ).toEqual(["blue"]);
   });
 });
 

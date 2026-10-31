@@ -208,7 +208,7 @@ export async function renderPoster(
   });
 
   let left = 0;
-  const tiles = await inParallel(request.covers, 4, async (address, index) => {
+  const tiles = await inParallel(request.covers, 4, async (address) => {
     const source = address ? (bytes.get(address) ?? null) : null;
     if (address && !source) left += 1;
     return makeTile(source, layout.tile, fill);

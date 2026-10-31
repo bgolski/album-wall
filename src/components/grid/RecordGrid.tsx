@@ -115,9 +115,6 @@ export function RecordGrid({
 
   const colorSortActive = sorting.sortOption === "color";
 
-  // The wall changes only when an Arrange panel builds one.
-  const wallAlbums = displayedAlbums;
-  const reorderByHand = onAlbumsReorder;
   const groupMode =
     sorting.sortOption === "none" || sorting.sortOption === "color" ? null : sorting.sortOption;
   const history = useHangHistory(username);
@@ -140,10 +137,10 @@ export function RecordGrid({
     mode: groupMode,
   });
   const move = useMoveMode({
-    displayedAlbums: wallAlbums,
+    displayedAlbums,
     poolItems,
     pinnedAlbums,
-    onAlbumsReorder: reorderByHand,
+    onAlbumsReorder,
   });
   const resize = useWallResize({
     displayedAlbums,
@@ -159,12 +156,12 @@ export function RecordGrid({
         username,
         rows,
         columns,
-        wallAlbumIds: wallAlbums.map(albumKey),
+        wallAlbumIds: displayedAlbums.map(albumKey),
         pinnedAlbumIds: Array.from(pinnedAlbums).filter((albumId) =>
-          wallAlbums.some((album) => albumKey(album) === albumId)
+          displayedAlbums.some((album) => albumKey(album) === albumId)
         ),
       }),
-    [username, rows, columns, wallAlbums, pinnedAlbums]
+    [username, rows, columns, displayedAlbums, pinnedAlbums]
   );
   useRememberWall({ username, wall: wallState, pinnedAlbums, onPinsChange });
 
@@ -179,12 +176,12 @@ export function RecordGrid({
     displayedAlbums,
     poolItems,
     pinnedAlbums,
-    onAlbumsReorder: reorderByHand,
+    onAlbumsReorder,
   });
   const share = useShareLinks({
     username,
     wall: wallState,
-    covers: wallAlbums.map((album) => album.cover_image ?? ""),
+    covers: displayedAlbums.map((album) => album.cover_image ?? ""),
     setStatus: show,
   });
   // The short link is asked for as the export panel opens, so it is usually ready by the time the
@@ -216,11 +213,11 @@ export function RecordGrid({
    */
   const handleShuffle = () => {
     const { newDisplayedAlbums, newPoolItems } = shuffleUnpinnedAlbums(
-      wallAlbums,
+      displayedAlbums,
       poolItems,
       pinnedAlbums
     );
-    reorderByHand([...newDisplayedAlbums, ...newPoolItems]);
+    onAlbumsReorder([...newDisplayedAlbums, ...newPoolItems]);
   };
 
   /**
@@ -382,7 +379,7 @@ export function RecordGrid({
         >
           <div ref={wallColumnRef} className="flex min-w-0 scroll-mt-4 flex-col gap-8 3xl:contents">
             <WallDisplay
-              albums={wallAlbums}
+              albums={displayedAlbums}
               columns={columns}
               rows={rows}
               gridSize={gridSize}
@@ -419,7 +416,7 @@ export function RecordGrid({
 
             <ExportPanel
               isVisible={panels.panel === "export"}
-              albums={wallAlbums}
+              albums={displayedAlbums}
               rows={rows}
               columns={columns}
               isExporting={exportHooks.isExporting}
@@ -429,13 +426,13 @@ export function RecordGrid({
               stepCount={guideSteps?.lines.length ?? 0}
               onSaveGuide={(withSteps) =>
                 void exportHooks.saveGuide(
-                  { albums: wallAlbums, rows, columns },
+                  { albums: displayedAlbums, rows, columns },
                   withSteps && guideSteps ? guideSteps : undefined
                 )
               }
               onSavePoster={(size, background) =>
                 void exportHooks.savePoster(
-                  { albums: wallAlbums, rows, columns },
+                  { albums: displayedAlbums, rows, columns },
                   { size, background }
                 )
               }

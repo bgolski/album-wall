@@ -6,8 +6,6 @@ interface GridControlsProps {
   areAllPinned: boolean;
   showAlbumLabels: boolean;
   onSortChange: (option: SortOption) => void;
-  /** A short note about the active sort, such as colors still being read. */
-  sortStatus?: string | null | undefined;
   onToggleDimensionsConfig: () => void;
   /** Opens and closes the saved walls. */
   onToggleLayouts?: (() => void) | undefined;
@@ -92,7 +90,6 @@ export function GridControls({
   areAllPinned,
   showAlbumLabels,
   onSortChange,
-  sortStatus = null,
   onToggleDimensionsConfig,
   onToggleLayouts,
   showLayouts = false,
@@ -256,11 +253,6 @@ export function GridControls({
         </ControlGroup>
       </div>
       {arrangeChoices}
-      {sortStatus && (
-        <p role="status" className="mt-3 text-sm text-muted">
-          {sortStatus}
-        </p>
-      )}
     </div>
   );
 }

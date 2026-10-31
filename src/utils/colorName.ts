@@ -69,13 +69,3 @@ export function namedMainColors(profile: CoverProfile): (PaletteEntry & { name: 
   const main = sorted.filter((entry) => entry.share >= MAIN_COLOR_SHARE);
   return main.length > 0 ? main : sorted.slice(0, 1);
 }
-
-/**
- * The names of a cover's main colors, biggest first.
- *
- * @param profile The cover's measured profile.
- * @returns Names such as ["pink", "black"].
- */
-export function mainColorNames(profile: CoverProfile): string[] {
-  return namedMainColors(profile).map((entry) => entry.name);
-}

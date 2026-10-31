@@ -7,7 +7,7 @@ import {
   finishDiscogsSignIn,
   getCollectionFolders,
   loadPending,
-  loadSession,
+  parseSession,
   readSignInReturn,
   savePending,
   saveSession,
@@ -37,19 +37,19 @@ afterEach(() => {
 
 describe("stored sign-in", () => {
   it("keeps, reads and forgets the session", () => {
-    expect(loadSession(localStorage)).toBeNull();
+    expect(parseSession(localStorage.getItem(SESSION_KEY))).toBeNull();
     expect(saveSession(localStorage, SESSION)).toBe(true);
-    expect(loadSession(localStorage)).toEqual(SESSION);
+    expect(parseSession(localStorage.getItem(SESSION_KEY))).toEqual(SESSION);
     clearSession(localStorage);
     expect(localStorage.getItem(SESSION_KEY)).toBeNull();
-    expect(loadSession(localStorage)).toBeNull();
+    expect(parseSession(localStorage.getItem(SESSION_KEY))).toBeNull();
   });
 
   it("ignores a damaged session", () => {
     localStorage.setItem(SESSION_KEY, '{"v":1,"username":"x","token":"a b","secret":"c"}');
-    expect(loadSession(localStorage)).toBeNull();
+    expect(parseSession(localStorage.getItem(SESSION_KEY))).toBeNull();
     localStorage.setItem(SESSION_KEY, "not json");
-    expect(loadSession(localStorage)).toBeNull();
+    expect(parseSession(localStorage.getItem(SESSION_KEY))).toBeNull();
   });
 
   it("holds the sign-in under way in session storage", () => {

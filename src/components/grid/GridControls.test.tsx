@@ -39,13 +39,6 @@ describe("GridControls color sort", () => {
       "false"
     );
   });
-
-  it("shows the sort status in a live region, and nothing when there is none", () => {
-    const { rerender, props } = renderControls({ sortStatus: "Reading cover colors... 5 left" });
-    expect(screen.getByRole("status").textContent).toBe("Reading cover colors... 5 left");
-    rerender(<GridControls {...props} sortStatus={null} />);
-    expect(screen.queryByRole("status")).toBeNull();
-  });
 });
 
 afterEach(() => {

@@ -53,21 +53,3 @@ export function hueOf(color: CoverColor): number {
 export function colorDistance(x: CoverColor, y: CoverColor): number {
   return Math.hypot(x.l - y.l, x.a - y.a, x.b - y.b);
 }
-
-/**
- * Lists the pairs of touching positions on a wall: each position with its right neighbor (not
- * across the end of a row) and its lower neighbor. Diagonals do not touch.
- *
- * @param count Number of positions, in row-major order.
- * @param columns Positions per row.
- * @returns Index pairs, ordered by the first position, right neighbor before lower neighbor.
- */
-export function wallSeamIndexes(count: number, columns: number): [number, number][] {
-  const seams: [number, number][] = [];
-  if (columns < 1) return seams;
-  for (let index = 0; index < count; index += 1) {
-    if (index % columns < columns - 1 && index + 1 < count) seams.push([index, index + 1]);
-    if (index + columns < count) seams.push([index, index + columns]);
-  }
-  return seams;
-}

@@ -61,20 +61,6 @@ function isToken(value: unknown): value is string {
 }
 
 /**
- * Reads the signed-in visitor from storage.
- *
- * @param storage Local storage.
- * @returns The session, or null when there is none or it is not valid.
- */
-export function loadSession(storage: Pick<Storage, "getItem">): DiscogsSession | null {
-  try {
-    return parseSession(storage.getItem(SESSION_KEY));
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Parses a stored session.
  *
  * @param raw The stored text.

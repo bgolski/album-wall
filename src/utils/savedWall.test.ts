@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  forgetWall,
   loadLastUsername,
   loadSavedWall,
   saveLastUsername,
@@ -86,18 +85,6 @@ describe("saveWall and loadSavedWall", () => {
   it("survives storage that throws", () => {
     expect(saveWall(broken, wall)).toBe(false);
     expect(loadSavedWall(broken, "vinylfan")).toBeNull();
-    expect(() => forgetWall(broken, "vinylfan")).not.toThrow();
-  });
-});
-
-describe("forgetWall", () => {
-  it("removes only that user's wall", () => {
-    const storage = memoryStorage();
-    saveWall(storage, wall);
-    saveWall(storage, { ...wall, username: "other" });
-    forgetWall(storage, "VINYLFAN");
-    expect(loadSavedWall(storage, "vinylfan")).toBeNull();
-    expect(loadSavedWall(storage, "other")).not.toBeNull();
   });
 });
 

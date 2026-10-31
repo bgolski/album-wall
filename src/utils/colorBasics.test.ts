@@ -5,7 +5,6 @@ import {
   hueOf,
   isCoverColor,
   NEUTRAL_CHROMA,
-  wallSeamIndexes,
   type CoverColor,
 } from "./colorBasics";
 
@@ -64,39 +63,5 @@ describe("colorDistance", () => {
 
   it("is the straight-line distance", () => {
     expect(colorDistance({ l: 0, a: 0, b: 0 }, { l: 0.3, a: 0.4, b: 0 })).toBeCloseTo(0.5, 12);
-  });
-});
-
-describe("wallSeamIndexes", () => {
-  it("lists right and lower neighbors for a 3 by 2 wall", () => {
-    expect(wallSeamIndexes(6, 3)).toEqual([
-      [0, 1],
-      [0, 3],
-      [1, 2],
-      [1, 4],
-      [2, 5],
-      [3, 4],
-      [4, 5],
-    ]);
-  });
-
-  it("does not join the end of a row to the start of the next", () => {
-    expect(wallSeamIndexes(4, 2)).not.toContainEqual([1, 2]);
-  });
-
-  it("handles a partly filled last row, a single column and nothing", () => {
-    expect(wallSeamIndexes(5, 3)).toEqual([
-      [0, 1],
-      [0, 3],
-      [1, 2],
-      [1, 4],
-      [3, 4],
-    ]);
-    expect(wallSeamIndexes(3, 1)).toEqual([
-      [0, 1],
-      [1, 2],
-    ]);
-    expect(wallSeamIndexes(0, 4)).toEqual([]);
-    expect(wallSeamIndexes(4, 0)).toEqual([]);
   });
 });

@@ -74,21 +74,6 @@ export function loadSavedWall(
 }
 
 /**
- * Deletes the stored wall for the specified user.
- *
- * @param storage Picked from the Web Storage API, only the `removeItem` method is needed.
- * @param username The username whose wall should be removed.
- */
-export function forgetWall(storage: Pick<Storage, "removeItem">, username: string): void {
-  try {
-    const key = savedWallKey(username);
-    storage.removeItem(key);
-  } catch {
-    /* ignore errors */
-  }
-}
-
-/**
  * Persists the last username that the user entered.
  *
  * @param storage Picked from the Web Storage API, only the `setItem` method is needed.
