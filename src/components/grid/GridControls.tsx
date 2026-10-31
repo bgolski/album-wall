@@ -1,15 +1,16 @@
 import type { ReactNode } from "react";
 import { SortOption } from "@/hooks/useAlbumSorting";
+import type { WallPanel } from "@/hooks/useOpenPanel";
 
 interface GridControlsProps {
   sortOption: SortOption;
   areAllPinned: boolean;
   showAlbumLabels: boolean;
   onSortChange: (option: SortOption) => void;
-  onToggleDimensionsConfig: () => void;
-  /** Opens and closes the saved walls. */
-  onToggleLayouts?: (() => void) | undefined;
-  showLayouts?: boolean | undefined;
+  /** The panel open beside the wall, if any. */
+  openPanel: WallPanel | null;
+  /** Opens a panel, or closes it when it is the one open. */
+  onTogglePanel: (panel: WallPanel) => void;
   onTogglePinAll: () => void;
   onToggleAlbumLabels: () => void;
   onShuffle: () => void;
@@ -19,10 +20,6 @@ interface GridControlsProps {
   onShare?: (() => void) | undefined;
   /** Starts getting the share link ready, as the pointer or focus reaches Share. */
   onPrepareShare?: (() => void) | undefined;
-  /** Opens and closes the export panel. */
-  onToggleExport: () => void;
-  showExport: boolean;
-  showDimensionsConfig: boolean;
   /** One-tap choices for the open Arrange mode, drawn under the controls. */
   arrangeChoices?: ReactNode;
 }
@@ -90,9 +87,8 @@ export function GridControls({
   areAllPinned,
   showAlbumLabels,
   onSortChange,
-  onToggleDimensionsConfig,
-  onToggleLayouts,
-  showLayouts = false,
+  openPanel,
+  onTogglePanel,
   onTogglePinAll,
   onToggleAlbumLabels,
   onShuffle,
@@ -100,13 +96,21 @@ export function GridControls({
   onUndo,
   onShare,
   onPrepareShare,
-  onToggleExport,
-  showExport,
-  showDimensionsConfig,
   arrangeChoices,
 }: GridControlsProps) {
   const panelButtonClass = (open: boolean) =>
     `${buttonClass} ${open ? "bg-line ring-2 ring-inset ring-accent" : "bg-raised hover:bg-line"}`;
+  /** A button that opens and closes one of the panels beside the wall. */
+  const panelButton = (panel: WallPanel, label: string) => (
+    <button
+      onClick={() => onTogglePanel(panel)}
+      className={panelButtonClass(openPanel === panel)}
+      aria-expanded={openPanel === panel}
+      type="button"
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div className="rounded-panel bg-panel p-3 shadow-sm sm:p-4">
@@ -156,14 +160,7 @@ export function GridControls({
 
         <ControlGroup id="wall-heading" label="Wall">
           <div className="grid grid-cols-4 gap-1.5 sm:gap-2 lg:flex">
-            <button
-              onClick={onToggleDimensionsConfig}
-              className={panelButtonClass(showDimensionsConfig)}
-              aria-expanded={showDimensionsConfig}
-              type="button"
-            >
-              Wall size
-            </button>
+            {panelButton("size", "Wall size")}
             <button
               onClick={onToggleAlbumLabels}
               className={plainClass}
@@ -207,16 +204,7 @@ export function GridControls({
 
         <ControlGroup id="save-share-heading" label="Save & share">
           <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:flex">
-            {onToggleLayouts && (
-              <button
-                onClick={onToggleLayouts}
-                className={panelButtonClass(showLayouts)}
-                aria-expanded={showLayouts}
-                type="button"
-              >
-                Saved walls
-              </button>
-            )}
+            {panelButton("layouts", "Saved walls")}
             {onShare && (
               <button
                 onClick={onShare}
@@ -241,14 +229,7 @@ export function GridControls({
                 Share link
               </button>
             )}
-            <button
-              onClick={onToggleExport}
-              className={panelButtonClass(showExport)}
-              aria-expanded={showExport}
-              type="button"
-            >
-              Export
-            </button>
+            {panelButton("export", "Export")}
           </div>
         </ControlGroup>
       </div>

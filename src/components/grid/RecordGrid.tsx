@@ -31,6 +31,7 @@ import { GradientPanel } from "../gradient/GradientPanel";
 import { GroupChoices } from "../arrange/GroupPanel";
 import { ExportPanel } from "./ExportPanel";
 import { DockedPanel } from "./DockedPanel";
+import { MoveBanner } from "./MoveBanner";
 import { WallDisplay } from "./WallDisplay";
 import { PoolDisplay } from "./PoolDisplay";
 import { AlbumDragPreview } from "../album/AlbumDragPreview";
@@ -164,6 +165,7 @@ export function RecordGrid({
     [username, rows, columns, displayedAlbums, pinnedAlbums]
   );
   useRememberWall({ username, wall: wallState, pinnedAlbums, onPinsChange });
+  const wallLayout = { albums: displayedAlbums, rows, columns };
 
   // What it takes to change the wall hung last time (marked as on the real wall) into this one,
   // for the hanging guide.
@@ -186,14 +188,17 @@ export function RecordGrid({
   });
   // The short link is asked for as the export panel opens, so it is usually ready by the time the
   // link is shared.
-  const exportOpen = panels.panel === "export";
-  const { prepare: prepareShare } = share;
+  const exportOpen = openPanel === "export";
   useEffect(() => {
-    if (exportOpen) prepareShare();
+    if (exportOpen) share.prepare();
     // Once per opening; `prepare` changes with every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exportOpen]);
-  const canShareSheet = typeof navigator !== "undefined" && Boolean(navigator.share);
+  // The share sheet where there is one (phones), the clipboard elsewhere.
+  const shareWall = () =>
+    typeof navigator !== "undefined" && Boolean(navigator.share)
+      ? void share.shareLink()
+      : void share.copyShareLink();
 
   /**
    * Shows the wall in the chosen order.
@@ -205,12 +210,10 @@ export function RecordGrid({
     // toolbar. Choosing a mode does not reorder the collection.
     sorting.handleSortChange(option);
     if (option === "color") panels.open("arrange");
-    else if (panels.panel === "arrange") panels.close();
+    else if (openPanel === "arrange") panels.close();
   };
 
-  /**
-   * Randomizes only unpinned albums across the grid and pool, then syncs the new order upward.
-   */
+  /** Randomizes only unpinned albums across the grid and pool, then syncs the new order upward. */
   const handleShuffle = () => {
     const { newDisplayedAlbums, newPoolItems } = shuffleUnpinnedAlbums(
       displayedAlbums,
@@ -228,7 +231,7 @@ export function RecordGrid({
    */
   const applyWall = (wall: SharedWallState) => {
     sorting.handleSortChange("none");
-    if (panels.panel === "arrange") panels.close();
+    if (openPanel === "arrange") panels.close();
     updateGridDimensions(wall.rows, wall.columns);
     replacePinnedAlbums(wall.pinnedAlbumIds);
     onAlbumsReorder(orderAlbumsBySharedWall(albums, wall));
@@ -247,6 +250,30 @@ export function RecordGrid({
 
   const { sheetAlbum, movingAlbum } = move;
 
+  /**
+   * The album sheet's details: its colors, the day it was last hung once there is a history, the
+   * pressings set aside, and, while Sort by Color is on, a way to start a gradient from a color.
+   */
+  const sheetDetails = (album: Album) => {
+    const key = albumKey(album);
+    return {
+      colorProfile: key in gradient.profiles ? (gradient.profiles[key] ?? null) : album.profile,
+      lastHungOn: history.hangs.length > 0 ? (history.lastHung.get(key) ?? null) : undefined,
+      otherPressings: pressings.once ? pressings.otherPressings(album) : [],
+      onShowPressing: (pressing: Album) => {
+        pressings.choose(pressing);
+        move.closeSheet();
+      },
+      onStartFromColor: colorSortActive
+        ? (hex: string) => {
+            setGradientStart((previous) => ({ id: (previous?.id ?? 0) + 1, colors: [hex, hex] }));
+            panels.open("arrange");
+            move.closeSheet();
+          }
+        : undefined,
+    };
+  };
+
   // On a narrow screen the panel sheet covers the lower part of the screen, so bring the wall up
   // above it as a panel opens.
   useEffect(() => {
@@ -258,8 +285,7 @@ export function RecordGrid({
   return (
     // On narrow screens the open panel is a sheet over the bottom of the screen; room below the
     // page lets the wall scroll up above it.
-    <div className={`flex flex-col gap-8 ${panels.panel ? "pb-[55vh] lg:pb-0" : ""}`}>
-      {/* Control Bar */}
+    <div className={`flex flex-col gap-8 ${openPanel ? "pb-[55vh] lg:pb-0" : ""}`}>
       <div className="relative">
         <CoverSourceNotice />
         <GridControls
@@ -278,42 +304,22 @@ export function RecordGrid({
               />
             )
           }
-          onToggleDimensionsConfig={() => panels.toggle("size")}
-          onToggleLayouts={() => panels.toggle("layouts")}
-          showLayouts={panels.panel === "layouts"}
+          openPanel={openPanel}
+          onTogglePanel={panels.toggle}
           onTogglePinAll={() => togglePinAll(displayedAlbums)}
           onToggleAlbumLabels={toggleAlbumLabels}
           onShuffle={handleShuffle}
           canUndo={canUndo}
           onUndo={handleUndo}
-          onShare={() => void (canShareSheet ? share.shareLink() : share.copyShareLink())}
+          onShare={shareWall}
           onPrepareShare={share.prepare}
-          onToggleExport={() => panels.toggle("export")}
-          showExport={panels.panel === "export"}
-          showDimensionsConfig={panels.panel === "size"}
         />
       </div>
 
       <Toast toast={toast} onDismiss={() => show(null)} />
 
       {movingAlbum && (
-        <div
-          role="status"
-          data-testid="move-banner"
-          className="sticky top-2 z-40 flex items-center justify-between gap-3 rounded-control bg-accent-2 px-4 py-3 text-on-accent-2 shadow-sm"
-        >
-          <span>
-            {move.moveMessage ??
-              `Moving ${movingAlbum.title || "album"}: tap another album to swap.`}
-          </span>
-          <button
-            type="button"
-            className="rounded-control bg-black/80 px-3 py-1 text-ink"
-            onClick={move.cancelMove}
-          >
-            Cancel
-          </button>
-        </div>
+        <MoveBanner album={movingAlbum} message={move.moveMessage} onCancel={move.cancelMove} />
       )}
 
       {sheetAlbum && (
@@ -321,35 +327,7 @@ export function RecordGrid({
           album={sheetAlbum}
           isPinned={pinnedAlbums.has(albumKey(sheetAlbum))}
           canPin={displayedAlbums.some((album) => album.id === sheetAlbum.id)}
-          {...(albumKey(sheetAlbum) in gradient.profiles
-            ? { colorProfile: gradient.profiles[albumKey(sheetAlbum)] ?? null }
-            : sheetAlbum.profile
-              ? { colorProfile: sheetAlbum.profile }
-              : {})}
-          {...(history.hangs.length > 0
-            ? { lastHungOn: history.lastHung.get(albumKey(sheetAlbum)) ?? null }
-            : {})}
-          {...(pressings.once && pressings.otherPressings(sheetAlbum).length > 0
-            ? {
-                otherPressings: pressings.otherPressings(sheetAlbum),
-                onShowPressing: (album: Album) => {
-                  pressings.choose(album);
-                  move.closeSheet();
-                },
-              }
-            : {})}
-          {...(colorSortActive
-            ? {
-                onStartFromColor: (hex: string) => {
-                  setGradientStart((previous) => ({
-                    id: (previous?.id ?? 0) + 1,
-                    colors: [hex, hex],
-                  }));
-                  panels.open("arrange");
-                  move.closeSheet();
-                },
-              }
-            : {})}
+          {...sheetDetails(sheetAlbum)}
           onClose={move.closeSheet}
           onTogglePin={() => {
             togglePinAlbum(albumKey(sheetAlbum));
@@ -372,7 +350,7 @@ export function RecordGrid({
       >
         <div
           className={`flex flex-col gap-8 lg:grid lg:items-start lg:gap-6 ${
-            panels.panel
+            openPanel
               ? "lg:grid-cols-[minmax(0,1fr)_24rem] 3xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_24rem]"
               : "lg:grid-cols-1 3xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)]"
           }`}
@@ -401,12 +379,12 @@ export function RecordGrid({
           </div>
 
           <DockedPanel
-            label={panels.panel ? PANEL_LABELS[panels.panel] : "Panel"}
+            label={openPanel ? PANEL_LABELS[openPanel] : "Panel"}
             onClose={panels.close}
-            hidden={!panels.panel}
+            hidden={!openPanel}
           >
             <GridDimensionsConfig
-              isVisible={panels.panel === "size"}
+              isVisible={openPanel === "size"}
               rows={rows}
               columns={columns}
               onDimensionsChange={resize.changeSize}
@@ -415,7 +393,7 @@ export function RecordGrid({
             />
 
             <ExportPanel
-              isVisible={panels.panel === "export"}
+              isVisible={openPanel === "export"}
               albums={displayedAlbums}
               rows={rows}
               columns={columns}
@@ -426,20 +404,17 @@ export function RecordGrid({
               stepCount={guideSteps?.lines.length ?? 0}
               onSaveGuide={(withSteps) =>
                 void exportHooks.saveGuide(
-                  { albums: displayedAlbums, rows, columns },
+                  wallLayout,
                   withSteps && guideSteps ? guideSteps : undefined
                 )
               }
               onSavePoster={(size, background) =>
-                void exportHooks.savePoster(
-                  { albums: displayedAlbums, rows, columns },
-                  { size, background }
-                )
+                void exportHooks.savePoster(wallLayout, { size, background })
               }
             />
 
             <LayoutsPanel
-              isVisible={panels.panel === "layouts"}
+              isVisible={openPanel === "layouts"}
               collectionName={username}
               currentWall={wallState}
               albums={albums}
@@ -451,7 +426,7 @@ export function RecordGrid({
             <GradientPanel
               key={gradientStart?.id ?? 0}
               start={gradientStart ?? undefined}
-              isVisible={panels.panel === "arrange" && colorSortActive}
+              isVisible={openPanel === "arrange" && colorSortActive}
               rows={rows}
               columns={columns}
               pending={gradient.pending}

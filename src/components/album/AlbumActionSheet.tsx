@@ -15,15 +15,15 @@ interface AlbumActionSheetProps {
   onTogglePin: () => void;
   onMove: () => void;
   /** The colors read from the cover, shown while Sort by Color is open; `null` if none could be read. */
-  colorProfile?: CoverProfile | null;
+  colorProfile?: CoverProfile | null | undefined;
   /** The day it was last on a wall the user hung, `null` if never; omitted when there is no history. */
-  lastHungOn?: string | null;
+  lastHungOn?: string | null | undefined;
   /** Other pressings of this album set aside by "show each album once". */
   otherPressings?: Album[];
   /** Shows another pressing instead of this one. */
   onShowPressing?: (album: Album) => void;
   /** Starts a gradient wall from one of the cover's colors (a hex code). */
-  onStartFromColor?: (hex: string) => void;
+  onStartFromColor?: ((hex: string) => void) | undefined;
 }
 
 /**

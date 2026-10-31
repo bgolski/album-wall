@@ -11,13 +11,11 @@ function renderControls(overrides: Partial<Props> = {}) {
     areAllPinned: false,
     showAlbumLabels: true,
     onSortChange: vi.fn(),
-    onToggleDimensionsConfig: vi.fn(),
+    openPanel: null,
+    onTogglePanel: vi.fn(),
     onTogglePinAll: vi.fn(),
     onToggleAlbumLabels: vi.fn(),
     onShuffle: vi.fn(),
-    onToggleExport: vi.fn(),
-    showExport: false,
-    showDimensionsConfig: false,
     ...overrides,
   };
   return { props, ...render(<GridControls {...props} />) };
@@ -85,15 +83,17 @@ describe("GridControls", () => {
     expect(vi.mocked(props.onSortChange).mock.calls).toEqual([["genre"], ["artist"], ["none"]]);
   });
 
-  it("says whether the grid settings panel is open", () => {
+  it("says which panel is open", () => {
     const { props, rerender } = renderControls();
-    expect(screen.getByRole("button", { name: "Wall size" }).getAttribute("aria-expanded")).toBe(
-      "false"
-    );
-    rerender(<GridControls {...props} showDimensionsConfig />);
-    expect(screen.getByRole("button", { name: "Wall size" }).getAttribute("aria-expanded")).toBe(
-      "true"
-    );
+    const expanded = () =>
+      ["Wall size", "Saved walls", "Export"].map((name) =>
+        screen.getByRole("button", { name }).getAttribute("aria-expanded")
+      );
+    expect(expanded()).toEqual(["false", "false", "false"]);
+    rerender(<GridControls {...props} openPanel="size" />);
+    expect(expanded()).toEqual(["true", "false", "false"]);
+    rerender(<GridControls {...props} openPanel="export" />);
+    expect(expanded()).toEqual(["false", "false", "true"]);
   });
 
   it("hides the decorative icons from assistive technology", () => {
@@ -117,11 +117,11 @@ describe("GridControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Labels" }));
     fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
-    expect(props.onToggleDimensionsConfig).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Saved walls" }));
+    expect(vi.mocked(props.onTogglePanel).mock.calls).toEqual([["size"], ["export"], ["layouts"]]);
     expect(props.onTogglePinAll).toHaveBeenCalledTimes(1);
     expect(props.onToggleAlbumLabels).toHaveBeenCalledTimes(1);
     expect(props.onShuffle).toHaveBeenCalledTimes(1);
-    expect(props.onToggleExport).toHaveBeenCalledTimes(1);
   });
 
   it("shows Labels and Pin all as switches that keep their names", () => {
