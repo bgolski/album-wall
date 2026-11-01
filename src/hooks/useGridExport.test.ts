@@ -75,6 +75,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   window.alert = originalAlert;
   Object.defineProperty(window, "URL", { value: originalURL, configurable: true });
   Object.defineProperty(window, "navigator", { value: originalNavigator, configurable: true });
