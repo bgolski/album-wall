@@ -1,5 +1,5 @@
 import type { CoverColor } from "@/color/colorBasics";
-import { srgbToOklab } from "@/color/coverColor";
+import { srgbToOklab } from "@/color/colorBasics";
 
 /** One step in a gradient: a {@link CoverColor} pinned at a 0-to-1 position `at`. */
 export interface GradientStop {

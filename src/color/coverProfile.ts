@@ -1,5 +1,4 @@
-import { CoverColor, NEUTRAL_CHROMA, chromaOf } from "./colorBasics";
-import { srgbToOklab } from "./coverColor";
+import { CoverColor, NEUTRAL_CHROMA, chromaOf, srgbToOklab } from "./colorBasics";
 
 /** A single entry in the palette. */
 export interface PaletteEntry {

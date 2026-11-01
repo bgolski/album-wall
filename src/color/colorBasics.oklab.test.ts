@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CoverColor } from "./colorBasics";
-import { srgbToOklab } from "./coverColor";
+import { srgbToOklab } from "./colorBasics";
 
 // Reference values come from an independent implementation of the published OKLab transform.
 function expectColor(actual: CoverColor | null, expected: CoverColor, digits = 4) {
