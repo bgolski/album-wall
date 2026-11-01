@@ -31,7 +31,13 @@ describe("CollectionManager empty collection", () => {
   });
 
   it("shows the error instead of the empty message when loading fails", () => {
-    render(<CollectionManager {...baseProps} loadedUsername="someone" error="Boom" />);
+    render(
+      <CollectionManager
+        {...baseProps}
+        loadedUsername="someone"
+        error={{ message: "Boom", kind: null }}
+      />
+    );
     expect(screen.queryByText("No records here")).toBeNull();
     expect(screen.getByRole("heading", { name: "Couldn't load" })).toBeTruthy();
   });

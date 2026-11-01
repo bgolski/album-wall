@@ -64,8 +64,20 @@ describe("demo wall sharing", () => {
     );
     window.location.hash = linkFor(DEMO_USERNAME, ["1"]);
     const { result } = renderHook(() => useCollection());
-    await waitFor(() => expect(result.current.error).toMatch(/demo/i));
+    await waitFor(() => expect(result.current.error?.message).toMatch(/demo/i));
     expect(getUserCollection).not.toHaveBeenCalled();
+  });
+
+  it("lets a demo share link win over ?user=", async () => {
+    window.history.replaceState(null, "", `/?user=linkedfan${linkFor(DEMO_USERNAME, ["2"])}`);
+    try {
+      const { result } = renderHook(() => useCollection());
+      await waitFor(() => expect(result.current.loadedUsername).toBe(DEMO_USERNAME));
+      expect(result.current.albums.map((album) => album.id)).toEqual([2, 1, 3]);
+      expect(getUserCollection).not.toHaveBeenCalled();
+    } finally {
+      window.history.replaceState(null, "", "/");
+    }
   });
 
   it("restores the arrangement saved for the demo on this device", async () => {

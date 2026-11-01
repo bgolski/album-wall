@@ -3,7 +3,7 @@ import { CollectionLoader } from "./CollectionLoader";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { CollectionDisplay } from "./CollectionDisplay";
 import { EmptyCollection } from "./EmptyCollection";
-import type { CollectionErrorKind } from "@/hooks/useCollection";
+import type { CollectionError } from "@/hooks/useCollection";
 
 interface CollectionManagerProps {
   albums: Album[];
@@ -12,8 +12,7 @@ interface CollectionManagerProps {
   loadCount: number;
   sharedWallState: SharedWallState | null;
   isPending: boolean;
-  error: string | null;
-  errorKind?: CollectionErrorKind;
+  error: CollectionError | null;
   onSignIn?: (() => void) | undefined;
   onAlbumsReorder: (newAlbums: Album[]) => void;
   canUndo: boolean;
@@ -33,7 +32,6 @@ export function CollectionManager({
   sharedWallState,
   isPending,
   error,
-  errorKind = null,
   onSignIn,
   onAlbumsReorder,
   canUndo,
@@ -46,10 +44,10 @@ export function CollectionManager({
       {/* Error state */}
       {error && !isPending && (
         <ErrorMessage
-          error={error}
+          error={error.message}
           username={username}
           onRetry={onRetry}
-          kind={errorKind}
+          kind={error.kind}
           onSignIn={onSignIn}
         />
       )}

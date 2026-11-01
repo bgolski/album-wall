@@ -81,7 +81,7 @@ describe("useCollection", () => {
       await result.current.loadCollection();
     });
 
-    await waitFor(() => expect(result.current.error).toBe("Not found"));
+    await waitFor(() => expect(result.current.error?.message).toBe("Not found"));
     expect(result.current.albums).toEqual([]);
   });
 
@@ -103,7 +103,7 @@ describe("useCollection", () => {
       await result.current.loadCollection();
     });
 
-    await waitFor(() => expect(result.current.error).toBe("Not found"));
+    await waitFor(() => expect(result.current.error?.message).toBe("Not found"));
 
     // Retry should succeed.
     act(() => {
@@ -128,7 +128,7 @@ describe("useCollection", () => {
       await result.current.loadCollection();
     });
 
-    await waitFor(() => expect(result.current.error).toBe("Not found"));
+    await waitFor(() => expect(result.current.error?.message).toBe("Not found"));
 
     act(() => {
       result.current.handleUsernameChange("another");
@@ -331,7 +331,7 @@ describe("useCollection and the address", () => {
     await act(async () => {
       await result.current.loadCollection();
     });
-    await waitFor(() => expect(result.current.error).toBe("nope"));
+    await waitFor(() => expect(result.current.error?.message).toBe("nope"));
     expect(window.location.search).toBe("?user=firstone");
   });
 });

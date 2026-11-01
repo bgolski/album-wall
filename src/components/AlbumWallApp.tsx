@@ -30,7 +30,6 @@ export default function AlbumWallApp() {
     sharedWallState,
     isPending,
     error,
-    errorKind,
     folderId,
     usernameError,
     demoAvailable,
@@ -43,15 +42,14 @@ export default function AlbumWallApp() {
     retry,
     loadDemo,
     chooseFolder,
-    loadOwnCollection,
   } = useCollection(session, signOut);
   const welcome = useWelcome(demoAvailable, albums.length > 0);
 
   // Straight after signing in, load the visitor's own collection.
   const { justSignedIn } = discogs;
   useEffect(() => {
-    if (justSignedIn) loadOwnCollection(justSignedIn);
-    // Only when a sign-in finishes; loadOwnCollection changes with every render.
+    if (justSignedIn) void loadCollection(justSignedIn);
+    // Only when a sign-in finishes; loadCollection changes with every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justSignedIn]);
 
@@ -66,7 +64,7 @@ export default function AlbumWallApp() {
     // when the visitor's own is already there.
     onLoadOwn:
       session && loadedUsername.trim().toLowerCase() !== session.username.toLowerCase()
-        ? () => loadOwnCollection(session.username)
+        ? () => void loadCollection(session.username)
         : undefined,
   };
 
@@ -114,7 +112,6 @@ export default function AlbumWallApp() {
           sharedWallState={sharedWallState}
           isPending={isPending}
           error={error}
-          errorKind={errorKind}
           onSignIn={session ? undefined : account.onSignIn}
           onAlbumsReorder={handleAlbumsReorder}
           canUndo={canUndo}

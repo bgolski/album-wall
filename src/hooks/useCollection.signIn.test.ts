@@ -34,7 +34,7 @@ describe("signed in with Discogs", () => {
     vi.mocked(getUserCollection).mockResolvedValue(albums);
     const { result } = renderHook(() => useCollection(SESSION));
 
-    act(() => result.current.loadOwnCollection("Collector"));
+    act(() => void result.current.loadCollection("Collector"));
     await waitFor(() => expect(result.current.loadedUsername).toBe("Collector"));
     expect(getUserCollection).toHaveBeenLastCalledWith("Collector", undefined, {
       session: SESSION,
@@ -75,8 +75,8 @@ describe("signed in with Discogs", () => {
     );
     const onSignedOut = vi.fn();
     const { result } = renderHook(() => useCollection(SESSION, onSignedOut));
-    act(() => result.current.loadOwnCollection("Collector"));
-    await waitFor(() => expect(result.current.error).toMatch(/signed out/i));
+    act(() => void result.current.loadCollection("Collector"));
+    await waitFor(() => expect(result.current.error?.message).toMatch(/signed out/i));
     expect(onSignedOut).toHaveBeenCalledTimes(1);
   });
 });
@@ -107,8 +107,8 @@ describe("signed out", () => {
       )
     );
     const { result } = renderHook(() => useCollection());
-    await waitFor(() => expect(result.current.errorKind).toBe("private-shared"));
-    expect(result.current.error).toMatch(/shared from a private Discogs collection/);
+    await waitFor(() => expect(result.current.error?.kind).toBe("private-shared"));
+    expect(result.current.error?.message).toMatch(/shared from a private Discogs collection/);
   });
 
   it("marks a private collection typed by hand", async () => {
@@ -118,7 +118,7 @@ describe("signed out", () => {
     const { result } = renderHook(() => useCollection());
     act(() => result.current.handleUsernameChange("owner"));
     await act(() => result.current.loadCollection());
-    await waitFor(() => expect(result.current.errorKind).toBe("private"));
-    expect(result.current.error).toBe("The collection is private");
+    await waitFor(() => expect(result.current.error?.kind).toBe("private"));
+    expect(result.current.error?.message).toBe("The collection is private");
   });
 });
