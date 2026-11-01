@@ -1,0 +1,60 @@
+name: Merge Dependabot Updates
+
+# Merges a Dependabot pull request once PR Validation has passed on its latest commit, when every
+# dependency in it is a minor or patch update. Major updates wait for a person.
+on:
+  workflow_run:
+    workflows: [PR Validation]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const { owner, repo } = context.repo;
+            const [listed] = run.pull_requests;
+            if (!listed) return core.info("The run is not attached to a pull request.");
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: listed.number });
+
+            if (pr.state !== "open" || pr.user.login !== "dependabot[bot]" || pr.base.ref !== "main") {
+              return core.info(`#${pr.number} is not an open Dependabot pull request into main.`);
+            }
+            // A newer commit has its own run; merge only what was checked.
+            if (pr.head.sha !== run.head_sha) {
+              return core.info(`#${pr.number} has moved on since this run.`);
+            }
+
+            // Dependabot lists every dependency it changed, with its update type, in the commit message.
+            const { data: commit } = await github.rest.git.getCommit({ owner, repo, commit_sha: run.head_sha });
+            const updateTypes = [...commit.message.matchAll(/update-type: version-update:semver-(\w+)/g)].map(
+              (match) => match[1]
+            );
+            if (updateTypes.length === 0 || updateTypes.some((type) => type !== "minor" && type !== "patch")) {
+              return core.info(`#${pr.number} is left for review (${updateTypes.join(", ") || "no update type"}).`);
+            }
+
+            await github.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: pr.number,
+              sha: run.head_sha,
+              merge_method: "squash",
+            });
+            core.info(`Merged #${pr.number}.`);
+
+            // A merge made with this workflow's token does not start other workflows, so deploy here.
+            await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: "deploy.yml", ref: "main" });
