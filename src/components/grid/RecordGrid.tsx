@@ -203,8 +203,6 @@ export function RecordGrid({
 
   /**
    * Shows the wall in the chosen order.
-   *
-   * @param option Sort mode selected from the control bar.
    */
   const handleSortChange = (option: typeof sorting.sortOption) => {
     // Color opens its panel (again, if it was closed); the other modes show their choices in the
@@ -227,8 +225,6 @@ export function RecordGrid({
   /**
    * Puts a saved wall on the wall: its size, its pins and its albums, in order. Albums it names
    * that are no longer in the collection are skipped, and the next albums fill their places.
-   *
-   * @param wall Saved wall to show.
    */
   const applyWall = (wall: SharedWallState) => {
     sorting.handleSortChange("none");

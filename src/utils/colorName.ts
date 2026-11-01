@@ -9,7 +9,6 @@ const BROWN_CHROMA = 0.09;
 /**
  * The everyday name of a color, the way people describe album covers.
  *
- * @param color A color in OKLab.
  * @returns One of black, gray, white, brown, red, pink, orange, yellow, green, blue or purple.
  */
 export function colorName(color: CoverColor): string {
@@ -30,9 +29,6 @@ export function colorName(color: CoverColor): string {
 /**
  * A cover's main colors: the palette colors covering at least {@link MAIN_COLOR_SHARE} of it,
  * biggest first, or just the biggest when none does.
- *
- * @param profile The cover's measured profile.
- * @returns Palette entries.
  */
 export function mainColors(profile: CoverProfile): PaletteEntry[] {
   const sorted = [...profile.palette].sort((x, y) => y.share - x.share);
@@ -45,7 +41,6 @@ export function mainColors(profile: CoverProfile): PaletteEntry[] {
  * their shares added (the biggest shade stands for it), biggest first, keeping those covering at
  * least {@link MAIN_COLOR_SHARE}, or just the biggest when none does.
  *
- * @param profile The cover's measured profile.
  * @returns Named colors, such as pink 55% and black 41%.
  */
 export function namedMainColors(profile: CoverProfile): (PaletteEntry & { name: string })[] {

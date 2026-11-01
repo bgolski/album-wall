@@ -77,7 +77,6 @@ export function writeCachedCollection(
  * while signed in stays behind after signing out.
  *
  * @param storage Session storage.
- * @param username Whose copies to remove.
  */
 export function clearCachedCollections(
   storage: Pick<Storage, "key" | "length" | "removeItem">,

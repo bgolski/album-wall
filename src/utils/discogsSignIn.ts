@@ -82,7 +82,6 @@ export function parseSession(raw: string | null): DiscogsSession | null {
  * Keeps the signed-in visitor in storage.
  *
  * @param storage Local storage.
- * @param session The session.
  * @returns Whether it was stored.
  */
 export function saveSession(storage: Pick<Storage, "setItem">, session: DiscogsSession): boolean {
@@ -131,7 +130,6 @@ export function loadPending(storage: Pick<Storage, "getItem">): PendingSignIn | 
  * Holds a sign-in under way until the visitor comes back from Discogs.
  *
  * @param storage Session storage.
- * @param pending The request token.
  * @returns Whether it was stored.
  */
 export function savePending(storage: Pick<Storage, "setItem">, pending: PendingSignIn): boolean {
@@ -177,9 +175,6 @@ export function readSignInReturn(search: string): SignInReturn {
 
 /**
  * The `Authorization` header the proxy reads a signed-in visitor from.
- *
- * @param session The signed-in visitor.
- * @returns The header value.
  */
 export function authorizationHeader(session: Pick<DiscogsSession, "token" | "secret">): string {
   return `Bearer ${session.token}:${session.secret}`;
@@ -187,11 +182,6 @@ export function authorizationHeader(session: Pick<DiscogsSession, "token" | "sec
 
 /**
  * Sends a request to the proxy and reads its JSON answer.
- *
- * @param path Path under the proxy.
- * @param init Request options.
- * @param proxyUrl The proxy address.
- * @returns The answer.
  */
 async function callProxy(
   path: string,
@@ -241,8 +231,6 @@ function postJson(body: unknown): RequestInit {
  * Asks the proxy for a request token and the Discogs page where the visitor approves it.
  *
  * @param callback The page Discogs sends the visitor back to.
- * @param proxyUrl The proxy address.
- * @returns The approval page and the request token.
  */
 export async function startDiscogsSignIn(
   callback: string,
@@ -266,8 +254,6 @@ export async function startDiscogsSignIn(
  *
  * @param pending The request token held while the visitor was on Discogs.
  * @param verifier The code Discogs added to the address.
- * @param proxyUrl The proxy address.
- * @returns The new session.
  */
 export async function finishDiscogsSignIn(
   pending: Pick<PendingSignIn, "token" | "secret">,
@@ -289,8 +275,6 @@ export async function finishDiscogsSignIn(
 /**
  * Lists the signed-in visitor's collection folders.
  *
- * @param session The signed-in visitor.
- * @param proxyUrl The proxy address.
  * @returns The folders, "All" (id 0) first as Discogs lists it.
  */
 export async function getCollectionFolders(

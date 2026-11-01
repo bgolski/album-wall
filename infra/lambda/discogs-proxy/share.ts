@@ -46,8 +46,6 @@ function isCoverUrl(value: string) {
 /**
  * Checks a share request and keeps only what the short link needs.
  *
- * @param body Request body text.
- * @returns The cleaned request.
  * @throws ShareInputError when something required is missing or not allowed.
  */
 export function parseShareRequest(body: string): ShareRequest {
@@ -102,7 +100,6 @@ export function parseShareRequest(body: string): ShareRequest {
 /**
  * A short id that is the same for the same wall, so sharing a wall twice gives one link.
  *
- * @param request The cleaned request.
  * @returns Eight base62 characters.
  */
 export function shareId(request: ShareRequest): string {
@@ -115,11 +112,7 @@ export function shareId(request: ShareRequest): string {
 /**
  * Stores a shared wall (or refreshes its expiry when it is already stored).
  *
- * @param client DynamoDB client.
- * @param tableName Shared walls table.
- * @param request The cleaned request.
  * @param now Current time in milliseconds.
- * @returns The wall's short id.
  */
 export async function storeSharedWall(
   client: DynamoDBClient,

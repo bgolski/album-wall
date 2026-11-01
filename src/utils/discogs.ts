@@ -37,7 +37,6 @@ const GENERIC_PROXY_ERROR_MESSAGE =
 /**
  * Validates the basic character rules for a Discogs username before making API calls.
  *
- * @param username Discogs username to validate.
  * @returns True when the username matches the expected format.
  */
 export function validateDiscogsUsername(username: string): boolean {
@@ -47,7 +46,6 @@ export function validateDiscogsUsername(username: string): boolean {
 /**
  * Fetches a user's Discogs collection through the AWS proxy and returns the normalized album list.
  *
- * @param username Discogs username whose collection should be loaded.
  * @param signal Optional AbortSignal to cancel the fetch.
  * @param options The signed-in visitor and folder, when there are.
  * @returns Albums sorted by Discogs artist order for the user's collection.

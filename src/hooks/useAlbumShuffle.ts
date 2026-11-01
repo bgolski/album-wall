@@ -10,9 +10,6 @@ export function useAlbumShuffle() {
   /**
    * Shuffles all unpinned albums while keeping pinned albums fixed in their current grid slots.
    *
-   * @param displayedAlbums Albums currently shown in the wall grid.
-   * @param poolItems Albums currently outside the grid.
-   * @param pinnedAlbums Set of pinned album ids.
    * @returns New grid and pool arrays after shuffling unpinned albums.
    */
   const shuffleUnpinnedAlbums = (

@@ -12,7 +12,6 @@ import { runGradientJob } from "@/utils/gradientJobs";
  * and builds run in a worker, so large collections do not freeze the page.
  *
  * @param input.albums The whole collection in its current order.
- * @param input.active Whether Sort by Color is open.
  * @returns Profiles and progress, suggestions, and `build`.
  */
 export function useGradientBuilder(input: {
@@ -52,7 +51,6 @@ export function useGradientBuilder(input: {
   /**
    * Fills the wall with the covers that best fit a gradient.
    *
-   * @param gradient Colors and direction from the panel.
    * @param keepArtistsApart Whether covers by the same artist may touch.
    * @param preferRested Whether records hung recently should be passed over when others fit.
    * @returns What the build did, for the panel's status line.

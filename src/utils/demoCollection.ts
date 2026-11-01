@@ -14,7 +14,6 @@ import { unpackProfile } from "./colorCache";
  * The function never mutates the input and returns `null` for an
  * invalid envelope or when no valid albums remain.
  *
- * @param value The raw envelope value.
  * @returns An array of `Album` objects or `null`.
  */
 export function parseDemoCollection(value: unknown): Album[] | null {

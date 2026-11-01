@@ -32,8 +32,6 @@ function genresOf(album: Album): string[] {
 /**
  * The groups a record belongs to under a mode: its artist, its genres and styles, or its decade.
  *
- * @param mode How the wall is grouped.
- * @param album The record.
  * @returns Group names; empty when the record has none (no year, say).
  */
 export function groupsOf(mode: GroupMode, album: Album): string[] {
@@ -48,10 +46,6 @@ export function groupsOf(mode: GroupMode, album: Album): string[] {
 /**
  * Every group in the collection with how many records it holds: biggest first, except decades,
  * which run oldest to newest.
- *
- * @param mode How the wall is grouped.
- * @param albums The whole collection.
- * @returns The groups.
  */
 export function availableGroups(mode: GroupMode, albums: Album[]): GroupChoice[] {
   const counts = new Map<string, number>();
@@ -71,7 +65,6 @@ function titleOf(album: Album) {
 /**
  * Turns a tap's choices into which records to use and how to order them along the wall.
  *
- * @param settings What was asked for.
  * @returns A selection, a comparison, and whether to take only the first records of the run.
  */
 export function groupPlan(settings: GroupSettings): {

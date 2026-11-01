@@ -31,8 +31,6 @@ export const DEFAULT_PLACEHOLDER_IMAGE =
 /**
  * Converts a remote image URL into a proxied URL to improve browser loading and export behavior.
  *
- * @param url Original image URL.
- * @param options Options for proxied image generation.
  * @param options.size Desired square dimensions (width and height) for the proxied image.
  * @returns A proxied image URL or the placeholder image when no URL is provided.
  */
@@ -77,7 +75,6 @@ function isServiceHost(url: string): boolean {
  * Address of a cover's copy from the app's image service: square, at the smallest width it makes
  * that is at least `size` (the largest when no size is given).
  *
- * @param url Original cover address.
  * @param options.size Desired square size in pixels.
  * @returns The service address, or null when the service is off or does not serve this host.
  */
@@ -92,7 +89,6 @@ export function getServiceImageUrl(url: string, options: { size?: number } = {})
 /**
  * Where to load a cover from, best first, for the sources the page is using.
  *
- * @param url Original cover address.
  * @param sources Sources to use, in order (see `coverSources`).
  * @param options.size Desired square size in pixels; the original size when omitted.
  * @returns Each address with the source it comes from.

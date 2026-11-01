@@ -31,8 +31,6 @@ function median(colors: CoverColor[]): CoverColor {
  * The color families in a collection: for each everyday color name, how many covers have it as one
  * of their main colors, and the typical (median) shade of it on those covers.
  *
- * @param albums The collection.
- * @param profiles Measured covers by album id.
  * @returns Families, most common first.
  */
 export function colorFamilies(
@@ -57,12 +55,6 @@ export function colorFamilies(
  * runs from dark to light through neutrals, then up to three that include a color other than brown, each a
  * different set of colors, best fitting first. A color is only used when enough covers have it to
  * fill its part of the wall at this size. Stops run from darkest to lightest.
- *
- * @param input.albums The collection.
- * @param input.profiles Measured covers by album id.
- * @param input.rows Wall rows.
- * @param input.columns Wall columns.
- * @returns The suggestions.
  */
 export function suggestGradients(input: {
   albums: Album[];

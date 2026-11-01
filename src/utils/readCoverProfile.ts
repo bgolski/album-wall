@@ -55,7 +55,6 @@ function measureCopy(
  * size for a cover it serves at another, so a copy from it that does not load is retried at the
  * tile size the wall already shows, which the browser has usually kept.
  *
- * @param coverUrl Original cover address.
  * @param timeoutMs How long to wait for each copy before giving up on it.
  * @returns The cover's profile, or `null` when it cannot be loaded or read.
  */

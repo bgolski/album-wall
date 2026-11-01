@@ -13,7 +13,6 @@ export interface PdfPage {
  *
  * @param pages The pages, in order.
  * @param size The page size in points (72 to the inch).
- * @returns The bytes of the PDF.
  */
 export function buildPdf(pages: PdfPage[], size: { width: number; height: number }): Uint8Array {
   const encoder = new TextEncoder();

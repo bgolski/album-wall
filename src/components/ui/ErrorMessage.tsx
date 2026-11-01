@@ -21,11 +21,6 @@ interface Explanation {
 
 /**
  * Says what went wrong in the visitor's terms.
- *
- * @param kind Why the load failed.
- * @param error The message the load failed with.
- * @param username The collection asked for.
- * @returns Heading, text and the action that helps.
  */
 function explain(kind: CollectionErrorKind, username: string): Explanation {
   switch (kind) {

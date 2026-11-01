@@ -66,8 +66,6 @@ function askToKeepStorage() {
  * Keeps a collection's named layouts in this browser and backs them up to a file. Every change
  * returns `null` when it worked or a message saying why it did not.
  *
- * @param collectionName Collection the layouts belong to.
- * @param options Replacements for storage, clock and ids.
  * @returns The layouts, the actions, and whether any layout has not been exported yet.
  */
 export function useLayouts(collectionName: string, options: LayoutOptions = {}) {

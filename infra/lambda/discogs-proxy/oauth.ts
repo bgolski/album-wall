@@ -26,9 +26,6 @@ export class SignInError extends Error {
 
 /**
  * Percent-encodes a value the way OAuth 1.0a requires (RFC 3986 unreserved characters only).
- *
- * @param value Text to encode.
- * @returns The encoded text.
  */
 export function oauthEncode(value: string): string {
   return encodeURIComponent(value).replace(
@@ -41,9 +38,7 @@ export function oauthEncode(value: string): string {
  * The PLAINTEXT signature: the consumer secret and the token secret, joined by "&". Discogs accepts
  * it over HTTPS.
  *
- * @param consumerSecret The app's consumer secret.
  * @param tokenSecret The request or access token secret, when there is one.
- * @returns The signature.
  */
 export function plaintextSignature(consumerSecret: string, tokenSecret = ""): string {
   return `${oauthEncode(consumerSecret)}&${oauthEncode(tokenSecret)}`;
@@ -52,12 +47,9 @@ export function plaintextSignature(consumerSecret: string, tokenSecret = ""): st
 /**
  * Builds an `Authorization: OAuth ...` header value.
  *
- * @param consumer The app's consumer key and secret.
  * @param extra Other oauth_ parameters (callback, token, verifier).
  * @param tokenSecret Secret of the token being used, when there is one.
  * @param now Current time in milliseconds.
- * @param nonce A value used once.
- * @returns The header value.
  */
 export function oauthHeader(
   consumer: Consumer,
@@ -82,10 +74,6 @@ export function oauthHeader(
 
 /**
  * Headers for a Discogs API request made as a signed-in visitor.
- *
- * @param consumer The app's consumer key and secret.
- * @param access The visitor's access token and secret.
- * @returns Request headers.
  */
 export function signedHeaders(consumer: Consumer, access: AccessToken): Record<string, string> {
   return {
@@ -112,7 +100,6 @@ export function readAccessHeader(value: string | undefined): AccessToken | null 
  * Whether Discogs may send the visitor back to this address after they approve: only the app's
  * own pages, with no query or fragment, so the proxy cannot be used to redirect anywhere else.
  *
- * @param value The address the app asked for.
  * @returns True when it is allowed.
  */
 export function isAllowedCallback(value: unknown): value is string {
@@ -135,7 +122,6 @@ export function isAllowedCallback(value: unknown): value is string {
 /**
  * Checks a token, secret or verifier sent by the app.
  *
- * @param value Value to check.
  * @returns True when it looks like a Discogs value.
  */
 export function isTokenValue(value: unknown): value is string {
@@ -144,10 +130,6 @@ export function isTokenValue(value: unknown): value is string {
 
 /**
  * Posts to one of Discogs' OAuth endpoints and reads its form-encoded answer.
- *
- * @param path Endpoint path.
- * @param authorization The OAuth header.
- * @returns The answer's fields.
  */
 async function postOAuth(path: string, authorization: string): Promise<URLSearchParams> {
   let response: Response;
@@ -178,9 +160,7 @@ async function postOAuth(path: string, authorization: string): Promise<URLSearch
  * The request token's secret goes back to the browser, which holds it until the visitor returns
  * (see the infra README for why).
  *
- * @param consumer The app's consumer key and secret.
  * @param callback Where Discogs sends the visitor back.
- * @returns The approval page and the request token.
  */
 export async function startSignIn(consumer: Consumer, callback: string) {
   const answer = await postOAuth(
@@ -199,7 +179,6 @@ export async function startSignIn(consumer: Consumer, callback: string) {
  * Second step: trades the approved request token for the visitor's access token and finds out
  * who signed in.
  *
- * @param consumer The app's consumer key and secret.
  * @param request The request token and secret from the first step.
  * @param verifier The code Discogs added to the address when it sent the visitor back.
  * @returns The access token, its secret and the Discogs username.
@@ -222,10 +201,6 @@ export async function finishSignIn(consumer: Consumer, request: AccessToken, ver
 
 /**
  * Asks Discogs whose access token this is.
- *
- * @param consumer The app's consumer key and secret.
- * @param access The visitor's access token and secret.
- * @returns The Discogs username.
  */
 export async function getIdentity(consumer: Consumer, access: AccessToken): Promise<string> {
   let response: Response;

@@ -46,7 +46,6 @@ const respond = (statusCode: number, body: unknown): ProfileResponse =>
  * Reads the cover addresses from a request body: a JSON object with a `urls` list of allowed
  * covers, ignoring any that are not allowed.
  *
- * @param event The request.
  * @returns The distinct allowed addresses, or an error message.
  */
 export function parseUrls(event: FunctionUrlEvent): URL[] | string {
@@ -73,7 +72,6 @@ export function parseUrls(event: FunctionUrlEvent): URL[] | string {
 /**
  * Builds the handler for the profile service.
  *
- * @param store Reading, measuring and keeping profiles.
  * @returns A function URL handler for `POST` with `{ urls: [...] }`, answering
  *          `{ profiles: { [address]: packed profile } }` for the covers it has or could measure.
  */

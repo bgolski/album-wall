@@ -13,7 +13,6 @@
  *   * `retryAfterMs` = 60 000 ms (1 minute) before the proxy is probed again.
  *   * `now()` defaults to `Date.now`.
  *
- * @param options Configuration overrides.
  * @returns An object with `report(kind, ok)` and `mode()` methods.
  */
 export function createImageSourcePolicy(options?: {

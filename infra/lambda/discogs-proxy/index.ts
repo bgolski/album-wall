@@ -34,8 +34,6 @@ const dynamoClient = new DynamoDBClient({});
 
 /**
  * Reads the app's consumer key and secret.
- *
- * @returns The consumer key and secret.
  */
 async function getConsumer(): Promise<Consumer> {
   const keyName = process.env.DISCOGS_CONSUMER_KEY_PARAMETER_NAME;
@@ -79,9 +77,7 @@ async function getRequestHeaders(
  * Converts runtime failures into client-facing HTTP responses.
  *
  * @param error Failure thrown while fetching or normalizing the collection.
- * @param username Username associated with the request.
  * @param signedIn Whether the request was made as a signed-in visitor.
- * @returns Consistent JSON error response for the frontend.
  */
 function mapErrorToResponse(error: unknown, username: string, signedIn = false) {
   const statusCode = statusOf(error);
@@ -177,9 +173,6 @@ async function createShortLink(event: FunctionUrlEvent) {
 /**
  * Describes an error for the logs without anything it might carry from a request: only its kind,
  * message (always written by this proxy) and status.
- *
- * @param error The error.
- * @returns A short description.
  */
 function describeError(error: unknown): string {
   if (!(error instanceof Error)) return "Unknown error";
@@ -192,9 +185,6 @@ function describeError(error: unknown): string {
 
 /**
  * Answers a sign-in failure.
- *
- * @param error The failure.
- * @returns A JSON error response.
  */
 function signInErrorResponse(error: unknown) {
   if (error instanceof SignInError) {
@@ -208,7 +198,6 @@ function signInErrorResponse(error: unknown) {
 /**
  * Starts a Discogs sign-in (`POST /oauth/start` with `{ callback }`).
  *
- * @param event Function URL request.
  * @returns The Discogs approval page plus the request token and secret for the browser to hold.
  */
 async function startOAuth(event: FunctionUrlEvent) {
@@ -226,7 +215,6 @@ async function startOAuth(event: FunctionUrlEvent) {
 /**
  * Finishes a Discogs sign-in (`POST /oauth/finish` with `{ token, secret, verifier }`).
  *
- * @param event Function URL request.
  * @returns The visitor's access token and secret, for their browser to keep, and their username.
  */
 async function finishOAuth(event: FunctionUrlEvent) {
@@ -245,8 +233,6 @@ async function finishOAuth(event: FunctionUrlEvent) {
 /**
  * Lists the signed-in visitor's collection folders (`GET /folders?username=`).
  *
- * @param username The visitor's Discogs username.
- * @param access The visitor's access token.
  * @returns `{ folders: [{ id, name, count }] }`, or an error.
  */
 async function listFolders(username: string, access: AccessToken) {
@@ -269,8 +255,6 @@ const identities = new IdentityCache(async (token, secret) =>
  * `POST /saved/delete` removes everything. Only the Discogs account the sign-in belongs to is
  * ever read or written.
  *
- * @param event Function URL request.
- * @param method HTTP method.
  * @param path Request path without a trailing slash.
  * @returns The saved data, when it was saved, or an error.
  */
@@ -314,7 +298,6 @@ async function savedWalls(event: FunctionUrlEvent, method: string, path: string)
  * Discogs (`POST /oauth/start`, `POST /oauth/finish`), lists their folders (`GET /folders`), keeps
  * their saved walls (`/saved`) and makes short share links (`POST /share`).
  *
- * @param event Function URL request event with query parameters.
  * @returns Normalized album payload or a descriptive error response.
  */
 export async function handler(event: FunctionUrlEvent) {

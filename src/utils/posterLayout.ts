@@ -15,9 +15,6 @@ const POSTER_MARGIN = 0.05;
 /**
  * The shape of the poster for a wall: sideways when the wall is wider than it is tall.
  *
- * @param size Poster size.
- * @param rows The wall's rows.
- * @param columns The wall's columns.
  * @returns Width and height in pixels.
  */
 export function posterFrame(size: PosterSize, rows: number, columns: number) {
@@ -30,9 +27,6 @@ export function posterFrame(size: PosterSize, rows: number, columns: number) {
  * with square covers. The poster service and the preview in the app both use this, so the preview
  * is the poster in miniature.
  *
- * @param size Poster size.
- * @param rows The wall's rows.
- * @param columns The wall's columns.
  * @returns The poster's size and the wall's place on it, in pixels.
  */
 export function posterLayout(size: PosterSize, rows: number, columns: number) {

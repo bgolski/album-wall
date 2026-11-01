@@ -18,7 +18,6 @@ const startWithEverySource = () => ALL_COVER_SOURCES;
  * everyone is skipped for new covers. A cover that has loaded keeps its image even if that
  * changes.
  *
- * @param album Album whose artwork should be displayed.
  * @param imageSize When provided, requests a copy at this pixel size for tile displays.
  * @returns Image source state, whether a cover the album has could not be shown, a wrapper ref,
  *          and load/error handlers for the image element.

@@ -15,10 +15,6 @@ import type { GradientStop, GradientShape } from "./gradientTargets";
  * If `gradientTargets` returns an empty array (e.g. when no stops
  * are supplied), this function also returns an empty array.
  *
- * @param stops  The gradient stops.
- * @param rows   Number of rows in the wall.
- * @param columns Number of columns in the wall.
- * @param shape   Gradient shape descriptor.
  * @returns A two‑dimensional array where each element is an array of nine
  *          `CoverColor` samples for a tile.
  */
@@ -59,9 +55,7 @@ export function tileSamples(
  * space between each region element and the corresponding sample.
  *
  * @param regions  Array of actual or missing region colors.
- * @param samples  Array of expected sample colors.
  * @param fallback Color to use when a region entry is missing.
- * @returns The average color distance.
  */
 export function regionFit(
   regions: (CoverColor | null)[],

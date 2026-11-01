@@ -27,8 +27,6 @@ const STORAGE_FULL = "Storage is full";
  * Remembers which walls the user hung and when, for one collection, in this browser. Every change
  * returns `null` when it worked or a message saying why it did not.
  *
- * @param collectionName Collection the history belongs to.
- * @param options Replacements for storage and clock.
  * @returns The records, when each album was last hung, and the actions.
  */
 export function useHangHistory(collectionName: string, options: HangHistoryOptions = {}) {

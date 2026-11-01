@@ -30,7 +30,6 @@ export type SavedRequest = { collection: string; kind: SavedKind; data: string }
 /**
  * A collection name as the browser keys it (trimmed, lower case); `~demo` for the demo wall.
  *
- * @param value Name from the request.
  * @returns The name, or `null` when it is not one.
  */
 export function collectionName(value: unknown): string | null {
@@ -42,8 +41,6 @@ export function collectionName(value: unknown): string | null {
 /**
  * Checks a save request: a known kind, a collection name and JSON text.
  *
- * @param body Request body text.
- * @returns The request.
  * @throws SavedInputError when it is not one.
  */
 export function parseSavedRequest(body: string): SavedRequest {

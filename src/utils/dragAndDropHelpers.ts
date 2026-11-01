@@ -7,8 +7,6 @@ import { albumKey, dragId } from "./albumKey";
  * every other album keeps its place and pinned albums never move.
  *
  * @param albums The wall followed by the pool (the combined list callers already build).
- * @param activeId Drag id of the dragged album.
- * @param overId Drag id of the drop target album.
  * @param pinnedAlbums Set of pinned album keys that cannot be displaced.
  * @returns The new order, or null when nothing moves (same album, unknown id, or a pinned album).
  */

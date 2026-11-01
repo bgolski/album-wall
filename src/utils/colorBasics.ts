@@ -8,7 +8,6 @@ export interface CoverColor {
 /**
  * Whether a value is a usable color: an object with finite `l`, `a` and `b` numbers.
  *
- * @param value Value to check.
  * @returns `true` for a color.
  */
 export function isCoverColor(value: unknown): value is CoverColor {
@@ -25,7 +24,6 @@ export const NEUTRAL_CHROMA = 0.04;
 /**
  * How colorful a color is, as its distance from the grey axis.
  *
- * @param color Color to measure.
  * @returns Chroma, 0 for greys.
  */
 export function chromaOf(color: CoverColor): number {
@@ -35,7 +33,6 @@ export function chromaOf(color: CoverColor): number {
 /**
  * The hue angle of a color.
  *
- * @param color Color to measure.
  * @returns Degrees from 0 up to (not including) 360.
  */
 export function hueOf(color: CoverColor): number {
@@ -46,8 +43,6 @@ export function hueOf(color: CoverColor): number {
 /**
  * How different two colors look, as their straight-line distance in OKLab.
  *
- * @param x First color.
- * @param y Second color.
  * @returns Distance; 0 for equal colors.
  */
 export function colorDistance(x: CoverColor, y: CoverColor): number {

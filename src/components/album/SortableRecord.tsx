@@ -61,8 +61,6 @@ export function SortableRecord({
 
   /**
    * Reports the tapped album so the grid can open its actions or finish a move.
-   *
-   * @param e Click event from the album tile.
    */
   const handleAlbumClick = (e: React.MouseEvent) => {
     if (!onSelect) return;

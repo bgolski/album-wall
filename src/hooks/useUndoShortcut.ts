@@ -2,8 +2,6 @@ import { useEffect } from "react";
 
 /**
  * Ctrl+Z (Cmd+Z on a Mac) runs `undo`, unless the user is typing in a field.
- *
- * @param undo What to run.
  */
 export function useUndoShortcut(undo: () => void) {
   useEffect(() => {

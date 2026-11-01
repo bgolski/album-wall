@@ -24,8 +24,6 @@ export interface FunctionUrlEvent extends RequestBody {
 /**
  * A JSON response for a Function URL.
  *
- * @param statusCode HTTP status.
- * @param body Anything JSON can hold.
  * @param cacheControl Cache-Control for CloudFront and browsers.
  */
 export function jsonResponse(statusCode: number, body: unknown, cacheControl = "no-store") {
@@ -43,7 +41,6 @@ export function jsonResponse(statusCode: number, body: unknown, cacheControl = "
 /**
  * Reads a JSON request body.
  *
- * @param event Function URL request.
  * @param maxLength Longest body accepted, in characters.
  * @returns The parsed body, or null when it is missing or not a JSON object.
  */

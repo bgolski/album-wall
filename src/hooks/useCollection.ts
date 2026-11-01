@@ -45,7 +45,6 @@ export interface CollectionError {
 /**
  * Sorts a failed load by what the visitor can do about it.
  *
- * @param error What the load threw.
  * @returns The kind, or null when it is something else.
  */
 export function collectionErrorKind(error: unknown): CollectionErrorKind {
@@ -148,8 +147,6 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
    * Puts a loaded collection on the wall, in the order of the given wall when there is one, and
    * starts the wall afresh.
    *
-   * @param name Whose collection it is.
-   * @param collection Its albums.
    * @param wallState The wall to order them by, if any.
    */
   const showCollection = useCallback(
@@ -166,7 +163,6 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
    * Loads a Discogs collection for a specific username. The wall comes from a share link when
    * there is one, otherwise from the wall saved on this device for that username.
    *
-   * @param usernameToLoad Username whose collection should be loaded.
    * @param linkedState Parsed shared wall state, if the load originated from a share link.
    * @param fresh Skip the recently loaded copy and ask Discogs again.
    * @param folder Folder to load when this is the signed-in visitor's own collection.
@@ -269,8 +265,6 @@ export function useCollection(session: DiscogsSession | null = null, onSignedOut
 
   /**
    * Updates the username input and clears visible errors once the user edits the field.
-   *
-   * @param value New username input value.
    */
   const handleUsernameChange = (value: string) => {
     setTypedUsername(value);

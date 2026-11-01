@@ -21,7 +21,6 @@ export type ImageLoader = (src: string) => Promise<HTMLImageElement | null>;
  * Loads an image with permission to read its pixels. A cover served without that permission fails
  * to load this way instead of loading and then spoiling the whole drawing.
  *
- * @param src Image address.
  * @returns The loaded image, or null when it fails or takes too long.
  */
 const loadReadableImage: ImageLoader = (src) =>
@@ -48,7 +47,6 @@ const loadReadableImage: ImageLoader = (src) =>
  * @param options.grid The wall grid element; its tiles carry `data-album-id`.
  * @param options.albums Albums on the wall, to find each tile's cover.
  * @param options.scale Output pixels per CSS pixel.
- * @param options.background Fill colour behind the tiles.
  * @param options.placeholder Image address drawn for a cover that cannot be included.
  * @param options.loadImage Loader to use; tests pass their own.
  * @returns The drawn canvas, how many covers were left out, and where each tile sits on it.

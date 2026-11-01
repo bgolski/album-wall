@@ -39,7 +39,6 @@ class SourceError extends Error {
  * Cover Art Archive, or archive.org (where Cover Art Archive keeps its images), so it cannot be
  * used as an open proxy.
  *
- * @param value Address to check.
  * @returns The parsed address, or null when it is not allowed.
  */
 export function allowedCoverUrl(value: string): URL | null {
@@ -114,9 +113,6 @@ async function readLimited(response: Response): Promise<Buffer> {
 /**
  * Downloads a cover, following redirects only to allowed hosts, and trying once more when a host
  * has a server error.
- *
- * @param start Allowed cover address.
- * @returns The cover's bytes.
  */
 export async function fetchCover(start: URL): Promise<Buffer> {
   const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);

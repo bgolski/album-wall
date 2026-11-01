@@ -81,14 +81,10 @@ const jpegOf = (canvas: HTMLCanvasElement) =>
  * and the records are listed under it (on further pages when there are many), each with the row
  * and column it hangs in, so the wall can be hung at the wall without the screen.
  *
- * @param input.grid The wall's grid element.
  * @param input.albums The albums on the wall, in order.
- * @param input.rows The wall's rows.
- * @param input.columns The wall's columns.
  * @param input.title Named at the top of the first page.
  * @param input.changes Steps to change the wall hung last time into this one, drawn on pages of
  *        their own with a box to tick for each.
- * @param input.paper The paper size.
  * @param input.placeholder Image drawn for a cover that cannot be included.
  * @param input.loadImage Image loader, for tests.
  * @returns The PDF and how many covers had to be left out.

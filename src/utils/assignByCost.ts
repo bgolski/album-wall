@@ -13,7 +13,6 @@ import { solveAssignment } from "./hungarian";
  * 3. Remaining free positions are filled with the unused, unusable covers in increasing
  *    index order, and if none are left the position receives `-1`.
  *
- * @param input
  *  - `positions`: number of wall positions (0 .. positions-1).
  *  - `candidates`: number of cover candidates (0 .. candidates-1).
  *  - `usable`: predicate to decide if a cover is eligible for the assignment.

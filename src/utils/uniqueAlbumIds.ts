@@ -12,7 +12,6 @@ import { Album } from "@/types";
  * objects for the first copies and shallow copies with updated ids for later
  * duplicates.
  *
- * @param albums Array of albums to process.
  * @returns A new array with unique ids for duplicate copies.
  */
 export function giveCopiesUniqueIds(albums: Album[]): Album[] {

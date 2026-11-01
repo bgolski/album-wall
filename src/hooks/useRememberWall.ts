@@ -9,9 +9,6 @@ import { localStore } from "@/utils/browserStorage";
  * resets Undo).
  *
  * @param input.username Collection the wall belongs to; nothing is saved without one.
- * @param input.wall The wall as shown.
- * @param input.pinnedAlbums Ids of pinned albums.
- * @param input.onPinsChange Called after the pins change.
  */
 export function useRememberWall(input: {
   username: string;

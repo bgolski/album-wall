@@ -48,10 +48,6 @@ export const EXPORT_BACKDROPS: Record<ExportBackground, ExportBackdrop> = {
 /**
  * Scale content to fit within a frame while preserving aspect ratio.
  *
- * @param contentWidth - Width of the content to fit.
- * @param contentHeight - Height of the content to fit.
- * @param frameWidth - Target frame width.
- * @param frameHeight - Target frame height.
  * @param padding - Optional padding on all sides of the frame.
  * @returns An object containing the scaled width, height, top‑left coordinates
  *          and the applied scale factor.

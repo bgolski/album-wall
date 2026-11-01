@@ -25,7 +25,6 @@ function normalizeName(name: string): string {
 
 /**
  * Generates the storage key for a given username.
- * @param username The username to generate a key for.
  * @returns The key used to store the wall for that user.
  */
 export function savedWallKey(username: string): string {
@@ -36,7 +35,6 @@ export function savedWallKey(username: string): string {
  * Stores a wall state for the user that owns the state.
  *
  * @param storage Picked from the Web Storage API, only the `setItem` method is needed.
- * @param state The shared wall state to persist.
  * @returns `true` if storage succeeded, `false` if it threw.
  */
 export function saveWall(storage: Pick<Storage, "setItem">, state: SharedWallState): boolean {
@@ -53,7 +51,6 @@ export function saveWall(storage: Pick<Storage, "setItem">, state: SharedWallSta
  * Loads a wall state for the given username.
  *
  * @param storage Picked from the Web Storage API, only the `getItem` method is needed.
- * @param username The username whose wall should be loaded.
  * @returns The decoded wall state, or `null` if none exists, is damaged, belongs to another user, or an error occurred.
  */
 export function loadSavedWall(
@@ -77,7 +74,6 @@ export function loadSavedWall(
  * Persists the last username that the user entered.
  *
  * @param storage Picked from the Web Storage API, only the `setItem` method is needed.
- * @param name The username to persist.
  */
 export function saveLastUsername(storage: Pick<Storage, "setItem">, name: string): void {
   try {
@@ -111,7 +107,6 @@ export function loadLastUsername(storage: Pick<Storage, "getItem">): string | nu
  * The folder the signed-in visitor chose last time on this device.
  *
  * @param storage The storage to read, or null.
- * @param username The signed-in visitor.
  * @returns The folder id, 0 (the whole collection) when none was chosen.
  */
 export function loadFolderChoice(
@@ -130,7 +125,6 @@ export function loadFolderChoice(
  * Remembers the signed-in visitor's folder choice.
  *
  * @param storage The storage to write, or null.
- * @param username The signed-in visitor.
  * @param folderId Folder id; 0 clears the stored choice.
  */
 export function saveFolderChoice(

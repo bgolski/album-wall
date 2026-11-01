@@ -67,7 +67,6 @@ const chipClass =
 /**
  * Describes a build in plain words, naming the reason when the match is loose.
  *
- * @param summary What the build did.
  * @returns One or two sentences for the status line.
  */
 export function describeBuild(summary: GradientBuildSummary): string {

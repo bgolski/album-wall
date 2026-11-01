@@ -17,8 +17,6 @@ export type GradientShape = { kind: "linear"; angle: number } | { kind: "radial"
  * Positions are returned in row-major order (`rows * columns` entries).
  *
  * @param stops Gradient stops (sorted internally).
- * @param rows Number of grid rows.
- * @param columns Number of grid columns.
  * @param shape Linear or radial gradient shape.
  * @returns One CoverColor per position, or `[]` when `stops` is empty.
  */
@@ -103,7 +101,6 @@ function colorAt(stops: GradientStop[], t: number): CoverColor {
 /**
  * Parse an `#rgb` or `#rrggbb` string into a {@link CoverColor}.
  *
- * @param hex Hex color string.
  * @returns The color in OKLab, or `null` for an unparseable string.
  */
 export function hexToOklab(hex: string): CoverColor | null {
@@ -133,7 +130,6 @@ export function hexToOklab(hex: string): CoverColor | null {
  * Steps: OKLab → lms intermediate → linear sRGB → clamped/scaled sRGB → hex.
  * Channels outside 0..1 are clamped to 0 or 1 before the gamma curve.
  *
- * @param color Color in OKLab.
  * @returns Six-digit lowercase hex string.
  */
 export function oklabToHex(color: CoverColor): string {

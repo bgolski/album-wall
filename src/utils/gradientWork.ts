@@ -18,7 +18,6 @@ export type SuggestResult = ReturnType<typeof suggestGradients>;
 /**
  * Runs a job where it is called (inside the worker, or on the page when there is no worker).
  *
- * @param job The work.
  * @returns Its result; a build returns album ids rather than albums, so the page keeps its own.
  */
 export function runJob(job: GradientJob): BuildResult | SuggestResult {

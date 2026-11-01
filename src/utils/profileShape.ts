@@ -12,7 +12,6 @@ const roundColor = (color: CoverColor): CoverColor => ({
  * Whether a value is a usable cover profile: a color, a palette of colors with shares between 0
  * and 1, and nine regions that are colors or `null`.
  *
- * @param value Value to check.
  * @returns `true` for a profile.
  */
 export function isCoverProfile(value: unknown): value is CoverProfile {
@@ -39,9 +38,6 @@ export function isCoverProfile(value: unknown): value is CoverProfile {
 
 /**
  * The same profile with every number rounded to four decimals, for storing.
- *
- * @param profile Profile to round.
- * @returns A rounded copy.
  */
 export function roundProfile(profile: CoverProfile): CoverProfile {
   return {

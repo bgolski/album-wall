@@ -22,7 +22,6 @@ export interface CoverProfile {
  * the next. Ties keep the bigger area.
  *
  * @param palette Palette entries, biggest share first; at least one.
- * @returns The chosen palette color.
  */
 export function mostNoticeableColor(palette: readonly PaletteEntry[]): CoverColor {
   let color = palette[0]!.color;

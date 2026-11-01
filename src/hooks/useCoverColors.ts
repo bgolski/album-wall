@@ -39,7 +39,6 @@ function whenIdle(task: () => void) {
  * request. A cover that cannot be read gets `null` for this visit only and is tried again next
  * time.
  *
- * @param albums Albums whose covers to measure.
  * @param enabled Nothing is measured, and no storage is read, until this is true.
  * @param options Replacements for the reader, storage and number of covers measured at once.
  * @returns `colors` (each cover's most noticeable color) and `profiles`, both keyed by album id (a

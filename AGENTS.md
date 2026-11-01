@@ -1,25 +1,34 @@
 # Album Wall Agent Notes
 
 ## Purpose and UX flow
-- Web app that visualizes a Discogs vinyl collection as a wall of album covers with a pool of overflow items.
+- Web app that shows a Discogs vinyl collection (or the built-in demo) as a wall of album covers, with the rest of the collection in a pool beside it, and helps plan which records to hang.
 - Entry point: `src/app/page.tsx` renders `src/components/AlbumWallApp.tsx`.
-- User flow: enter Discogs username -> collection fetch -> grid/pool drag-and-drop -> sort/shuffle/pin -> save or share an image, or copy a share link.
+- User flow: enter a Discogs username, sign in with Discogs, or open the demo -> the collection loads -> arrange the wall by hand (drag, tap to move, pin, shuffle) or build it with Arrange (artist, genre, year or color) -> save layouts, record a hang and get the steps to rehang -> save an image, poster or PDF guide, or share a link.
 
 ## Architecture map (where to look)
-- Collection fetch + validation: `src/hooks/useCollection.ts`, `src/utils/discogs.ts`.
-- Grid behavior (dimensions, pinning, sorting, shuffle, export): `src/components/grid/RecordGrid.tsx` + hooks in `src/hooks/`.
-- Drag/drop logic: `src/utils/dragAndDropHelpers.ts`.
-- Album rendering + image proxying/export-safe images: `src/components/album/SortableRecord.tsx`, `src/hooks/useAlbumImage.ts`, `src/utils/imageProxy.ts`.
-- Layout shell: `src/components/layout/*`, global styles in `src/app/globals.css`.
+- App shell and wiring: `src/components/AlbumWallApp.tsx`, `src/components/collection/CollectionManager.tsx`, `src/components/grid/RecordGrid.tsx` (the wall, pool and panels), `src/components/layout/*`, global styles in `src/app/globals.css`.
+- Loading a collection: `src/hooks/useCollection.ts`, `src/utils/discogs.ts` (proxy and CloudFront cache), `src/utils/collectionCache.ts` (copy kept in the browser), `src/utils/demoCollection.ts`, `src/utils/loadAddress.ts` (`?user=`), `src/utils/groupPressings.ts` and `src/hooks/usePressings.ts` (one copy per album).
+- Moving records by hand: `src/hooks/useWallDrag.ts` with `src/utils/dragAndDropHelpers.ts` (dnd-kit), `src/hooks/useMoveMode.ts` (tap to move), `src/hooks/useAlbumPinning.ts`, `src/hooks/useAlbumShuffle.ts`, `src/hooks/useWallResize.ts`, undo in `src/hooks/useUndoHistory.ts`.
+- Arrange by artist, genre or year: `src/components/arrange/` (`groupModes.ts` defines the modes), `src/hooks/useGroupBuilder.ts`, `src/utils/buildGroupWall.ts`.
+- Arrange by color: `src/components/gradient/` (panel, `buildGradientWall.ts`, `suggestGradients.ts`), `src/hooks/useGradientBuilder.ts`, run off the main thread by `src/workers/gradient.worker.ts` through `src/utils/gradientJobs.ts` and `gradientWork.ts`. The matching is `arrangeGradientWall.ts`, `gradientTargets.ts`, `gradientFit.ts` (3 x 3 region fit), `neighbourFit.ts` (seams between covers), `assignByCost.ts` and `hungarian.ts`.
+- Cover colors: `src/utils/readCoverProfile.ts` measures a small copy of a cover; `coverProfile.ts`, `profileShape.ts`, `colorBasics.ts` (OKLab), `coverColor.ts` and `colorName.ts` describe colors; `colorCache.ts` keeps them in the browser and `sharedProfiles.ts` shares them through the cover-profiles Lambda; `src/hooks/useCoverColors.ts` ties it together.
+- Cover images: `src/utils/coverSource.ts`, `imageProxy.ts`, `imageSourcePolicy.ts`, `src/hooks/useAlbumImage.ts`, rendered by `src/components/album/SortableRecord.tsx`.
+- Saved layouts and hanging: `src/hooks/useLayouts.ts` with `src/utils/layoutStore.ts`, `src/hooks/useHangHistory.ts` with `hangHistory.ts`, steps between walls in `diffWalls.ts`, `wallSteps.ts`, `rehangSteps.ts`, `rehangText.ts`, `hangChanges.ts`; UI in `src/components/layouts/`.
+- Signing in and the account copy: `src/utils/discogsSignIn.ts`, `src/hooks/useDiscogsSignIn.ts`, `src/hooks/useDiscogsFolders.ts`, `src/utils/savedWalls.ts`, `src/hooks/useAccountSync.ts`.
+- Images, posters and guides: `src/hooks/useGridExport.ts` draws the wall itself on a canvas (`drawWall.ts`, `exportFrame.ts`, `recordBackground.ts`); posters come from the poster Lambda (`posterService.ts`, `posterLayout.ts`); the printable guide is `guide.ts`, `guideLayout.ts` and `pdf.ts`.
+- Sharing: `src/utils/shareState.ts` (wall state in the address hash), `shortLink.ts` (short links stored by the proxy), `src/hooks/useShareLinks.ts`.
+- Offline: `public/sw.js`, registered by `src/components/layout/RegisterServiceWorker.tsx`.
+- AWS (`infra/`): the CDK stack is `infra/lib/album-wall-stack.ts`. Lambdas in `infra/lambda/`: `discogs-proxy` (collections, folders, Discogs sign-in, saved walls, short links), `cover-image` (resized covers), `cover-profiles` (shared cover colors), `poster`, `share-page` (link previews for short links), and `shared/` helpers.
 
 ## Data flow (high-level)
-- `SearchInput` triggers `useCollection.loadCollection`, which calls Discogs API via `getUserCollection`.
-- Albums are split into wall grid (`displayedAlbums`) and pool (`poolItems`) based on grid size.
-- Pinning prevents drag swaps into pinned positions; shuffle only affects unpinned items.
-- Export uses `html2canvas` over the grid ref and hides labels during capture.
+- `SearchInput` calls `useCollection`, which reads the cached copy or asks the proxy through `getUserCollection`; a share link or a remembered wall orders the collection first.
+- The first `rows x columns` albums are the wall (`displayedAlbums`), the rest the pool (`poolItems`). Pinned albums keep their spots through drags, shuffles and builds.
+- Builds (Arrange) return the whole collection in a new order; each is one change that Undo reverses.
+- Exports draw the wall from its tiles' covers onto a canvas; nothing captures the page itself.
 
 ## Environment variables
 - `NEXT_PUBLIC_DISCOGS_PROXY_URL` points the static frontend at the AWS Discogs proxy Lambda Function URL.
+- `NEXT_PUBLIC_COLLECTION_CACHE_URL`, `NEXT_PUBLIC_IMAGE_SERVICE_URL`, `NEXT_PUBLIC_PROFILE_SERVICE_URL` and `NEXT_PUBLIC_POSTER_SERVICE_URL` point at the CloudFront collection cache and the cover-image, cover-profiles and poster services; each feature falls back or turns off when its value is empty.
 - `NEXT_PUBLIC_BASE_PATH` needed for static deployments (GitHub Pages).
 - `NEXT_STATIC_EXPORT` controls SSR vs static export in builds.
 - Any sensitive Discogs credentials must not be exposed through static client code. Keep secrets in AWS secure storage (for example SSM Parameter Store `SecureString`) or another server-side secret manager, never in `NEXT_PUBLIC_*` variables.
@@ -44,9 +53,10 @@
 - If the change targets deployment mode specifically, validate the matching build and start command.
 
 ## Documentation expectations
-- Add JSDoc comments to new exported functions, custom hooks, utilities, and non-trivial internal handlers.
-- Keep JSDoc concise and behavior-focused: explain intent, important side effects, key params, return values, and invariants when they are not obvious from TypeScript alone.
-- Do not add boilerplate JSDoc to trivial presentational code unless the behavior needs extra context.
+- Comments explain what the code cannot say: intent, units, invariants, side effects and surprises (why a limit has its value, what a browser refuses).
+- Give exported functions and hooks a short summary when the name alone does not say what they do.
+- Write `@param` and `@returns` only when they add something the name and type do not, such as units, ranges, what `null` means or what the caller must do. No tags that repeat the signature ("@param username The username").
+- Do not add boilerplate comments to trivial presentational code.
 
 ## UI responsiveness expectations
 - Any new or edited UI component must be responsive and remain usable on mobile widths, not just desktop layouts.

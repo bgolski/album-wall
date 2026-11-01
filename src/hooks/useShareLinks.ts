@@ -14,9 +14,7 @@ import { requestShortLink } from "@/utils/shortLink";
  * time a share is chosen; until it is, or if it cannot be made, the long link is used.
  *
  * @param input.username Collection the wall belongs to; no link is built without one.
- * @param input.wall The wall as shown.
  * @param input.covers Cover image addresses of the wall, in order, for the preview picture.
- * @param input.setStatus Shows the outcome.
  * @returns `prepare`, `shareLink` and `copyShareLink`.
  */
 export function useShareLinks(input: {
@@ -59,7 +57,6 @@ export function useShareLinks(input: {
   /**
    * The link to share: the short one when it is ready, after waiting for one under way.
    *
-   * @param longUrl The wall's long link.
    * @returns The short link, or the long one.
    */
   const resolveUrl = async (longUrl: string) => {

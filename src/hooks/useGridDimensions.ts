@@ -35,9 +35,6 @@ export function useGridDimensions(initialDimensions?: InitialGridDimensions) {
   /**
    * Sets the grid dimensions when both values are greater than zero; used for user changes and
    * for hydrating shared wall state.
-   *
-   * @param newRows Desired number of rows.
-   * @param newColumns Desired number of columns.
    */
   const replaceDimensions = useCallback((newRows: number, newColumns: number) => {
     if (newRows < 1 || newColumns < 1) return;

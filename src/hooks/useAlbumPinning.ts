@@ -5,7 +5,6 @@ import { albumKey } from "@/utils/albumKey";
 /**
  * Tracks pinned albums and exposes helpers for toggling pins within the displayed grid.
  *
- * @param initialPinnedAlbumIds Album ids that should start pinned.
  * @returns Pin state plus helpers for toggling, bulk pinning, and cleanup.
  */
 export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
@@ -13,8 +12,6 @@ export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
 
   /**
    * Toggles the pinned state for a single album id.
-   *
-   * @param albumId Album id to pin or unpin.
    */
   const togglePinAlbum = (albumId: string) => {
     setPinnedAlbums((prevPinned) => {
@@ -30,8 +27,6 @@ export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
 
   /**
    * Pins every displayed album, or unpins them all if they are already all pinned.
-   *
-   * @param displayedAlbums Albums currently shown in the wall grid.
    */
   const togglePinAll = (displayedAlbums: Album[]) => {
     const allPinned = displayedAlbums.every((album) => pinnedAlbums.has(albumKey(album)));
@@ -82,7 +77,6 @@ export function useAlbumPinning(initialPinnedAlbumIds: string[] = []) {
   /**
    * Checks whether every displayed album is currently pinned.
    *
-   * @param displayedAlbums Albums currently shown in the wall grid.
    * @returns True when the displayed grid is non-empty and every album is pinned.
    */
   const areAllPinned = (displayedAlbums: Album[]) => {

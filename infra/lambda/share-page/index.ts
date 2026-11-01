@@ -91,10 +91,6 @@ async function getSharedWall(id: string): Promise<SharedWall | null> {
 
 /**
  * The page link preview fetchers read: title, description and the wall's picture.
- *
- * @param wall The shared wall.
- * @param pageUrl This short link.
- * @returns HTML text.
  */
 export function previewPage(wall: SharedWall, pageUrl: string) {
   const title = escapeHtml(wall.title);
@@ -130,7 +126,6 @@ export function previewPage(wall: SharedWall, pageUrl: string) {
 /**
  * Fetches a cover, giving up after a few seconds or a few megabytes.
  *
- * @param url Cover image address.
  * @returns The image bytes, or `null` when it could not be fetched.
  */
 async function fetchCover(url: string): Promise<Buffer | null> {
@@ -165,8 +160,6 @@ async function mapLimited<T, R>(items: T[], limit: number, task: (item: T) => Pr
 /**
  * Where each cover goes in the preview image: the wall's grid, as large as fits, centred.
  *
- * @param rows Wall rows.
- * @param columns Wall columns.
  * @returns Cover size, gap, corner radius and the grid's top-left corner.
  */
 export function layoutWall(rows: number, columns: number) {
@@ -202,7 +195,6 @@ function roundedSquare(size: number, radius: number, fill: string) {
  *
  * @param wall Rows, columns and cover addresses in wall order.
  * @param loadCover Fetches one cover (replaceable in tests).
- * @returns JPEG bytes.
  */
 export async function drawWallImage(
   wall: Pick<SharedWall, "rows" | "columns" | "covers">,

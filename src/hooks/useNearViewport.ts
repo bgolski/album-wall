@@ -5,7 +5,6 @@ import { useEffect, useState, type RefObject } from "react";
  * afterwards. Browsers' own lazy loading starts fetching a couple of screens ahead, which on a tall
  * phone page still loads most of a large collection at once; a smaller margin holds back the rest.
  *
- * @param ref Element to watch.
  * @param rootMargin How far outside the viewport counts as near.
  * @returns Whether the element is, or has been, near the viewport.
  */

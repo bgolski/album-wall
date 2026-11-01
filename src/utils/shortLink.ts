@@ -19,8 +19,6 @@ export interface ShortLinkRequest {
 /**
  * Asks the proxy for a short link that shows the wall in message previews.
  *
- * @param request The wall to store.
- * @param proxyUrl The Discogs proxy address.
  * @returns The short link, or `null` when there is no proxy, it fails or it is slow.
  */
 export async function requestShortLink(

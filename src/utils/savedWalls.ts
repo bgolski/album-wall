@@ -24,8 +24,6 @@ export interface SavedWallsClient {
 /**
  * A client for a signed-in visitor's saved walls.
  *
- * @param session The visitor's Discogs sign-in.
- * @param proxyUrl The proxy address.
  * @returns The client, or `null` when there is no proxy.
  */
 export function savedWallsClient(

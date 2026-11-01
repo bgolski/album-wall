@@ -39,8 +39,6 @@ function neverOnServer() {
 /**
  * Decides whether to greet a newcomer with the demo offer, and remembers when they are done with it.
  *
- * @param demoAvailable Whether the demo wall can be loaded.
- * @param hasWall Whether a wall is already showing.
  * @returns Whether the welcome should show now (once the intro, if any, is over), whether it is
  *          due to show (so the header can leave the demo to it), and a function that dismisses it
  *          for good.

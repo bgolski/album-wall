@@ -73,7 +73,6 @@ export type Album = {
 /**
  * Validates the basic character rules for a Discogs username before making API calls.
  *
- * @param username Discogs username to validate.
  * @returns True when the username matches the expected format.
  */
 export function validateDiscogsUsername(username: string): boolean {
@@ -84,7 +83,6 @@ export function validateDiscogsUsername(username: string): boolean {
  * Removes the number Discogs appends to tell apart artists who share a name,
  * for example "Travis Scott (2)" becomes "Travis Scott".
  *
- * @param name Artist name as returned by Discogs.
  * @returns The name without a trailing " (n)".
  */
 export function cleanArtistName(name: string): string {
@@ -124,7 +122,6 @@ function extractArtistName(artistEntries?: DiscogsArtist[]): string {
 /**
  * Converts Discogs release metadata into a public Discogs release page URL.
  *
- * @param release Collection release payload from Discogs.
  * @returns A public Discogs URL when a release id can be resolved.
  */
 function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
@@ -141,7 +138,6 @@ function getDiscogsReleaseUrl(release: DiscogsRelease): string | undefined {
  * Lists a release's format details, such as "LP", "Album", "Reissue" or a vinyl color, once each
  * in Discogs order. The format name itself ("Vinyl") says nothing on a record wall.
  *
- * @param formats Discogs format entries for the release.
  * @returns Descriptions and free text of every format, without repeats.
  */
 function extractFormatDetails(formats?: DiscogsFormat[]): string[] {
@@ -184,10 +180,7 @@ export function statusOf(error: unknown): number | undefined {
 /**
  * Creates an error carrying the HTTP status that the response mapper turns into a reply.
  *
- * @param message Human-readable message.
- * @param statusCode HTTP status to associate with the failure.
  * @param retryAfterMs How long Discogs asked the client to wait, when it said.
- * @returns The error.
  */
 function httpError(message: string, statusCode: number, retryAfterMs?: number): DiscogsError {
   const error: DiscogsError = new Error(message);
@@ -213,11 +206,9 @@ function parseRetryAfterMs(value: string | null): number | undefined {
  * responses with exponential backoff, and a 429 once when Discogs asks for a wait that fits in
  * the time left. Other 4xx responses and timeouts are never retried.
  *
- * @param request Async request callback to execute.
  * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
  * @param retries Remaining retry attempts.
  * @param delay Delay in milliseconds before the next retry.
- * @returns The resolved request result.
  */
 async function makeRequestWithRetry<T>(
   request: () => Promise<T>,
@@ -254,11 +245,7 @@ async function makeRequestWithRetry<T>(
 /**
  * Sends one GET request to Discogs.
  *
- * @param url The API address.
- * @param headers Request headers.
- * @param timeoutMs How long to wait for an answer.
  * @param failure The error message for a response that is not OK, given its status.
- * @returns The OK response.
  * @throws A 504 error marked `timedOut` when Discogs does not answer in time, and an error carrying
  *   the status (and Retry-After wait) for a response that is not OK. Network errors pass through.
  */
@@ -293,12 +280,9 @@ async function fetchDiscogs(
 /**
  * Fetches a single page from the Discogs collection endpoint.
  *
- * @param username Discogs username whose collection should be loaded.
  * @param headers Builds the request headers (a signed-in request needs a new nonce each time).
- * @param page Collection page number to fetch.
  * @param deadline Time (ms since the epoch) after which no more waiting is allowed.
  * @param folderId Collection folder; 0 is the whole collection.
- * @returns One page of the Discogs collection response.
  */
 async function fetchCollectionPage(
   username: string,
@@ -329,7 +313,6 @@ async function fetchCollectionPage(
 /**
  * Fetches and normalizes a user's Discogs collection into the frontend album shape.
  *
- * @param username Discogs username whose collection should be loaded.
  * @param getHeaders Reads the credentials, once the username is known to be valid, and returns a
  *   builder for the request headers (a signed-in request needs a new nonce each time).
  * @param folderId Collection folder; 0 is the whole collection.
@@ -396,10 +379,6 @@ export async function getUserCollection(
 
 /**
  * Lists a signed-in visitor's collection folders.
- *
- * @param username The visitor's Discogs username.
- * @param headers Signed request headers.
- * @returns The folders with their record counts.
  */
 export async function getFolders(
   username: string,

@@ -20,9 +20,6 @@ const RECENT_COST = 0.08;
 
 /**
  * Storage key for a collection's wall history.
- *
- * @param collectionName Collection the history belongs to.
- * @returns The key.
  */
 export function hangHistoryKey(collectionName: string): string {
   return `album-wall:hang-history:${collectionName.trim().toLowerCase()}`;
@@ -33,7 +30,6 @@ const isCount = (value: unknown) => Number.isInteger(value) && (value as number)
 /**
  * Whether a value is a well-formed hang record.
  *
- * @param value Anything.
  * @returns True for a record with a `YYYY-MM-DD` date and a list of id strings.
  */
 export function isHangRecord(value: unknown): value is HangRecord {
@@ -71,7 +67,6 @@ export function parseHangs(raw: string | null): HangRecord[] {
  * Text to store for the history.
  *
  * @param hangs Records, oldest first.
- * @returns JSON text.
  */
 export function serializeHangs(hangs: HangRecord[]): string {
   return JSON.stringify({ v: 1, hangs });
@@ -79,9 +74,6 @@ export function serializeHangs(hangs: HangRecord[]): string {
 
 /**
  * The user's local day as `YYYY-MM-DD`.
- *
- * @param now The moment.
- * @returns The day.
  */
 export function localDay(now: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -94,9 +86,7 @@ export function localDay(now: Date): string {
  *
  * @param hangs Records, oldest first.
  * @param albumIds Albums on the wall, in order.
- * @param now The moment it was hung.
  * @param layoutId The saved layout marked as on the wall, if it was one.
- * @param shape The wall's rows and columns.
  * @returns The new records, oldest first.
  */
 export function addHang(
@@ -164,7 +154,6 @@ export function recentlyHungCost(hangs: HangRecord[]): Record<string, number> {
  * A day as people read it, such as "14 Oct 2026" (in the browser's language).
  *
  * @param day `YYYY-MM-DD`.
- * @returns The formatted day.
  */
 export function formatDay(day: string): string {
   const [year, month, date] = day.split("-").map(Number);
@@ -177,7 +166,6 @@ export function formatDay(day: string): string {
  * A remembered wall as a wall that can be shown or put back. A record from before the shape was
  * kept takes the given width and as many rows as its albums need.
  *
- * @param hang The record from a previous wall.
  * @param username The collection name to use as the wall's username.
  * @param fallbackColumns Width used when the record lacks a saved width.
  * @returns A wall state matching the remembered albums and the best shape available.
@@ -201,8 +189,6 @@ export function wallOfHang(
 /**
  * How many of these album ids are no longer in the collection.
  *
- * @param ids Album ids to check.
- * @param albumsById Map of every known album.
  * @returns The number of ids not found.
  */
 export function countMissing(

@@ -62,7 +62,6 @@ const respond = (statusCode: number, message: string): PosterResult => ({
  * Reads a poster request, allowing only what the app sends: a known size and background, a wall
  * of a sensible shape, and cover addresses from the hosts the cover service may fetch.
  *
- * @param text The request body.
  * @returns The request, or a message saying what is wrong with it.
  */
 export function parsePosterRequest(text: string): PosterRequest | string {
@@ -102,7 +101,6 @@ export function parsePosterRequest(text: string): PosterRequest | string {
 /**
  * Where everything goes on the poster (the same layout the app's preview uses).
  *
- * @param request The parsed request.
  * @returns The poster's size and the wall's place on it, in pixels.
  */
 export const posterLayout = (request: Pick<PosterRequest, "size" | "rows" | "columns">) =>
@@ -185,7 +183,6 @@ async function inParallel<T, R>(
 /**
  * Draws the poster as a JPEG.
  *
- * @param request The parsed request.
  * @param load Downloads a cover; tests pass their own.
  * @returns The JPEG and how many covers could not be included.
  */
@@ -250,8 +247,6 @@ const dynamo = new DynamoDBClient({});
 /**
  * Takes one of today's posters, or says there are none left: a counter that only goes up while it
  * is under the cap, and expires by itself.
- *
- * @returns Whether a poster may be made.
  */
 export async function takePosterSlot(
   now = new Date(),

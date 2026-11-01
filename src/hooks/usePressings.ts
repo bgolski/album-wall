@@ -32,7 +32,6 @@ function readSettings(storage: PressingStorage | null, key: string): Settings {
  * the same album (kept at the end of the collection, out of view), and a reorder of what is shown
  * keeps them. Turning it off, and which pressing stands for each album, are remembered per collection.
  *
- * @param collectionName Collection the setting belongs to.
  * @param albums The whole collection in its current order.
  * @param options Replacement storage, for tests.
  * @returns What to show, what is set aside, the sets of pressings, and the actions.

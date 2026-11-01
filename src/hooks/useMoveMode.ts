@@ -7,9 +7,6 @@ import { dragId } from "@/utils/albumKey";
  * Taps on covers: a tap opens the album's details, and "Move" in the details picks the album up
  * so the next tap on another cover swaps the two (pinned covers cannot be swapped).
  *
- * @param input.displayedAlbums Albums on the wall.
- * @param input.poolItems Albums in the pool.
- * @param input.pinnedAlbums Ids of pinned albums.
  * @param input.onAlbumsReorder Applies a new order.
  * @returns The album whose details are open, the album being moved and its message, and actions.
  */
@@ -38,8 +35,6 @@ export function useMoveMode(input: {
   /**
    * Handles a tap on a tile: finishes a pending move by swapping with the tapped album,
    * otherwise opens the tapped album's details.
-   *
-   * @param album Album that was tapped.
    */
   const selectAlbum = (album: Album) => {
     if (!movingAlbum) {

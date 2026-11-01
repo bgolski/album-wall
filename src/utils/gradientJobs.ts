@@ -49,9 +49,6 @@ function getWorker(): Worker | null {
 /**
  * Builds a gradient wall or finds suggestions off the page's main thread, so even a very large
  * collection never freezes the page; where workers are unavailable the work runs on the page.
- *
- * @param job The work.
- * @returns Its result.
  */
 export function runGradientJob(job: { kind: "build"; input: BuildInput }): Promise<BuildResult>;
 export function runGradientJob(job: {

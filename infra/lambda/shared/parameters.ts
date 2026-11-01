@@ -7,7 +7,6 @@ const cachedParameters = new Map<string, string>();
 /**
  * Reads and decrypts a SecureString parameter.
  *
- * @param parameterName Parameter path.
  * @returns The value, trimmed.
  * @throws When the parameter is missing or empty.
  */

@@ -25,9 +25,6 @@ const unpack = (numbers: unknown): CoverColor | null =>
 
 /**
  * Packs a profile into its compact stored form, rounded to four decimals.
- *
- * @param profile Profile to pack.
- * @returns The compact form.
  */
 export function packProfile(profile: CoverProfile): PackedProfile {
   const rounded = roundProfile(profile);

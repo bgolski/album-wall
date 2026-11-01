@@ -15,7 +15,6 @@ interface BuildSharedWallStateParams {
  * Builds the serializable wall state payload used for shareable hash links.
  *
  * @param params Current wall state fields to persist in the share link.
- * @returns A versioned shared wall state payload.
  */
 export function buildSharedWallState({
   username,
@@ -88,7 +87,6 @@ const isWholeNumber = (id: string) =>
  * Writes a wall as bytes: format, rows, columns, collection name, each album id as a variable
  * length number, then the pinned albums as positions on the wall. About a third of the JSON size.
  *
- * @param state Shared wall state to encode.
  * @returns The bytes, or `null` when the wall has something only JSON can carry (an id that is
  *   not a whole number, or a pin that is not on the wall).
  */
@@ -134,9 +132,6 @@ function fromCompactBytes(bytes: Uint8Array): SharedWallState | null {
 
 /**
  * Encodes shared wall state into a URL-safe hash payload, compactly when it can.
- *
- * @param state Shared wall state to encode.
- * @returns URL-safe encoded share payload.
  */
 export function encodeSharedWallState(state: SharedWallState): string {
   const compact = toCompactBytes(state);
@@ -147,7 +142,6 @@ export function encodeSharedWallState(state: SharedWallState): string {
  * Decodes and validates a shared wall state payload from a hash string. Reads both the compact
  * format and the JSON one earlier links used.
  *
- * @param encodedState URL-safe encoded share payload.
  * @returns Parsed shared wall state when valid, otherwise `null`.
  */
 export function decodeSharedWallState(encodedState: string): SharedWallState | null {
@@ -183,9 +177,6 @@ export function decodeSharedWallState(encodedState: string): SharedWallState | n
 
 /**
  * Builds the hash fragment for a shareable wall link.
- *
- * @param encodedState URL-safe encoded share payload.
- * @returns Hash string including the share prefix.
  */
 export function buildShareHash(encodedState: string): string {
   return `#${SHARE_HASH_KEY}=${encodedState}`;
@@ -194,7 +185,6 @@ export function buildShareHash(encodedState: string): string {
 /**
  * Extracts an encoded shared wall payload from a location hash.
  *
- * @param hash Location hash to inspect.
  * @returns Encoded share payload when present, otherwise `null`.
  */
 export function getEncodedSharedWallStateFromHash(hash: string): string | null {
@@ -206,7 +196,6 @@ export function getEncodedSharedWallStateFromHash(hash: string): string | null {
 /**
  * Parses shared wall state from a location hash.
  *
- * @param hash Location hash to inspect.
  * @returns Parsed shared wall state when present and valid, otherwise `null`.
  */
 export function getSharedWallStateFromHash(hash: string): SharedWallState | null {
@@ -218,7 +207,6 @@ export function getSharedWallStateFromHash(hash: string): SharedWallState | null
  * Builds a full share URL by replacing the current location hash.
  *
  * @param state Shared wall state to encode into the URL.
- * @param currentUrl Current page URL.
  * @returns Absolute share URL containing the encoded wall state in the hash.
  */
 export function buildSharedWallUrl(state: SharedWallState, currentUrl: string): string {
@@ -232,8 +220,6 @@ export function buildSharedWallUrl(state: SharedWallState, currentUrl: string): 
  * first, in the shared order (any no longer in the collection are skipped), then the rest in
  * their own order.
  *
- * @param albums The loaded collection.
- * @param sharedWallState The decoded share link.
  * @returns The collection with the shared wall at the front.
  */
 export function orderAlbumsBySharedWall(

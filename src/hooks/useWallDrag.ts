@@ -63,9 +63,6 @@ export const wallCollisionDetection: CollisionDetection = (args) => {
  * Dragging covers between the wall and the pool by mouse, touch or keyboard: the dragged album
  * swaps places with the one it is dropped on, and each step is announced for screen readers.
  *
- * @param input.displayedAlbums Albums on the wall.
- * @param input.poolItems Albums in the pool.
- * @param input.pinnedAlbums Ids of pinned albums.
  * @param input.onAlbumsReorder Applies a new order.
  * @returns Sensors, the album being dragged, handlers and announcements for DndContext.
  */
@@ -90,8 +87,6 @@ export function useWallDrag(input: {
 
   /**
    * Remembers the dragged album so the drag overlay can show its cover above both panels.
-   *
-   * @param event DnD Kit drag start event.
    */
   const onDragStart = (event: DragStartEvent) => {
     const id = String(event.active.id);
@@ -102,8 +97,6 @@ export function useWallDrag(input: {
 
   /**
    * Swaps the dragged album with the album it was dropped on; everything else stays in place.
-   *
-   * @param event DnD Kit drag end event.
    */
   const onDragEnd = (event: DragEndEvent) => {
     setDraggedAlbum(null);

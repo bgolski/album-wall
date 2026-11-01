@@ -24,9 +24,6 @@ const REQUEST_TIMEOUT_MS = 90_000;
  * Asks the poster service to draw the wall at print size.
  *
  * @param input.albums The albums on the wall, in order.
- * @param input.rows The wall's rows.
- * @param input.columns The wall's columns.
- * @param input.size Poster size.
  * @param input.background Dark, light, or the record behind the wall.
  * @param input.fetcher The fetch to use; tests pass their own.
  * @returns The JPEG, and how many covers it had to leave out.

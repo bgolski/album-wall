@@ -21,9 +21,6 @@ const EXPORT_PIXELS = 3_000_000;
 
 /**
  * The wall panel's current background, so an exported image matches light or dark mode.
- *
- * @param grid The wall grid element being captured.
- * @returns A CSS color string.
  */
 function getPanelColor(grid: HTMLElement) {
   return getComputedStyle(grid.parentElement ?? grid).backgroundColor || "#121212";
@@ -36,7 +33,6 @@ function getPanelColor(grid: HTMLElement) {
  *
  * @param gridWidth Width of the wall on screen, in CSS pixels.
  * @param gridHeight Height of the wall on screen, in CSS pixels.
- * @returns The scale to capture at.
  */
 function getExportScale(gridWidth: number, gridHeight: number) {
   return Math.max(
@@ -51,8 +47,6 @@ function getExportScale(gridWidth: number, gridHeight: number) {
 /**
  * Draws a captured wall centred on a canvas of a preset's size, filled with the panel colour.
  *
- * @param source The captured wall.
- * @param preset Output size.
  * @param padding Empty margin kept on every side, in output pixels.
  * @param backdrop What is behind the wall: a colour, and the record over it when asked.
  * @returns A canvas of exactly the preset size.
@@ -90,10 +84,6 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 /**
  * Manages export UI state and provides the image export, guide export and share-link actions for
  * the current wall.
- *
- * @param username Discogs username used in exported filenames.
- * @param albums Albums to include in export output.
- * @returns Export state, grid ref, and export handlers.
  */
 export function useGridExport(
   username: string,
@@ -179,7 +169,6 @@ export function useGridExport(
   /**
    * Attempts to share a file using the browser's native share sheet.
    *
-   * @param file File to share.
    * @returns True when the share sheet was used successfully, otherwise false.
    */
   const tryNativeShare = async (file: File) => {

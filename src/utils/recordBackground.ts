@@ -8,7 +8,6 @@ const ACCENT = "129, 140, 248";
 /**
  * Draws the record over a canvas, centred.
  *
- * @param context The canvas to draw on.
  * @param width The canvas width in pixels.
  * @param height The canvas height in pixels.
  */

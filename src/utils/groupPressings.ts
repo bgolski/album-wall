@@ -21,7 +21,6 @@ function plain(text: string): string {
  * when they name an edition (deluxe, remastered, anniversary, 180g, a year...), never otherwise,
  * so "Led Zeppelin II" and "Rumours Live" stay distinct.
  *
- * @param title Title as Discogs lists it.
  * @returns The title in plain lowercase words.
  */
 export function baseTitle(title: string): string {
@@ -37,7 +36,6 @@ export function baseTitle(title: string): string {
 /**
  * An artist name for matching: without Discogs' "(2)" numbering or a leading "The".
  *
- * @param artist Artist as Discogs lists it.
  * @returns The name in plain lowercase words.
  */
 export function baseArtist(artist: string): string {
@@ -49,7 +47,6 @@ export function baseArtist(artist: string): string {
  * tells apart albums that share a title (several self-titled albums by one artist); otherwise
  * the artist and the title without edition wording.
  *
- * @param album An album.
  * @returns A key equal for pressings of the same album.
  */
 export function pressingKey(album: Album): string {

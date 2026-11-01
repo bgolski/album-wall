@@ -29,9 +29,6 @@ const LABELS: Record<GroupMode, string> = {
 
 /**
  * Describes a build in plain words.
- *
- * @param summary What the build did.
- * @returns A short notice.
  */
 export function describeGroupBuild(summary: GroupBuildSummary): string {
   return summary.others > 0

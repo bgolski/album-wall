@@ -33,7 +33,6 @@ export function useGroupBuilder(input: {
    * Fills the wall from the chosen groups.
    *
    * @param settings Groups to run, or the whole collection A to Z.
-   * @returns What the build did, for the notice.
    */
   const build = (settings: GroupSettings): GroupBuildSummary => {
     const built = buildGroupWall({

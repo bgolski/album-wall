@@ -19,7 +19,6 @@ export interface HangChanges {
  * Computes the steps to change the wall from the last remembered hang into the current wall.
  *
  * @param lastHang The record from the most recent wall, or `undefined` if no wall has been hung yet.
- * @param wall The wall state to compare against.
  * @param collection The full collection, used to look up album titles.
  * @returns A guide describing the steps, or `null` when there is no prior wall or the walls match.
  */

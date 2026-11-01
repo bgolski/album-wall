@@ -13,7 +13,6 @@ export interface GuideEntry {
  * The records on the wall as the guide lists them: row by row, left to right.
  *
  * @param albums The wall's albums, in order.
- * @param columns How many columns the wall has.
  * @returns One entry for each album.
  */
 export function guideEntries(albums: Album[], columns: number): GuideEntry[] {

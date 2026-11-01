@@ -4,8 +4,6 @@ import type { SharedWallState } from "@/types";
  * Whether two walls are the same: the same size, the same albums in the same spots and the same
  * pins.
  *
- * @param first One wall.
- * @param second The other wall.
  * @returns True when nothing differs.
  */
 export function sameWall(first: SharedWallState, second: SharedWallState): boolean {

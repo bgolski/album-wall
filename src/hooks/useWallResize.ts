@@ -5,9 +5,6 @@ import { albumKey } from "@/utils/albumKey";
  * Changing the wall's size: albums that a smaller wall pushes back into the pool are unpinned
  * first, so no pin is left pointing at the pool.
  *
- * @param input.displayedAlbums Albums on the wall now.
- * @param input.removePinsForAlbums Unpins albums by id.
- * @param input.setSize Sets rows and columns.
  * @param input.resetSize Restores the default size.
  * @param input.defaultSize Albums the default wall holds.
  * @returns `changeSize` and `resetSize`.

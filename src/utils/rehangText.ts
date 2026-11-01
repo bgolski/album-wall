@@ -4,10 +4,8 @@ import type { RehangStep } from "./rehangSteps";
 /**
  * One step as a sentence, such as "Replace Rumours with Nevermind at row 2, column 3".
  *
- * @param step The step.
  * @param titleOf The title to show for an album id.
  * @param where How to name a place on the wall.
- * @returns The sentence.
  */
 export function stepSentence(
   step: RehangStep,

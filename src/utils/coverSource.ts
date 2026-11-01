@@ -44,9 +44,6 @@ function refresh() {
 
 /**
  * Records whether a cover image loaded, so the page can stop asking a source that is down.
- *
- * @param source Where the image came from.
- * @param ok Whether it loaded.
  */
 export function reportCoverLoad(source: CoverSource, ok: boolean): void {
   if (source === "service") policies.service.report("proxy", ok);

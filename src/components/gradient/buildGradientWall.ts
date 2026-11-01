@@ -31,7 +31,6 @@ const FAIR_FIT = 0.16;
  * not valid hex colors.
  *
  * @param colors Hex colors, first to last.
- * @returns Stops for the gradient math.
  */
 export function gradientStops(colors: string[]): GradientStop[] {
   const parsed = colors.map(hexToOklab).filter((color): color is CoverColor => color !== null);
@@ -44,9 +43,6 @@ export function gradientStops(colors: string[]): GradientStop[] {
 /**
  * The target color for each spot on a wall, row by row, for a preview strip.
  *
- * @param gradient Colors and angle.
- * @param rows Wall rows.
- * @param columns Wall columns.
  * @returns One color per spot.
  */
 export function wallTargets(gradient: WallGradient, rows: number, columns: number): CoverColor[] {
@@ -76,7 +72,6 @@ function percentile(sorted: number[], share: number) {
  * everything between moves in proportion; hues stay as they are.
  *
  * @param samples Gradient colors, nine per spot.
- * @param profiles Measured covers.
  * @returns The samples with lightness mapped onto the collection's range (unchanged when the
  *          collection has almost no range to map onto).
  */
@@ -100,8 +95,6 @@ export function fitLightnessToCollection(
  * For a gradient that is one color with a clear hue, how many measured covers share that hue; for
  * anything else, null.
  *
- * @param stops Gradient stops.
- * @param profiles Measured covers.
  * @returns The count, or null.
  */
 function coversOfOneColor(stops: GradientStop[], profiles: CoverProfile[]): number | null {
@@ -129,8 +122,6 @@ function averageColor(colors: CoverColor[]): CoverColor {
  * How close a cover's nearest main color is to a spot's color, led by hue: lightness counts half,
  * so a pale pink cover still reads as pink for a pink spot.
  *
- * @param profile The cover.
- * @param spot The spot's color.
  * @returns A distance; 0 for a perfect match.
  */
 export function mainColorFit(profile: CoverProfile, spot: CoverColor): number {

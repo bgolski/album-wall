@@ -2,7 +2,6 @@
  * Puts text on the clipboard. The modern clipboard call can refuse (for example when the page
  * is not focused, or the browser wants a fresh tap), so the older copy command is tried next.
  *
- * @param text Text to copy.
  * @returns Whether either way worked.
  */
 export async function copyText(text: string): Promise<boolean> {
@@ -35,7 +34,6 @@ export async function copyText(text: string): Promise<boolean> {
  * Copies a link, and when the browser will not allow that, shows it in a box the person can
  * copy from themselves.
  *
- * @param link Link to copy.
  * @returns `"copied"`, or `"shown"` when it had to be shown instead.
  */
 export async function copyLink(link: string): Promise<"copied" | "shown"> {

@@ -16,7 +16,6 @@ const REQUEST_TIMEOUT_MS = 20_000;
  * not return are left for this browser to measure. A failure ends the asking and returns what was
  * received so far, so the service can only ever save work.
  *
- * @param urls Cover addresses.
  * @param options.serviceUrl The service address; defaults to the app's configured one.
  * @param options.signal Cancels the asking.
  * @param options.fetcher Replaces `fetch`, for tests.

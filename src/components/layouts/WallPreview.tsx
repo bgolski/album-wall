@@ -9,8 +9,6 @@ const PREVIEW_COVER_SIZE = 96;
  * A small picture of a saved wall: its covers in their spots.
  *
  * @param props.name The saved wall's name, for the picture's description.
- * @param props.wall The saved wall.
- * @param props.albumsById Albums by id, for the covers.
  */
 export function WallPreview({
   name,
