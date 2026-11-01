@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { Album, SharedWallState } from "@/types";
 import { useGridDimensions } from "@/hooks/useGridDimensions";
@@ -439,10 +440,16 @@ export function RecordGrid({
           </DockedPanel>
         </div>
 
-        {/* The dragged cover is drawn above both panels, so it stays visible between them. */}
-        <DragOverlay>
-          {drag.draggedAlbum ? <AlbumDragPreview album={drag.draggedAlbum} /> : null}
-        </DragOverlay>
+        {/* The dragged cover is drawn above both panels, so it stays visible between them. It is
+            placed on the body, as a transformed ancestor (the page's intro) would otherwise move
+            its fixed position away from the pointer. */}
+        {typeof document !== "undefined" &&
+          createPortal(
+            <DragOverlay>
+              {drag.draggedAlbum ? <AlbumDragPreview album={drag.draggedAlbum} /> : null}
+            </DragOverlay>,
+            document.body
+          )}
       </DndContext>
     </div>
   );

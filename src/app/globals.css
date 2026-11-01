@@ -178,8 +178,10 @@
     animation: record-spinup 2600ms cubic-bezier(0.12, 0.6, 0.25, 1) both;
   }
 
+  /* Only until it ends: a transform left on the page would anchor everything fixed in it to the
+     page instead of the screen. */
   html[data-intro] .app-intro {
-    animation: page-rise 900ms ease-out 400ms both;
+    animation: page-rise 900ms ease-out 400ms backwards;
   }
 
   @keyframes record-fade {
