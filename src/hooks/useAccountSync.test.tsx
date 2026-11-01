@@ -5,9 +5,9 @@ import { SavedWallsContext } from "./savedWallsContext";
 import { syncMarkerKey } from "./useAccountSync";
 import { useLayouts } from "./useLayouts";
 import { useHangHistory } from "./useHangHistory";
-import { layoutsKey, serializeLayouts, type SavedLayout } from "@/utils/layoutStore";
-import { hangHistoryKey } from "@/utils/hangHistory";
-import type { SavedEntry, SavedKind, SavedWallsClient } from "@/utils/savedWalls";
+import { layoutsKey, serializeLayouts, type SavedLayout } from "@/wall/layoutStore";
+import { hangHistoryKey } from "@/wall/hangHistory";
+import type { SavedEntry, SavedKind, SavedWallsClient } from "@/account/savedWalls";
 import type { SharedWallState } from "@/types";
 
 const wall: SharedWallState = {

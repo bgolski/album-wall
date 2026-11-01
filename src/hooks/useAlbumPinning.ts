@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Album } from "@/types";
-import { albumKey } from "@/utils/albumKey";
+import { albumKey } from "@/wall/albumKey";
 
 /**
  * Tracks pinned albums and exposes helpers for toggling pins within the displayed grid.

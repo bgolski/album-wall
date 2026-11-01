@@ -7,22 +7,22 @@ import {
   useSyncExternalStore,
   useTransition,
 } from "react";
-import { getUserCollection, validateDiscogsUsername } from "@/utils/discogs";
+import { getUserCollection, validateDiscogsUsername } from "@/collection/discogs";
 import { Album, SharedWallState } from "@/types";
-import { getSharedWallStateFromHash, orderAlbumsBySharedWall } from "@/utils/shareState";
+import { getSharedWallStateFromHash, orderAlbumsBySharedWall } from "@/share/shareState";
 import {
   loadLastUsername,
   loadSavedWall,
   saveLastUsername,
   loadFolderChoice,
   saveFolderChoice,
-} from "@/utils/savedWall";
-import { readCachedCollection, writeCachedCollection } from "@/utils/collectionCache";
+} from "@/wall/savedWall";
+import { readCachedCollection, writeCachedCollection } from "@/collection/collectionCache";
 import { useUndoHistory } from "@/hooks/useUndoHistory";
-import { DEMO_USERNAME, parseDemoCollection } from "@/utils/demoCollection";
+import { DEMO_USERNAME, parseDemoCollection } from "@/collection/demoCollection";
 import { getBasePath } from "@/utils/basePath";
-import { setAddressUser, userFromAddress } from "@/utils/loadAddress";
-import { DiscogsSession, proxyErrorCode } from "@/utils/discogsSignIn";
+import { setAddressUser, userFromAddress } from "@/collection/loadAddress";
+import { DiscogsSession, proxyErrorCode } from "@/account/discogsSignIn";
 import { localStore, sessionStore } from "@/utils/browserStorage";
 
 const VALIDATION_ERROR_MESSAGE = "Letters, numbers, dots, dashes and underscores only";

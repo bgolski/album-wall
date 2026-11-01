@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { Album, SharedWallState } from "@/types";
-import { diffWalls, type WallPosition } from "@/utils/diffWalls";
-import { coverSources } from "@/utils/coverSource";
-import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
-import { rehangSteps, type RehangStep } from "@/utils/rehangSteps";
-import { stepSentence } from "@/utils/rehangText";
+import { diffWalls, type WallPosition } from "@/wall/diffWalls";
+import { coverSources } from "@/covers/coverSource";
+import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/covers/imageProxy";
+import { rehangSteps, type RehangStep } from "@/wall/rehangSteps";
+import { stepSentence } from "@/wall/rehangText";
 
 interface RehangProps {
   /** The wall as it is now. */

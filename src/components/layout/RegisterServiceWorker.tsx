@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { getBasePath } from "@/utils/basePath";
-import { IMAGE_SERVICE } from "@/utils/imageProxy";
+import { IMAGE_SERVICE } from "@/covers/imageProxy";
 
 /**
  * Registers the service worker that keeps the page, its files, public collections and covers

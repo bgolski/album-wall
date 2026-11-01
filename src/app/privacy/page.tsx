@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DISCOGS_APPLICATIONS_URL } from "@/utils/discogsSignIn";
+import { DISCOGS_APPLICATIONS_URL } from "@/account/discogsSignIn";
 import { RemoveSavedWalls } from "@/components/account/RemoveSavedWalls";
 
 export const metadata: Metadata = {

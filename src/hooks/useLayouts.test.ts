@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { SharedWallState } from "@/types";
-import { layoutsKey } from "@/utils/layoutStore";
+import { layoutsKey } from "@/wall/layoutStore";
 import { useLayouts } from "./useLayouts";
 
 function fakeStorage(initial: Record<string, string> = {}) {

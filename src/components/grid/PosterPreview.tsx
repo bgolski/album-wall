@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import type { Album } from "@/types";
-import { coverSources } from "@/utils/coverSource";
-import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
-import type { ExportBackdrop } from "@/utils/exportFrame";
-import { drawRecordBackground } from "@/utils/recordBackground";
-import { POSTER_RADIUS, posterLayout, type PosterSize } from "@/utils/posterLayout";
+import { coverSources } from "@/covers/coverSource";
+import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/covers/imageProxy";
+import type { ExportBackdrop } from "@/export/exportFrame";
+import { drawRecordBackground } from "@/export/recordBackground";
+import { POSTER_RADIUS, posterLayout, type PosterSize } from "@/export/posterLayout";
 
 const COVER_SIZE = 64;
 // The background is drawn at this many pixels across the poster's short side.

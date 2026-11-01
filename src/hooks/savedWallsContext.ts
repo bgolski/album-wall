@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { SavedWallsClient } from "@/utils/savedWalls";
+import type { SavedWallsClient } from "@/account/savedWalls";
 
 /** The signed-in visitor's saved walls, or `null` when nobody is signed in. */
 export const SavedWallsContext = createContext<SavedWallsClient | null>(null);

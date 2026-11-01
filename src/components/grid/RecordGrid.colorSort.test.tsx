@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Album } from "@/types";
-import type { CoverColor } from "@/utils/colorBasics";
-import type { CoverProfile } from "@/utils/coverProfile";
+import type { CoverColor } from "@/color/colorBasics";
+import type { CoverProfile } from "@/color/coverProfile";
 import { RecordGrid } from "./RecordGrid";
 import { makeAlbums } from "@/test/fixtures";
 

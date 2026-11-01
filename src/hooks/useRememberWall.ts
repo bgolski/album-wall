@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { SharedWallState } from "@/types";
-import { saveWall } from "@/utils/savedWall";
+import { saveWall } from "@/wall/savedWall";
 import { localStore } from "@/utils/browserStorage";
 
 /**

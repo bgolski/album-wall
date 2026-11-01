@@ -5,9 +5,9 @@ import {
   groupPlan,
   type GroupMode,
   type GroupSettings,
-} from "@/components/arrange/groupModes";
+} from "@/arrange/groupModes";
 import type { GroupBuildSummary } from "@/components/arrange/GroupPanel";
-import { buildGroupWall } from "@/utils/buildGroupWall";
+import { buildGroupWall } from "@/arrange/buildGroupWall";
 
 /**
  * Everything the Artist, Genre and Year choices need: the groups in the collection and a build that

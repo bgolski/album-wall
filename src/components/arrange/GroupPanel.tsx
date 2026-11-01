@@ -1,4 +1,4 @@
-import type { GroupChoice, GroupMode, GroupSettings } from "./groupModes";
+import type { GroupChoice, GroupMode, GroupSettings } from "@/arrange/groupModes";
 
 /** What a build did, for the notice. */
 export interface GroupBuildSummary {

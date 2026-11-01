@@ -1,5 +1,5 @@
 import { Album } from "@/types";
-import { albumKey } from "@/utils/albumKey";
+import { albumKey } from "@/wall/albumKey";
 
 /**
  * Provides shuffle behavior that preserves pinned album positions in the displayed grid.

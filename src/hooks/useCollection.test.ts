@@ -1,18 +1,18 @@
 import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, renderHook, act, waitFor } from "@testing-library/react";
 import { collectionErrorKind, useCollection } from "./useCollection";
-import { DiscogsProxyError } from "@/utils/discogsSignIn";
+import { DiscogsProxyError } from "@/account/discogsSignIn";
 import type { Album } from "@/types";
-import { encodeSharedWallState } from "@/utils/shareState";
+import { encodeSharedWallState } from "@/share/shareState";
 
 // Mock the Discogs utility module.
-vi.mock("@/utils/discogs", () => {
+vi.mock("@/collection/discogs", () => {
   return {
     getUserCollection: vi.fn(),
     validateDiscogsUsername: vi.fn(),
   };
 });
-import * as discogs from "@/utils/discogs";
+import * as discogs from "@/collection/discogs";
 
 const mockDiscogs = discogs as unknown as {
   getUserCollection: ReturnType<typeof vi.fn>;

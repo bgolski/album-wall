@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { loadLastUsername } from "@/utils/savedWall";
+import { loadLastUsername } from "@/wall/savedWall";
 import { localStore } from "@/utils/browserStorage";
 
 const WELCOME_DISMISSED_KEY = "album-wall:welcome-dismissed";

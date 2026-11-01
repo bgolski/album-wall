@@ -1,9 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Album } from "@/types";
-import type { CoverColor } from "@/utils/colorBasics";
-import type { CoverProfile } from "@/utils/coverProfile";
-import { PROFILE_CACHE_KEY, saveProfileCache } from "@/utils/colorCache";
+import type { CoverColor } from "@/color/colorBasics";
+import type { CoverProfile } from "@/color/coverProfile";
+import { PROFILE_CACHE_KEY, saveProfileCache } from "@/color/colorCache";
 import { useCoverColors } from "./useCoverColors";
 
 const red: CoverColor = { l: 0.63, a: 0.22, b: 0.13 };

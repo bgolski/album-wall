@@ -6,8 +6,8 @@ import {
   type ExportBackdrop,
   type ExportBackground,
   type ExportPreset,
-} from "@/utils/exportFrame";
-import { POSTER_SIZES, type PosterSize } from "@/utils/posterService";
+} from "@/export/exportFrame";
+import { POSTER_SIZES, type PosterSize } from "@/export/posterService";
 import { ExportPreview, type ExportChoice } from "./ExportPreview";
 
 interface ExportPanelProps {

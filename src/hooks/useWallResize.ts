@@ -1,5 +1,5 @@
 import type { Album } from "@/types";
-import { albumKey } from "@/utils/albumKey";
+import { albumKey } from "@/wall/albumKey";
 
 /**
  * Changing the wall's size: albums that a smaller wall pushes back into the pool are unpinned

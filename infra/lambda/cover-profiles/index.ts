@@ -5,8 +5,8 @@ import {
   type AttributeValue,
 } from "@aws-sdk/client-dynamodb";
 import sharp from "sharp";
-import { packProfile, type PackedProfile } from "../../../src/utils/colorCache";
-import { coverProfile } from "../../../src/utils/coverProfile";
+import { packProfile, type PackedProfile } from "../../../src/color/colorCache";
+import { coverProfile } from "../../../src/color/coverProfile";
 import { allowedCoverUrl, fetchCover, resizeCover } from "../cover-image/index";
 import { type FunctionUrlEvent, jsonResponse, readBody } from "../shared/http";
 

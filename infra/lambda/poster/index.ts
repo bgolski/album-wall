@@ -7,7 +7,7 @@ import {
   POSTER_RADIUS,
   posterLayout as layoutFor,
   type PosterSize,
-} from "../../../src/utils/posterLayout";
+} from "../../../src/export/posterLayout";
 
 // Posters: the wall drawn at print resolution. Phones cannot draw a canvas this large, and a
 // poster should come out the same whatever device asked, so it is made here. Each one takes real

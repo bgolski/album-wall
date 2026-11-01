@@ -1,10 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildSharedWallState } from "@/utils/shareState";
+import { buildSharedWallState } from "@/share/shareState";
 import { useShareLinks } from "./useShareLinks";
 
 const requestShortLink = vi.fn();
-vi.mock("@/utils/shortLink", () => ({
+vi.mock("@/share/shortLink", () => ({
   requestShortLink: (...args: unknown[]) => requestShortLink(...args),
 }));
 const copyLink = vi.fn();

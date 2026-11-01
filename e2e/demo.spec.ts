@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { stubNetwork } from "./support";
-import { buildShareHash, decodeSharedWallState } from "../src/utils/shareState";
+import { buildShareHash, decodeSharedWallState } from "../src/share/shareState";
 
 const ids = (page: Page) =>
   page

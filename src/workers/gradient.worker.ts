@@ -1,4 +1,4 @@
-import { runJob, type GradientJob } from "@/utils/gradientWork";
+import { runJob, type GradientJob } from "@/arrange/gradientWork";
 
 // Builds gradient walls and finds suggestions away from the page's main thread.
 self.addEventListener("message", (event: MessageEvent<{ id: number; job: GradientJob }>) => {

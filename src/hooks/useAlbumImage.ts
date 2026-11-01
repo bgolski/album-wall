@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Album } from "@/types";
-import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
+import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/covers/imageProxy";
 import {
   ALL_COVER_SOURCES,
   coverSources,
   reportCoverLoad,
   subscribeToCoverSource,
-} from "@/utils/coverSource";
+} from "@/covers/coverSource";
 
 const startWithEverySource = () => ALL_COVER_SOURCES;
 

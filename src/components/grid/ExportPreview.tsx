@@ -1,9 +1,9 @@
 import Image from "next/image";
 import type { Album } from "@/types";
-import { coverSources } from "@/utils/coverSource";
-import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
-import { fitIntoFrame, type ExportBackdrop, type ExportPreset } from "@/utils/exportFrame";
-import type { PosterSize } from "@/utils/posterLayout";
+import { coverSources } from "@/covers/coverSource";
+import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/covers/imageProxy";
+import { fitIntoFrame, type ExportBackdrop, type ExportPreset } from "@/export/exportFrame";
+import type { PosterSize } from "@/export/posterLayout";
 import { PosterPreview } from "./PosterPreview";
 
 const PREVIEW_COVER_SIZE = 64;

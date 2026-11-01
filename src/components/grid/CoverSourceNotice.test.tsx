@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { reportCoverLoad, resetCoverSource } from "@/utils/coverSource";
+import { reportCoverLoad, resetCoverSource } from "@/covers/coverSource";
 import { CoverSourceNotice } from "./CoverSourceNotice";
 
 afterEach(() => {

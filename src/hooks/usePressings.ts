@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Album } from "@/types";
-import { albumKey } from "@/utils/albumKey";
-import { pressingKey, showEachAlbumOnce } from "@/utils/groupPressings";
+import { albumKey } from "@/wall/albumKey";
+import { pressingKey, showEachAlbumOnce } from "@/collection/groupPressings";
 import { localStore } from "@/utils/browserStorage";
 
 type PressingStorage = Pick<Storage, "getItem" | "setItem">;

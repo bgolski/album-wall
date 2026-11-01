@@ -11,8 +11,8 @@ import {
   savePending,
   saveSession,
   startDiscogsSignIn,
-} from "@/utils/discogsSignIn";
-import { clearCachedCollections } from "@/utils/collectionCache";
+} from "@/account/discogsSignIn";
+import { clearCachedCollections } from "@/collection/collectionCache";
 import { localStore, sessionStore } from "@/utils/browserStorage";
 
 const listeners = new Set<() => void>();

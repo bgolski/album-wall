@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Album } from "@/types";
-import { swapAlbums } from "@/utils/dragAndDropHelpers";
-import { dragId } from "@/utils/albumKey";
+import { swapAlbums } from "@/wall/dragAndDropHelpers";
+import { dragId } from "@/wall/albumKey";
 
 /**
  * Taps on covers: a tap opens the album's details, and "Move" in the details picks the album up

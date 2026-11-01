@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useAlbumImage } from "./useAlbumImage";
-import { getProxiedImageUrl, getServiceImageUrl } from "@/utils/imageProxy";
+import { getProxiedImageUrl, getServiceImageUrl } from "@/covers/imageProxy";
 import type { Album } from "@/types";
 
 const album: Album = {

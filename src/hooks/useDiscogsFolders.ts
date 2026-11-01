@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DiscogsFolder, DiscogsSession, getCollectionFolders } from "@/utils/discogsSignIn";
+import { DiscogsFolder, DiscogsSession, getCollectionFolders } from "@/account/discogsSignIn";
 
 /**
  * The signed-in visitor's collection folders, loaded once per sign-in.

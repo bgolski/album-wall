@@ -1,9 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { oklabToHex } from "@/utils/gradientTargets";
+import { oklabToHex } from "@/arrange/gradientTargets";
 import { InfoTip } from "@/components/ui/InfoTip";
 import { DirectionPicker } from "../arrange/DirectionPicker";
-import { wallTargets, type WallGradient } from "./buildGradientWall";
-import type { SuggestedGradient } from "./suggestGradients";
+import { wallTargets, type WallGradient } from "@/arrange/buildGradientWall";
+import type { SuggestedGradient } from "@/arrange/suggestGradients";
 
 /** What a build did, for the status line. */
 export interface GradientBuildSummary {

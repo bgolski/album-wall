@@ -7,7 +7,7 @@ import {
   parseHangs,
   serializeHangs,
   type HangRecord,
-} from "@/utils/hangHistory";
+} from "@/wall/hangHistory";
 import { useAccountSync } from "./useAccountSync";
 import { localStore } from "@/utils/browserStorage";
 

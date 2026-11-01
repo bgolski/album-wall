@@ -1,4 +1,4 @@
-import type { DiscogsFolder } from "@/utils/discogsSignIn";
+import type { DiscogsFolder } from "@/account/discogsSignIn";
 
 interface FolderPickerProps {
   /** Placement and width; the picker sits under the form or inside the collection bar. */

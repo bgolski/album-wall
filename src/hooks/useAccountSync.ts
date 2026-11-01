@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { SavedKind } from "@/utils/savedWalls";
+import type { SavedKind } from "@/account/savedWalls";
 import { useSavedWallsClient } from "./savedWallsContext";
 
 type MarkerStorage = Pick<Storage, "getItem" | "setItem">;

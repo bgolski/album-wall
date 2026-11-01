@@ -2,11 +2,11 @@ import { useRef, useState } from "react";
 import { AppHeader } from "../layout/AppHeader";
 import { useDismiss } from "@/hooks/useDismiss";
 import { UsernameForm } from "./UsernameForm";
-import { validateDiscogsUsername } from "@/utils/discogs";
+import { validateDiscogsUsername } from "@/collection/discogs";
 import { FolderPicker } from "./FolderPicker";
 import { OwnCollectionButton, SignInButton } from "../account/SignInButton";
 import type { DiscogsAccountProps } from "../account/types";
-import type { DiscogsFolder } from "@/utils/discogsSignIn";
+import type { DiscogsFolder } from "@/account/discogsSignIn";
 
 /** The collection on the wall, shown in one line in place of the form. */
 interface ShownCollection {

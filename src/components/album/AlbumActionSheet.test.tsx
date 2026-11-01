@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { hexToOklab } from "@/utils/gradientTargets";
+import { hexToOklab } from "@/arrange/gradientTargets";
 import { AlbumActionSheet } from "./AlbumActionSheet";
 
 afterEach(cleanup);

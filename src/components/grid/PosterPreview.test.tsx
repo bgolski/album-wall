@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { posterLayout } from "@/utils/posterLayout";
+import { posterLayout } from "@/export/posterLayout";
 import { PosterPreview } from "./PosterPreview";
 import { makeAlbums } from "@/test/fixtures";
 

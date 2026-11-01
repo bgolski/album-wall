@@ -1,9 +1,9 @@
 import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
-import { wallSize } from "@/utils/wallSize";
+import { wallSize } from "@/wall/wallSize";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
-import { albumKey, dragId } from "@/utils/albumKey";
-import { TILE_COVER_SIZE } from "@/utils/imageProxy";
+import { albumKey, dragId } from "@/wall/albumKey";
+import { TILE_COVER_SIZE } from "@/covers/imageProxy";
 
 interface WallDisplayProps {
   albums: Album[];

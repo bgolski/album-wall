@@ -14,8 +14,8 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { Album } from "@/types";
-import { swapAlbums } from "@/utils/dragAndDropHelpers";
-import { dragId } from "@/utils/albumKey";
+import { swapAlbums } from "@/wall/dragAndDropHelpers";
+import { dragId } from "@/wall/albumKey";
 
 /** What screen readers hear about moving albums by keyboard. */
 export const DRAG_INSTRUCTIONS = {

@@ -13,7 +13,7 @@ import {
   serializeLayouts,
   unionLayouts,
   type SavedLayout,
-} from "@/utils/layoutStore";
+} from "@/wall/layoutStore";
 import { useAccountSync } from "./useAccountSync";
 import { localStore } from "@/utils/browserStorage";
 

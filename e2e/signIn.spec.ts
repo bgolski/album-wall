@@ -4,7 +4,7 @@ import {
   buildShareHash,
   buildSharedWallState,
   encodeSharedWallState,
-} from "../src/utils/shareState";
+} from "../src/share/shareState";
 
 const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({

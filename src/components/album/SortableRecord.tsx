@@ -5,7 +5,7 @@ import { Album } from "@/types";
 import Image from "next/image";
 import { useAlbumImage } from "@/hooks/useAlbumImage";
 import { useNearViewport } from "@/hooks/useNearViewport";
-import { dragId, albumKey } from "@/utils/albumKey";
+import { dragId, albumKey } from "@/wall/albumKey";
 import { PinButton } from "./PinButton";
 import { AlbumLabels } from "./AlbumLabels";
 import { AlbumBorder } from "./AlbumBorder";

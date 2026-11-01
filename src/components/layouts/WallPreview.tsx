@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Album, SharedWallState } from "@/types";
-import { coverSources } from "@/utils/coverSource";
-import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/utils/imageProxy";
+import { coverSources } from "@/covers/coverSource";
+import { coverAddresses, DEFAULT_PLACEHOLDER_IMAGE } from "@/covers/imageProxy";
 
 const PREVIEW_COVER_SIZE = 96;
 

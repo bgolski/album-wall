@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Album } from "@/types";
 import { useAlbumImage } from "@/hooks/useAlbumImage";
-import { TILE_COVER_SIZE } from "@/utils/imageProxy";
+import { TILE_COVER_SIZE } from "@/covers/imageProxy";
 
 interface AlbumDragPreviewProps {
   album: Album;

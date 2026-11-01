@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Album } from "@/types";
 import { RecordGrid } from "./RecordGrid";
-import { decodeSharedWallState } from "@/utils/shareState";
+import { decodeSharedWallState } from "@/share/shareState";
 import { makeAlbums } from "@/test/fixtures";
 
 const albums = makeAlbums(40);

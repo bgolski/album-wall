@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useGridExport } from "./useGridExport";
 import { useToast } from "./useToast";
 import type { Album } from "@/types";
-import { drawWall } from "@/utils/drawWall";
-import { makeGuide } from "@/utils/guide";
-import { drawRecordBackground } from "@/utils/recordBackground";
-import { PosterError, requestPoster } from "@/utils/posterService";
+import { drawWall } from "@/export/drawWall";
+import { makeGuide } from "@/export/guide";
+import { drawRecordBackground } from "@/export/recordBackground";
+import { PosterError, requestPoster } from "@/export/posterService";
 
 // The export hook reports through the page's toast; read the two together.
 function useExportWithToast(username: string, albums: Album[]) {
@@ -14,17 +14,17 @@ function useExportWithToast(username: string, albums: Album[]) {
   return { ...useGridExport(username, albums, show), status: toast };
 }
 
-vi.mock("@/utils/drawWall", () => ({
+vi.mock("@/export/drawWall", () => ({
   drawWall: vi.fn(),
 }));
-vi.mock("@/utils/guide", () => ({
+vi.mock("@/export/guide", () => ({
   makeGuide: vi.fn(),
 }));
-vi.mock("@/utils/recordBackground", () => ({
+vi.mock("@/export/recordBackground", () => ({
   drawRecordBackground: vi.fn(),
 }));
-vi.mock("@/utils/posterService", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/utils/posterService")>()),
+vi.mock("@/export/posterService", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/export/posterService")>()),
   requestPoster: vi.fn(),
 }));
 

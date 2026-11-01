@@ -2,10 +2,10 @@ import { useRef } from "react";
 import type { SharedWallState } from "@/types";
 import type { ToastState } from "@/components/ui/Toast";
 import { isAbortError } from "@/utils/errors";
-import { buildSharedWallUrl, encodeSharedWallState } from "@/utils/shareState";
+import { buildSharedWallUrl, encodeSharedWallState } from "@/share/shareState";
 import { copyLink } from "@/utils/copyText";
-import { wallDisplayName } from "@/utils/demoCollection";
-import { requestShortLink } from "@/utils/shortLink";
+import { wallDisplayName } from "@/collection/demoCollection";
+import { requestShortLink } from "@/share/shortLink";
 
 /**
  * Sharing the wall as a link: through the device's share sheet, or copied to the clipboard (with

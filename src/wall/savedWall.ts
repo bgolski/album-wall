@@ -1,0 +1,142 @@
+import { encodeSharedWallState, decodeSharedWallState } from "@/share/shareState";
+import type { SharedWallState } from "@/types/index";
+
+/**
+ * Prefix for keys used to store wall state in storage.
+ */
+const WALL_KEY_PREFIX = "album-wall:wall:";
+/**
+ * Key used to persist the last entered username.
+ */
+const LAST_USERNAME_KEY = "album-wall:last-username";
+/**
+ * Prefix for keys used to store the visitor's folder choice.
+ */
+const FOLDER_KEY_PREFIX = "album-wall:folder:";
+
+/**
+ * Normalises a username by trimming whitespace and lower‑casing.
+ * @param name The username to normalise.
+ * @returns A lower‑cased, trimmed string.
+ */
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/**
+ * Generates the storage key for a given username.
+ * @returns The key used to store the wall for that user.
+ */
+export function savedWallKey(username: string): string {
+  return `${WALL_KEY_PREFIX}${normalizeName(username)}`;
+}
+
+/**
+ * Stores a wall state for the user that owns the state.
+ *
+ * @param storage Picked from the Web Storage API, only the `setItem` method is needed.
+ * @returns `true` if storage succeeded, `false` if it threw.
+ */
+export function saveWall(storage: Pick<Storage, "setItem">, state: SharedWallState): boolean {
+  try {
+    const key = savedWallKey(state.username);
+    storage.setItem(key, encodeSharedWallState(state));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Loads a wall state for the given username.
+ *
+ * @param storage Picked from the Web Storage API, only the `getItem` method is needed.
+ * @returns The decoded wall state, or `null` if none exists, is damaged, belongs to another user, or an error occurred.
+ */
+export function loadSavedWall(
+  storage: Pick<Storage, "getItem">,
+  username: string
+): SharedWallState | null {
+  try {
+    const key = savedWallKey(username);
+    const encoded = storage.getItem(key);
+    if (!encoded) return null;
+    const decoded = decodeSharedWallState(encoded);
+    if (!decoded) return null;
+    if (normalizeName(decoded.username) !== normalizeName(username)) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persists the last username that the user entered.
+ *
+ * @param storage Picked from the Web Storage API, only the `setItem` method is needed.
+ */
+export function saveLastUsername(storage: Pick<Storage, "setItem">, name: string): void {
+  try {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    storage.setItem(LAST_USERNAME_KEY, trimmed);
+  } catch {
+    /* ignore errors */
+  }
+}
+
+/**
+ * Retrieves the last entered username.
+ *
+ * @param storage Picked from the Web Storage API, only the `getItem` method is needed.
+ * @returns The trimmed username, or `null` if not set, blank, or an error occurred.
+ */
+export function loadLastUsername(storage: Pick<Storage, "getItem">): string | null {
+  try {
+    const val = storage.getItem(LAST_USERNAME_KEY);
+    if (!val) return null;
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    return trimmed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The folder the signed-in visitor chose last time on this device.
+ *
+ * @param storage The storage to read, or null.
+ * @returns The folder id, 0 (the whole collection) when none was chosen.
+ */
+export function loadFolderChoice(
+  storage: Pick<Storage, "getItem"> | null,
+  username: string
+): number {
+  try {
+    const value = Number(storage?.getItem(`${FOLDER_KEY_PREFIX}${username}`));
+    return Number.isInteger(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Remembers the signed-in visitor's folder choice.
+ *
+ * @param storage The storage to write, or null.
+ * @param folderId Folder id; 0 clears the stored choice.
+ */
+export function saveFolderChoice(
+  storage: Pick<Storage, "setItem" | "removeItem"> | null,
+  username: string,
+  folderId: number
+): void {
+  try {
+    const key = `${FOLDER_KEY_PREFIX}${username}`;
+    if (folderId) storage?.setItem(key, String(folderId));
+    else storage?.removeItem(key);
+  } catch {
+    // Not remembered.
+  }
+}

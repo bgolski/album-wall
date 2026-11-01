@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
-import { coverProfile, type CoverProfile } from "../src/utils/coverProfile";
-import { packProfile, type PackedProfile } from "../src/utils/colorCache";
-import { getProxiedImageUrl, TILE_COVER_SIZE } from "../src/utils/imageProxy";
+import { coverProfile, type CoverProfile } from "../src/color/coverProfile";
+import { packProfile, type PackedProfile } from "../src/color/colorCache";
+import { getProxiedImageUrl, TILE_COVER_SIZE } from "../src/covers/imageProxy";
 
 // Measures the profile of every demo cover (its most noticeable color, palette and region colors)
 // and stores it in public/demo/collection.json, so the

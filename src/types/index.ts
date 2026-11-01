@@ -1,5 +1,5 @@
-import type { CoverColor } from "@/utils/colorBasics";
-import type { CoverProfile } from "@/utils/coverProfile";
+import type { CoverColor } from "@/color/colorBasics";
+import type { CoverProfile } from "@/color/coverProfile";
 
 export interface Album {
   id: number;

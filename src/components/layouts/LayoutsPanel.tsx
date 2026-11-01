@@ -5,16 +5,16 @@ import type { MenuItem } from "../ui/MoreMenu";
 import type { Album, SharedWallState } from "@/types";
 import { useLayouts } from "@/hooks/useLayouts";
 import type { useHangHistory } from "@/hooks/useHangHistory";
-import { wallDisplayName } from "@/utils/demoCollection";
-import type { SavedLayout } from "@/utils/layoutStore";
-import { buildSharedWallUrl } from "@/utils/shareState";
-import { albumKey } from "@/utils/albumKey";
-import { formatDay, type HangRecord, wallOfHang, countMissing } from "@/utils/hangHistory";
+import { wallDisplayName } from "@/collection/demoCollection";
+import type { SavedLayout } from "@/wall/layoutStore";
+import { buildSharedWallUrl } from "@/share/shareState";
+import { albumKey } from "@/wall/albumKey";
+import { formatDay, type HangRecord, wallOfHang, countMissing } from "@/wall/hangHistory";
 import { Rehang } from "./Rehang";
-import { diffWalls } from "@/utils/diffWalls";
-import { rehangSteps } from "@/utils/rehangSteps";
+import { diffWalls } from "@/wall/diffWalls";
+import { rehangSteps } from "@/wall/rehangSteps";
 import { WallPreview } from "./WallPreview";
-import { sameWall } from "@/utils/sameWall";
+import { sameWall } from "@/wall/sameWall";
 import { copyLink } from "@/utils/copyText";
 
 interface LayoutsPanelProps {

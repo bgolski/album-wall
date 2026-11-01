@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
-import { ALL_COVER_SOURCES, coverSources, subscribeToCoverSource } from "@/utils/coverSource";
+import { ALL_COVER_SOURCES, coverSources, subscribeToCoverSource } from "@/covers/coverSource";
 
 const startWithEverySource = () => ALL_COVER_SOURCES;
 

@@ -6,8 +6,8 @@ import {
   getProxiedImageUrl,
   getServiceImageUrl,
   DEFAULT_PLACEHOLDER_IMAGE,
-} from "@/utils/imageProxy";
-import { coverSources, reportCoverLoad, resetCoverSource } from "@/utils/coverSource";
+} from "@/covers/imageProxy";
+import { coverSources, reportCoverLoad, resetCoverSource } from "@/covers/coverSource";
 
 afterEach(() => {
   act(() => resetCoverSource());

@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AlbumWallApp from "./AlbumWallApp";
-import { getUserCollection } from "@/utils/discogs";
-import { encodeSharedWallState } from "@/utils/shareState";
+import { getUserCollection } from "@/collection/discogs";
+import { encodeSharedWallState } from "@/share/shareState";
 import { Album } from "@/types";
 
-vi.mock("@/utils/discogs", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/utils/discogs")>()),
+vi.mock("@/collection/discogs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/collection/discogs")>()),
   getUserCollection: vi.fn(),
 }));
 

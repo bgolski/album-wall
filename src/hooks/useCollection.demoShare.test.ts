@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { useCollection } from "./useCollection";
-import { getUserCollection } from "@/utils/discogs";
-import { DEMO_USERNAME } from "@/utils/demoCollection";
-import { buildShareHash, buildSharedWallState, encodeSharedWallState } from "@/utils/shareState";
-import { loadSavedWall, savedWallKey } from "@/utils/savedWall";
+import { getUserCollection } from "@/collection/discogs";
+import { DEMO_USERNAME } from "@/collection/demoCollection";
+import { buildShareHash, buildSharedWallState, encodeSharedWallState } from "@/share/shareState";
+import { loadSavedWall, savedWallKey } from "@/wall/savedWall";
 
-vi.mock("@/utils/discogs", async () => ({
+vi.mock("@/collection/discogs", async () => ({
   getUserCollection: vi.fn(),
   validateDiscogsUsername: (name: string) => /^[a-zA-Z0-9._-]{2,}$/.test(name.trim()),
 }));

@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { Album } from "@/types";
-import type { CoverProfile } from "@/utils/coverProfile";
-import { oklabToHex } from "@/utils/gradientTargets";
-import { namedMainColors } from "@/utils/colorName";
-import { formatDay } from "@/utils/hangHistory";
+import type { CoverProfile } from "@/color/coverProfile";
+import { oklabToHex } from "@/arrange/gradientTargets";
+import { namedMainColors } from "@/color/colorName";
+import { formatDay } from "@/wall/hangHistory";
 import { useAlbumImage } from "@/hooks/useAlbumImage";
-import { TILE_COVER_SIZE } from "@/utils/imageProxy";
+import { TILE_COVER_SIZE } from "@/covers/imageProxy";
 
 interface AlbumActionSheetProps {
   album: Album;

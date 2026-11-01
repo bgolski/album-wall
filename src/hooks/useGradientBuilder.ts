@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Album } from "@/types";
-import type { SuggestedGradient } from "@/components/gradient/suggestGradients";
-import type { WallGradient } from "@/components/gradient/buildGradientWall";
+import type { SuggestedGradient } from "@/arrange/suggestGradients";
+import type { WallGradient } from "@/arrange/buildGradientWall";
 import { useCoverColors } from "@/hooks/useCoverColors";
-import { runGradientJob } from "@/utils/gradientJobs";
+import { runGradientJob } from "@/arrange/gradientJobs";
 
 /**
  * Everything Sort by Color's gradient builder needs: the covers' colors (measured across the whole

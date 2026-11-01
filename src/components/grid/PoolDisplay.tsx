@@ -2,9 +2,9 @@ import { useState } from "react";
 import { SortableContext, rectSwappingStrategy } from "@dnd-kit/sortable";
 import { SortableRecord } from "../album/SortableRecord";
 import { Album } from "@/types";
-import { filterAlbums } from "@/utils/filterAlbums";
-import { dragId } from "@/utils/albumKey";
-import { TILE_COVER_SIZE } from "@/utils/imageProxy";
+import { filterAlbums } from "@/collection/filterAlbums";
+import { dragId } from "@/wall/albumKey";
+import { TILE_COVER_SIZE } from "@/covers/imageProxy";
 import { PoolSearch } from "./PoolSearch";
 
 interface PoolDisplayProps {

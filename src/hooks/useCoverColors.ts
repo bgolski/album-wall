@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Album } from "@/types";
-import type { CoverColor } from "@/utils/colorBasics";
-import { albumKey } from "@/utils/albumKey";
-import type { CoverProfile } from "@/utils/coverProfile";
-import { loadProfileCache, saveProfileCache } from "@/utils/colorCache";
-import { readCoverProfile } from "@/utils/readCoverProfile";
+import type { CoverColor } from "@/color/colorBasics";
+import { albumKey } from "@/wall/albumKey";
+import type { CoverProfile } from "@/color/coverProfile";
+import { loadProfileCache, saveProfileCache } from "@/color/colorCache";
+import { readCoverProfile } from "@/color/readCoverProfile";
 import { localStore } from "@/utils/browserStorage";
-import { fetchSharedProfiles, profileServiceUrl } from "@/utils/sharedProfiles";
+import { fetchSharedProfiles, profileServiceUrl } from "@/color/sharedProfiles";
 
 interface CoverColorOptions {
   /** Measures one cover; replaceable for tests. */

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useDiscogsSignIn } from "./useDiscogsSignIn";
-import { PENDING_KEY, SESSION_KEY, saveSession } from "@/utils/discogsSignIn";
-import { writeCachedCollection } from "@/utils/collectionCache";
+import { PENDING_KEY, SESSION_KEY, saveSession } from "@/account/discogsSignIn";
+import { writeCachedCollection } from "@/collection/collectionCache";
 
 const SESSION = { username: "Collector", token: "accesstoken", secret: "accesssecret" };
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { SESSION_KEY, parseSession } from "@/utils/discogsSignIn";
-import { savedWallsClient } from "@/utils/savedWalls";
+import { SESSION_KEY, parseSession } from "@/account/discogsSignIn";
+import { savedWallsClient } from "@/account/savedWalls";
 import { localStore } from "@/utils/browserStorage";
 
 /**
