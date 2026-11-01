@@ -11,6 +11,8 @@ function watchDiscogs(page: Page) {
   const requests: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
+    // Short links come from the album wall service, which may share a host with the proxy.
+    if (url.pathname.endsWith("/share")) return;
     if (/discogs/i.test(url.hostname + url.search)) requests.push(request.url());
   });
   return requests;
